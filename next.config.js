@@ -4,7 +4,6 @@ const nextConfig = {
     domains: ['localhost', 'res.cloudinary.com', 'lh3.googleusercontent.com'],
   },
 
-  // Ignore all build-stopping errors
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -15,9 +14,6 @@ const nextConfig = {
   experimental: {
     missingSuspenseWithCSRBailout: false,
   },
-
-  // Never try to statically generate pages at build time
-  staticPageGenerationTimeout: 0,
 };
 
 module.exports = nextConfig;
