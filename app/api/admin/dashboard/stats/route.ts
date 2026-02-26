@@ -73,5 +73,3 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// Prevent static generation - this route needs to run at request time
-export const dynamic = 'force-dynamic'
