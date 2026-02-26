@@ -6,6 +6,8 @@ import { User, Package, Star, ShoppingBag, Calendar, Shield, ChevronRight } from
 import Link from 'next/link'
 import { Product } from '@prisma/client'
 
+export const dynamic = 'force-dynamic'
+
 async function refreshSellerStats(sellerId: string) {
   try {
     const reviews = await prisma.review.findMany({
@@ -37,11 +39,13 @@ const TRUST_CONFIG: Record<string, { label: string; color: string; bg: string; b
   BRONZE:   { label: 'Bronze',    color: 'text-orange-700',  bg: 'bg-orange-50',   border: 'border-orange-200'  },
 }
 
-export default async function SellerProfilePage({ params }: { params: { id: string } }) {
-  await refreshSellerStats(params.id)
+export default async function SellerProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+
+  await refreshSellerStats(id)
 
   const seller = await prisma.user.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       products: {
         where: { isActive: true },
@@ -62,12 +66,12 @@ export default async function SellerProfilePage({ params }: { params: { id: stri
   if (!seller) notFound()
 
   const totalProducts = await prisma.product.count({
-    where: { sellerId: params.id, isActive: true },
+    where: { sellerId: id, isActive: true },
   })
 
   const totalSales = await prisma.order.count({
     where: {
-      sellerId: params.id,
+      sellerId: id,
       status: { in: ['DELIVERED', 'COMPLETED'] },
     },
   })
@@ -212,7 +216,7 @@ export default async function SellerProfilePage({ params }: { params: { id: stri
                 </div>
                 {totalProducts > 8 && (
                   <Link
-                    href={`/seller/${params.id}/products`}
+                    href={`/seller/${id}/products`}
                     className="text-sm text-bata-primary font-semibold hover:underline flex items-center gap-1"
                   >
                     View all <ChevronRight className="w-4 h-4" />
