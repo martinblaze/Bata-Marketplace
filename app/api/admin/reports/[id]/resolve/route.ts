@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // app/api/admin/reports/[id]/resolve/route.ts - WITH NOTIFICATIONS
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'

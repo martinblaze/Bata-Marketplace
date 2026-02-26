@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // app/api/reports/route.ts - WITH NOTIFICATIONS
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth/auth'

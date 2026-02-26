@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // app/api/disputes/route.ts - WITH NOTIFICATIONS
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'

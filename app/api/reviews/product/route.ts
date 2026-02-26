@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // app/api/reviews/product/route.ts - FULLY CORRECTED
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';

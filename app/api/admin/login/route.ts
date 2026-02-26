@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // app/api/admin/login/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'

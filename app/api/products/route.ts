@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // app/api/products/route.ts - COMPLETE FIXED VERSION
 
 import { NextRequest, NextResponse } from 'next/server'

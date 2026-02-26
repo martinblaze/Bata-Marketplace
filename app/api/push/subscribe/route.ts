@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // app/api/push/subscribe/route.ts
 // Handles saving and deleting push subscriptions
 

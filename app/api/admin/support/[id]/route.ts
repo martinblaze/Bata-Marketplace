@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // app/api/admin/support/[id]/route.ts  ← NOTE: [id] subfolder
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
