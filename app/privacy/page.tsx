@@ -1,0 +1,314 @@
+import Link from 'next/link'
+import { Shield, Eye, Lock, Database, UserCheck, Bell } from 'lucide-react'
+
+export default function PrivacyPage() {
+  const lastUpdated = "January 2026"
+
+  const sections = [
+    {
+      icon: Database,
+      title: "Information We Collect",
+      content: [
+        {
+          subtitle: "Account Information",
+          text: "When you create a BATA account, we collect your name, email phone number, and location address like your hostel information for verification purposes."
+        },
+        {
+          subtitle: "Transaction Data",
+          text: "We collect information about your purchases, sales, and delivery details to facilitate transactions and improve our services."
+        },
+        {
+          subtitle: "Usage Information",
+          text: "We collect data about how you use BATA, including pages visited, products viewed, and interactions with other users."
+        }
+      ]
+    },
+    {
+      icon: Eye,
+      title: "How We Use Your Information",
+      content: [
+        {
+          subtitle: "Service Provision",
+          text: "We use your information to operate the marketplace, process transactions, facilitate deliveries, and provide customer support."
+        },
+        {
+          subtitle: "Safety & Security",
+          text: "Your data helps us verify student identity, prevent fraud, resolve disputes, and maintain a safe trading environment."
+        },
+        {
+          subtitle: "Communication",
+          text: "We use your contact information to send order updates, important notices, and promotional messages (which you can opt out of)."
+        },
+        {
+          subtitle: "Improvement",
+          text: "We analyze usage data to improve our platform, develop new features, and enhance user experience."
+        }
+      ]
+    },
+    {
+      icon: UserCheck,
+      title: "Information Sharing",
+      content: [
+        {
+          subtitle: "Between Users",
+          text: "When you make a transaction, we share necessary information (name, phone, delivery address) between buyer and seller to complete the order."
+        },
+        {
+          subtitle: "With Riders",
+          text: "Delivery riders receive delivery addresses and phone numbers to complete deliveries."
+        },
+        {
+          subtitle: "Service Providers",
+          text: "We work with trusted third-party services (payment processors, SMS providers) who help us operate BATA. They only access data necessary for their services."
+        },
+        {
+          subtitle: "Legal Requirements",
+          text: "We may disclose information if required by law or to protect the rights, property, or safety of BATA, our users, or others."
+        }
+      ]
+    },
+    {
+      icon: Lock,
+      title: "Data Security",
+      content: [
+        {
+          subtitle: "Protection Measures",
+          text: "We use industry-standard encryption, secure servers, and regular security audits to protect your data from unauthorized access."
+        },
+        {
+          subtitle: "Payment Security",
+          text: "All payments are processed through secure, PCI-compliant payment gateways. We never store your full payment card details."
+        },
+        {
+          subtitle: "Access Controls",
+          text: "Our team members only have access to user data when necessary for their role, and all access is logged and monitored."
+        }
+      ]
+    },
+    {
+      icon: Bell,
+      title: "Your Rights",
+      content: [
+        {
+          subtitle: "Access & Update",
+          text: "You can view and update your personal information anytime through your account settings."
+        },
+        {
+          subtitle: "Data Deletion",
+          text: "You can request deletion of your account and personal data by contacting us at support@bata.com. Some data may be retained for legal obligations."
+        },
+        {
+          subtitle: "Opt-Out",
+          text: "You can opt out of promotional emails and notifications through your account settings. Transactional messages cannot be disabled."
+        },
+        {
+          subtitle: "Data Portability",
+          text: "You can request a copy of your data in a portable format by contacting our support team."
+        }
+      ]
+    }
+  ]
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-bata-primary to-bata-dark text-white py-20 px-4">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center space-x-2 bg-white/20 px-4 py-2 rounded-full mb-6">
+            <Shield className="w-5 h-5" />
+            <span className="font-semibold">Privacy Policy</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold mb-6">
+            Your Privacy Matters to Us
+          </h1>
+          <p className="text-xl text-white/90 max-w-2xl mx-auto">
+            We're committed to protecting your personal information and being transparent 
+            about how we collect, use, and share your data.
+          </p>
+          <p className="text-sm text-white/75 mt-6">
+            Last Updated: {lastUpdated}
+          </p>
+        </div>
+      </section>
+
+      {/* Introduction */}
+      <section className="py-12 px-4 bg-white">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-xl">
+            <p className="text-gray-700 leading-relaxed">
+              <strong className="text-blue-900">Welcome to BATA's Privacy Policy.</strong> This policy explains how 
+              BATA ("we," "us," or "our") collects, uses, shares, and protects your personal information when you 
+              use our student marketplace platform. By using BATA, you agree to the practices described in this policy.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Content Sections */}
+      <section className="py-12 px-4">
+        <div className="max-w-4xl mx-auto space-y-12">
+          {sections.map((section, index) => (
+            <div key={index} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden">
+              <div className="bg-gradient-to-r from-bata-light to-white p-6 border-b border-gray-100">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-bata-primary to-bata-dark rounded-xl flex items-center justify-center flex-shrink-0">
+                    <section.icon className="w-6 h-6 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {section.title}
+                  </h2>
+                </div>
+              </div>
+              <div className="p-6 space-y-6">
+                {section.content.map((item, itemIndex) => (
+                  <div key={itemIndex} className="space-y-2">
+                    <h3 className="text-lg font-bold text-gray-900">
+                      {item.subtitle}
+                    </h3>
+                    <p className="text-gray-600 leading-relaxed pl-4 border-l-2 border-bata-primary/20">
+                      {item.text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Data Retention */}
+      <section className="py-12 px-4 bg-white">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-gradient-to-br from-gray-50 to-white p-8 rounded-2xl border border-gray-100">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              📅 Data Retention
+            </h2>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              We retain your personal information for as long as necessary to provide our services and comply 
+              with legal obligations. Specifically:
+            </p>
+            <ul className="space-y-2 text-gray-700">
+              <li className="flex items-start gap-2">
+                <span className="text-green-500 mt-1">✓</span>
+                <span><strong>Active accounts:</strong> Data is retained while your account is active</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-500 mt-1">✓</span>
+                <span><strong>Deleted accounts:</strong> Most data is deleted within 30 days of account deletion</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-500 mt-1">✓</span>
+                <span><strong>Transaction records:</strong> Retained for 7 years for legal and accounting purposes</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-500 mt-1">✓</span>
+                <span><strong>Dispute records:</strong> Retained for 2 years after dispute resolution</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Cookies */}
+      <section className="py-12 px-4 bg-gradient-to-br from-gray-50 to-white">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              🍪 Cookies & Tracking
+            </h2>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              BATA uses cookies and similar technologies to improve your experience, analyze usage, and personalize content.
+            </p>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="bg-gray-50 p-4 rounded-xl">
+                <h4 className="font-bold text-gray-900 mb-2">Essential Cookies</h4>
+                <p className="text-sm text-gray-600">Required for the platform to function (login, cart, security)</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-xl">
+                <h4 className="font-bold text-gray-900 mb-2">Analytics Cookies</h4>
+                <p className="text-sm text-gray-600">Help us understand how users interact with BATA</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 mt-4">
+              You can manage cookie preferences through your browser settings.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Third-Party Links */}
+      <section className="py-12 px-4 bg-white">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-yellow-50 border-l-4 border-yellow-500 p-6 rounded-r-xl">
+            <h3 className="text-lg font-bold text-yellow-900 mb-2">
+              ⚠️ Third-Party Links
+            </h3>
+            <p className="text-gray-700">
+              BATA may contain links to external websites. We are not responsible for the privacy practices 
+              of these third-party sites. We encourage you to read their privacy policies.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Children's Privacy */}
+      <section className="py-12 px-4 bg-gradient-to-br from-gray-50 to-white">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              👶 Children's Privacy
+            </h2>
+            <p className="text-gray-700 leading-relaxed">
+              BATA is intended for UNIZIK students aged 18 and above. We do not knowingly collect 
+              information from individuals under 18. If we discover we have collected data from someone 
+              under 18, we will delete it promptly.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Changes to Policy */}
+      <section className="py-12 px-4 bg-white">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-purple-50 border-l-4 border-purple-500 p-6 rounded-r-xl">
+            <h3 className="text-lg font-bold text-purple-900 mb-2">
+              📝 Changes to This Policy
+            </h3>
+            <p className="text-gray-700">
+              We may update this Privacy Policy from time to time. When we make significant changes, 
+              we'll notify you via email or through a notice on the platform. Continued use of BATA 
+              after changes constitutes acceptance of the updated policy.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section className="py-16 px-4 bg-gradient-to-br from-bata-primary to-bata-dark text-white">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl font-bold mb-4">
+            Questions About Your Privacy?
+          </h2>
+          <p className="text-xl text-white/90 mb-8">
+            If you have questions or concerns about this Privacy Policy or how we handle your data, 
+            we're here to help.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a 
+              href="mailto:support@bata.com"
+              className="bg-white text-bata-primary hover:bg-gray-100 px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl"
+            >
+              Email: support@bata.com
+            </a>
+            <Link 
+              href="/contact"
+              className="bg-bata-dark/50 hover:bg-bata-dark text-white border-2 border-white px-8 py-4 rounded-xl font-bold text-lg transition-all"
+            >
+              Contact Support
+            </Link>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}

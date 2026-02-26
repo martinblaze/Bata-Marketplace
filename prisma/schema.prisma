@@ -1,0 +1,709 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  BUYER
+  SELLER
+  RIDER
+  ADMIN
+}
+
+enum TrustLevel {
+  BRONZE
+  SILVER
+  GOLD
+  VERIFIED
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  RIDER_ASSIGNED
+  PICKED_UP
+  ON_THE_WAY
+  DELIVERED
+  COMPLETED
+  DISPUTED
+  CANCELLED
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+  ESCROW
+  WITHDRAWAL
+}
+
+enum ReviewType {
+  SELLER
+  RIDER
+}
+
+enum ReportType {
+  PRODUCT
+  SELLER
+  RIDER
+  BUYER
+}
+
+enum ReportReason {
+  FAKE_PRODUCT
+  WRONG_DESCRIPTION
+  POOR_QUALITY
+  DELAYED_DELIVERY
+  RUDE_BEHAVIOR
+  SCAM
+  INAPPROPRIATE_CONTENT
+  PAYMENT_ISSUE
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED_BUYER_FAVOR
+  RESOLVED_SELLER_FAVOR
+  RESOLVED_COMPROMISE
+  DISMISSED
+}
+
+enum PenaltyAction {
+  WARNING
+  TEMP_BAN_1DAY
+  TEMP_BAN_3DAYS
+  TEMP_BAN_7DAYS
+  TEMP_BAN_30DAYS
+  PERMANENT_BAN
+  TRUST_LEVEL_DOWNGRADE
+}
+
+enum NotificationType {
+  ORDER_PLACED
+  ORDER_PROCESSING
+  RIDER_ASSIGNED
+  ORDER_PICKED_UP
+  ORDER_ON_THE_WAY
+  ORDER_DELIVERED
+  ORDER_COMPLETED
+  ORDER_DISPUTED
+  ORDER_CANCELLED
+
+  PRODUCT_REVIEWED
+  SELLER_REVIEWED
+  RIDER_REVIEWED
+
+  DISPUTE_OPENED
+  DISPUTE_MESSAGE
+  DISPUTE_RESOLVED
+
+  REPORT_SUBMITTED
+  REPORT_RESOLVED
+
+  PENALTY_ISSUED
+  ACCOUNT_SUSPENDED
+  ACCOUNT_UNSUSPENDED
+
+  WITHDRAWAL_PROCESSED
+  PAYMENT_RECEIVED
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  CLOSED
+}
+
+enum SupportTicketCategory {
+  PAYMENT_ISSUE
+  ORDER_PROBLEM
+  ACCOUNT_ISSUE
+  DISPUTE_HELP
+  SELLER_ISSUE
+  RIDER_ISSUE
+  BUG_REPORT
+  OTHER
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  WALLET
+  ESCROW
+}
+
+model User {
+  id                 String      @id @default(cuid())
+  phone              String      @unique
+  email              String?     @unique
+  password           String
+  matricNumber       String?     @unique
+  name               String
+  profilePhoto       String?
+  role               UserRole    @default(BUYER)
+
+  isSellerMode       Boolean     @default(true)
+
+  hostelName         String?
+  roomNumber         String?
+  landmark           String?
+
+  bio                String?
+
+  // Trust level and ratings
+  trustLevel         TrustLevel  @default(BRONZE)
+  avgRating          Float       @default(0)
+  totalReviews       Int         @default(0)
+  completedOrders    Int         @default(0)
+
+  // Penalty & suspension
+  penaltyPoints      Int         @default(0)
+  isSuspended        Boolean     @default(false)
+  suspendedUntil     DateTime?
+  suspensionReason   String?
+
+  faceDescriptor     Json?
+
+  // Dispute & Safety fields
+  warningCount       Int         @default(0)
+  lastWarningAt      DateTime?
+
+  // Wallet
+  pendingBalance     Float       @default(0)
+  availableBalance   Float       @default(0)
+
+  // Soft delete
+  isDeleted          Boolean     @default(false)
+  deletedAt          DateTime?
+
+  // Relations
+  products           Product[]
+  orders             Order[]     @relation("BuyerOrders")
+  sellerOrders       Order[]     @relation("SellerOrders")
+  riderDeliveries    Order[]     @relation("RiderDeliveries")
+
+  reviewsGiven       Review[]    @relation("UserReviewsGiven")
+  reviewsReceived    Review[]    @relation("UserReviewsReceived")
+
+  productReviewsGiven ProductReview[] @relation("ProductReviewsGiven")
+
+  reportsSubmitted   Report[]    @relation("ReportsSubmitted")
+  reportsReceived    Report[]    @relation("ReportsReceived")
+  disputesAsBuyer    Dispute[]   @relation("BuyerDisputes")
+  disputesAsSeller   Dispute[]   @relation("SellerDisputes")
+  penaltiesReceived  Penalty[]   @relation("UserPenalties")
+
+  resolvedDisputes   Dispute[]   @relation("ResolvedBy")
+  resolvedReports    Report[]    @relation("ResolvedBy")
+  issuedPenalties    Penalty[]   @relation("IssuedBy")
+
+  notifications      Notification[]
+  pushSubscriptions  PushSubscription[]
+  transactions       Transaction[]
+  supportTickets     SupportTicket[]
+  withdrawalRequests WithdrawalRequest[]
+  cart               Cart?
+  auditLogs          AuditLog[]
+
+  isRiderVerified    Boolean     @default(false)
+  riderIdDocument    String?
+  isAvailable        Boolean     @default(true)
+
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  @@index([role])
+  @@index([trustLevel])
+  @@index([isSuspended])
+  @@index([isDeleted])
+  @@index([createdAt])
+}
+
+model Product {
+  id                String      @id @default(cuid())
+  name              String
+  description       String
+  price             Float
+  images            String[]
+  category          String
+  quantity          Int         @default(1)
+
+  hostelName        String
+  roomNumber        String
+  landmark          String
+
+  sellerId          String
+  seller            User        @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  isActive          Boolean     @default(true)
+  viewCount         Int         @default(0)
+
+  avgRating         Float       @default(0)
+  totalReviews      Int         @default(0)
+
+  isDeleted         Boolean     @default(false)
+  deletedAt         DateTime?
+
+  orders            Order[]
+  reviews           ProductReview[]
+  reports           Report[]
+  cartItems         CartItem[]
+
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([sellerId])
+  @@index([category])
+  @@index([isActive])
+  @@index([isDeleted])
+  @@index([createdAt])
+}
+
+model Order {
+  id                 String      @id @default(cuid())
+  orderNumber        String      @unique
+
+  buyerId            String
+  buyer              User        @relation("BuyerOrders", fields: [buyerId], references: [id])
+
+  sellerId           String
+  seller             User        @relation("SellerOrders", fields: [sellerId], references: [id])
+
+  productId          String
+  product            Product     @relation(fields: [productId], references: [id])
+
+  riderId            String?
+  rider              User?       @relation("RiderDeliveries", fields: [riderId], references: [id])
+
+  productPrice       Float
+  deliveryFee        Float
+  totalAmount        Float
+  platformCommission Float       @default(0)
+  quantity           Int         @default(1)
+
+  deliveryHostel     String
+  deliveryRoom       String
+  deliveryLandmark   String
+  deliveryPhone      String
+
+  status             OrderStatus @default(PENDING)
+
+  orderNote          String?
+
+  orderedAt          DateTime    @default(now())
+  riderAssignedAt    DateTime?
+  pickedUpAt         DateTime?
+  deliveredAt        DateTime?
+  completedAt        DateTime?
+
+  // ✅ FIXED: plain back-reference only — no fields/references here
+  // The FK lives on Payment.orderId, so Payment owns the relation
+  payment            Payment?
+
+  isPaid             Boolean     @default(false)
+
+  isDisputed         Boolean     @default(false)
+  disputeReason      String?
+
+  reviews            Review[]
+  productReviews     ProductReview[]
+  reports            Report[]
+  dispute            Dispute?
+
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([riderId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([orderedAt])
+  @@index([sellerId, status])
+  @@index([riderId, status])
+}
+
+model Review {
+  id                String      @id @default(cuid())
+  rating            Int
+  comment           String?
+
+  orderId           String
+  order             Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  reviewerId        String
+  reviewer          User        @relation("UserReviewsGiven", fields: [reviewerId], references: [id])
+
+  revieweeId        String
+  reviewee          User        @relation("UserReviewsReceived", fields: [revieweeId], references: [id])
+
+  type              ReviewType  @default(SELLER)
+
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([orderId])
+  @@index([revieweeId])
+  @@index([reviewerId])
+  @@unique([orderId, type, reviewerId])
+}
+
+model ProductReview {
+  id                String      @id @default(cuid())
+  rating            Int
+  comment           String
+
+  orderId           String
+  order             Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId         String
+  product           Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  reviewerId        String
+  reviewer          User        @relation("ProductReviewsGiven", fields: [reviewerId], references: [id])
+
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([reviewerId])
+  @@unique([orderId, productId, reviewerId])
+}
+
+model OTP {
+  id        String   @id @default(cuid())
+  phone     String?
+  email     String?
+  code      String
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([phone])
+  @@index([email])
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+
+  // ✅ FIXED: Payment owns the FK — this is the only side with fields/references
+  orderId   String   @unique
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  amount    Float
+  method    PaymentMethod
+  status    PaymentStatus @default(PENDING)
+
+  transactionId   String?
+  gatewayResponse Json?
+
+  paidAt       DateTime?
+  refundedAt   DateTime?
+  refundAmount Float?
+  refundReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Transaction {
+  id     String          @id @default(cuid())
+  userId String
+  user   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type          TransactionType
+  amount        Float
+  description   String
+  reference     String?
+
+  balanceBefore Float
+  balanceAfter  Float
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model WithdrawalRequest {
+  id      String           @id @default(cuid())
+  userId  String
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  amount      Float
+  bankDetails Json
+  status      WithdrawalStatus @default(PENDING)
+  adminNotes  String?
+  processedAt DateTime?
+  processedBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Report {
+  id   String     @id @default(cuid())
+  type ReportType
+  reason      ReportReason
+  description String
+  evidence    String[]
+
+  reporterId String
+  reporter   User   @relation("ReportsSubmitted", fields: [reporterId], references: [id])
+
+  reportedUserId    String?
+  reportedUser      User?    @relation("ReportsReceived", fields: [reportedUserId], references: [id])
+
+  reportedProductId String?
+  reportedProduct   Product? @relation(fields: [reportedProductId], references: [id])
+
+  reportedOrderId String?
+  reportedOrder   Order?  @relation(fields: [reportedOrderId], references: [id])
+
+  status     ReportStatus @default(PENDING)
+  adminNotes String?
+  resolvedAt DateTime?
+  resolvedBy String?
+
+  disputeId String?  @unique
+  dispute   Dispute? @relation(fields: [disputeId], references: [id])
+
+  resolver User? @relation("ResolvedBy", fields: [resolvedBy], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([reporterId])
+  @@index([reportedUserId])
+  @@index([reportedProductId])
+  @@index([status])
+}
+
+model Dispute {
+  id      String @id @default(cuid())
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  buyerId  String
+  buyer    User   @relation("BuyerDisputes", fields: [buyerId], references: [id])
+
+  sellerId String
+  seller   User   @relation("SellerDisputes", fields: [sellerId], references: [id])
+
+  reason               String
+  resolutionPreference String?
+  pickupAddress        Json?
+  buyerEvidence        String[]
+  sellerEvidence       String[]
+
+  status DisputeStatus @default(OPEN)
+
+  resolution   String?
+  refundAmount Float?
+  resolvedAt   DateTime?
+  resolvedBy   String?
+
+  messages DisputeMessage[]
+  report   Report?
+
+  resolver User? @relation("ResolvedBy", fields: [resolvedBy], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([status])
+}
+
+model DisputeMessage {
+  id        String  @id @default(cuid())
+  disputeId String
+  dispute   Dispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+
+  senderId   String
+  senderType String
+
+  message     String
+  attachments String[]
+
+  createdAt DateTime @default(now())
+
+  @@index([disputeId])
+}
+
+model Penalty {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation("UserPenalties", fields: [userId], references: [id])
+
+  action      PenaltyAction
+  reason      String
+  pointsAdded Int
+
+  reportId  String?
+  disputeId String?
+
+  bannedUntil DateTime?
+
+  issuedBy String?
+  issuer   User?   @relation("IssuedBy", fields: [issuedBy], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type    NotificationType
+  title   String
+  message String
+
+  orderId   String?
+  productId String?
+  disputeId String?
+  reportId  String?
+  reviewId  String?
+
+  metadata Json?
+
+  isRead Boolean   @default(false)
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([type])
+}
+
+model PushSubscription {
+  id       String @id @default(cuid())
+  endpoint String @unique
+  p256dh   String
+  auth     String
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model SupportTicket {
+  id       String                @id @default(cuid())
+  name     String
+  email    String
+  message  String
+  category SupportTicketCategory @default(OTHER)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  status     SupportTicketStatus @default(OPEN)
+  adminNotes String?
+  resolvedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Cart {
+  id     String     @id @default(cuid())
+  userId String     @unique
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items  CartItem[]
+
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model CartItem {
+  id        String  @id @default(cuid())
+  cartId    String
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int     @default(1)
+
+  addedAt DateTime @default(now())
+
+  @@unique([cartId, productId])
+  @@index([cartId])
+  @@index([productId])
+}
+
+model AuditLog {
+  id     String @id @default(cuid())
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  action     String
+  entityType String
+  entityId   String
+  oldValue   Json?
+  newValue   Json?
+  ipAddress  String?
+  userAgent  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@index([action])
+}
