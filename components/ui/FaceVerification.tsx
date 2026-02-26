@@ -425,8 +425,8 @@ export default function FaceVerification({
             <div
               className="relative rounded-full border-4 transition-all duration-300 flex items-center justify-center overflow-hidden"
               style={{
-                width: '55%',
-                height: '75%',
+                width: '65%',
+                height: '85%',
                 borderColor: faceDetected
                   ? (step === 'complete' ? '#10b981' : currentConfig.color)
                   : 'rgba(255,255,255,0.5)',
