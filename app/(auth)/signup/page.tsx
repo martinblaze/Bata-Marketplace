@@ -82,7 +82,6 @@ export default function SignupPage() {
     }
   }
 
-  // ── UPDATED: now verifies OTP against server before proceeding ──
   const handleVerifyOTP = async () => {
     const code = otp.join('')
     if (code.length !== 6) {
@@ -105,7 +104,6 @@ export default function SignupPage() {
         setStep(3)
       } else {
         setError(data.error || 'Invalid or expired code. Please try again.')
-        // Clear OTP fields so they can re-enter
         setOtp(['', '', '', '', '', ''])
         document.getElementById('otp-0')?.focus()
       }
@@ -174,7 +172,6 @@ export default function SignupPage() {
     setError('')
 
     try {
-      // Use localStorage directly — simpler and avoids state timing issues
       const token = localStorage.getItem('token')
       const response = await fetch('/api/auth/save-face', {
         method: 'POST',
@@ -232,7 +229,7 @@ export default function SignupPage() {
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
 
-          {/* ── Step 1: Name + Phone + Email ── */}
+          {/* Step 1 */}
           {step === 1 && (
             <form onSubmit={handleSendOTP} className="space-y-5">
               <div>
@@ -319,7 +316,7 @@ export default function SignupPage() {
             </form>
           )}
 
-          {/* ── Step 2: OTP — now verified against server ── */}
+          {/* Step 2 */}
           {step === 2 && (
             <div className="space-y-6">
               <div className="text-center">
@@ -379,16 +376,10 @@ export default function SignupPage() {
                   </button>
                 </div>
               </div>
-
-              {!process.env.NEXT_PUBLIC_PRODUCTION && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                  <p className="text-xs text-yellow-800 text-center">Dev mode: Check terminal for OTP code</p>
-                </div>
-              )}
             </div>
           )}
 
-          {/* ── Step 3: Password + T&C ── */}
+          {/* Step 3 */}
           {step === 3 && (
             <form onSubmit={handleSetPassword} className="space-y-5">
               <div>
@@ -494,15 +485,11 @@ export default function SignupPage() {
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-5 h-5 bg-indigo-200 rounded-full flex items-center justify-center text-indigo-800 font-bold flex-shrink-0">2</span>
-                      Turn your head left, then right
+                      Turn your head right
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-5 h-5 bg-indigo-200 rounded-full flex items-center justify-center text-indigo-800 font-bold flex-shrink-0">3</span>
-                      Blink your eyes slowly
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-5 h-5 bg-indigo-200 rounded-full flex items-center justify-center text-indigo-800 font-bold flex-shrink-0">4</span>
-                      Open your mouth wide
+                      Turn your head left
                     </li>
                   </ul>
                 </div>
@@ -557,7 +544,7 @@ export default function SignupPage() {
         <FaceVerification
           mode="register"
           title="🔐 Register Your Face"
-          subtitle="Complete all 4 liveness checks to secure your account"
+          subtitle="Complete the 3 checks to secure your account"
           onSuccess={handleFaceScanSuccess}
           onCancel={() => setShowFaceScan(false)}
         />

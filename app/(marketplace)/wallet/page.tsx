@@ -157,7 +157,6 @@ export default function WalletPage() {
     amount: number; accountNumber: string; accountName: string; bankCode: string
   } | null>(null)
 
-  // ─── Face ID Registration flow (for users who haven't registered yet) ───
   const [showFaceIdRequired, setShowFaceIdRequired] = useState(false)
   const [showFaceRegister, setShowFaceRegister] = useState(false)
   const [faceRegisterLoading, setFaceRegisterLoading] = useState(false)
@@ -246,9 +245,6 @@ export default function WalletPage() {
       })
       const d = await r.json()
 
-      // ─────────────────────────────────────────────────────────────
-      // ✅ FACE ID REQUIRED — show registration modal instead of alert
-      // ─────────────────────────────────────────────────────────────
       if (!r.ok && d.error === 'FACE_ID_REQUIRED') {
         setShowWithdrawModal(false)
         setPendingWithdrawal(null)
@@ -271,7 +267,6 @@ export default function WalletPage() {
     finally { setWithdrawing(false) }
   }
 
-  // ─── Handle face registration from wallet ───────────────────────────────
   const handleFaceRegisterSuccess = async (descriptor?: Float32Array) => {
     setShowFaceRegister(false)
     if (!descriptor) {
@@ -328,7 +323,7 @@ export default function WalletPage() {
   return (
     <div className="min-h-screen bg-[#f7f8fa]">
 
-      {/* ── Top bar ── */}
+      {/* Top bar */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div>
@@ -353,10 +348,9 @@ export default function WalletPage() {
 
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
 
-        {/* ── Balance summary row ── */}
+        {/* Balance cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
-          {/* Available */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Available Balance</p>
             <p className="text-3xl font-bold text-gray-900 tabular-nums">
@@ -364,16 +358,12 @@ export default function WalletPage() {
             </p>
             <p className="text-xs text-gray-400 mt-2">Ready to withdraw</p>
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <button
-                onClick={openWithdrawModal}
-                className="text-sm font-semibold text-bata-primary hover:underline"
-              >
+              <button onClick={openWithdrawModal} className="text-sm font-semibold text-bata-primary hover:underline">
                 Withdraw →
               </button>
             </div>
           </div>
 
-          {/* Pending */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Pending (Escrow)</p>
             <p className="text-3xl font-bold text-amber-600 tabular-nums">
@@ -390,7 +380,6 @@ export default function WalletPage() {
             </div>
           </div>
 
-          {/* Stats */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Account Summary</p>
             <div className="space-y-3">
@@ -412,7 +401,7 @@ export default function WalletPage() {
           </div>
         </div>
 
-        {/* ── Transaction History ── */}
+        {/* Transaction History */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <div>
@@ -433,7 +422,6 @@ export default function WalletPage() {
             </div>
           ) : (
             <div className="divide-y divide-gray-50">
-              {/* Table header */}
               <div className="hidden md:grid grid-cols-12 px-6 py-3 bg-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wide">
                 <div className="col-span-5">Description</div>
                 <div className="col-span-2">Type</div>
@@ -444,10 +432,7 @@ export default function WalletPage() {
               {transactions.map((tx) => {
                 const meta = TX_LABEL[tx.type] || TX_LABEL.CREDIT
                 return (
-                  <div
-                    key={tx.id}
-                    className="grid grid-cols-1 md:grid-cols-12 px-6 py-4 hover:bg-gray-50 transition-colors items-center"
-                  >
+                  <div key={tx.id} className="grid grid-cols-1 md:grid-cols-12 px-6 py-4 hover:bg-gray-50 transition-colors items-center">
                     <div className="col-span-5 mb-2 md:mb-0">
                       <p className="text-sm font-medium text-gray-900 leading-snug">{tx.description}</p>
                       <p className="text-xs text-gray-400 mt-0.5 font-mono">{tx.reference}</p>
@@ -482,7 +467,7 @@ export default function WalletPage() {
         </div>
       </div>
 
-      {/* ── Withdraw Modal ── */}
+      {/* Withdraw Modal */}
       {showWithdrawModal && (
         <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[92vh] overflow-y-auto">
@@ -646,7 +631,7 @@ export default function WalletPage() {
                   />
                 </div>
 
-                {/* Summary box */}
+                {/* Summary */}
                 {withdrawAmount && parseFloat(withdrawAmount) >= 1000 && accountNumber.length >= 10 && accountName && (
                   <div className="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden">
                     <div className="px-4 py-2.5 bg-gray-100 border-b border-gray-200">
@@ -716,27 +701,20 @@ export default function WalletPage() {
         </div>
       )}
 
-      {/* ─────────────────────────────────────────────────────────────────
-          ✅ FACE ID REQUIRED MODAL — shown when user hasn't registered face
-          ───────────────────────────────────────────────────────────────── */}
+      {/* ── FACE ID REQUIRED MODAL ── */}
       {showFaceIdRequired && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
 
-            {/* Header */}
             <div className="bg-gradient-to-br from-indigo-500 to-purple-600 px-6 py-8 text-center">
               <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-4xl">🔐</span>
               </div>
               <h3 className="text-xl font-bold text-white">Face ID Required</h3>
-              <p className="text-indigo-100 text-sm mt-1">
-                Secure your withdrawals with Face ID
-              </p>
+              <p className="text-indigo-100 text-sm mt-1">Secure your withdrawals with Face ID</p>
             </div>
 
             <div className="px-6 py-6 space-y-4">
-
-              {/* Success state */}
               {faceRegisterSuccess ? (
                 <div className="text-center space-y-4">
                   <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
@@ -746,15 +724,10 @@ export default function WalletPage() {
                   </div>
                   <div>
                     <p className="font-bold text-gray-900 text-lg">Face ID Registered!</p>
-                    <p className="text-gray-500 text-sm mt-1">
-                      Your face has been saved. You can now withdraw funds securely.
-                    </p>
+                    <p className="text-gray-500 text-sm mt-1">Your face has been saved. You can now withdraw funds securely.</p>
                   </div>
                   <button
-                    onClick={() => {
-                      closeFaceIdRequiredModal()
-                      openWithdrawModal()
-                    }}
+                    onClick={() => { closeFaceIdRequiredModal(); openWithdrawModal() }}
                     className="w-full bg-bata-primary hover:bg-bata-dark text-white py-3 rounded-xl font-bold transition"
                   >
                     Continue to Withdraw →
@@ -766,13 +739,13 @@ export default function WalletPage() {
                     To protect your earnings, BATA requires a one-time Face ID registration before you can withdraw funds.
                   </p>
 
+                  {/* ── UPDATED: 3 steps only ── */}
                   <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 space-y-2">
                     <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">What you'll do:</p>
                     {[
                       'Look straight at the camera',
-                      'Turn your head left, then right',
-                      'Blink your eyes slowly',
-                      'Open your mouth wide',
+                      'Turn your head right',
+                      'Turn your head left',
                     ].map((step, i) => (
                       <div key={i} className="flex items-center gap-2.5">
                         <span className="w-5 h-5 bg-indigo-200 rounded-full flex items-center justify-center text-indigo-800 font-bold text-xs flex-shrink-0">
@@ -823,7 +796,7 @@ export default function WalletPage() {
         <FaceVerification
           mode="verify"
           title="Verify Your Identity"
-          subtitle="Complete the liveness check to authorise this withdrawal"
+          subtitle="Complete the 3 checks to authorise this withdrawal"
           onSuccess={handleFaceVerified}
           onCancel={() => {
             setShowFaceVerify(false)
@@ -838,7 +811,7 @@ export default function WalletPage() {
         <FaceVerification
           mode="register"
           title="🔐 Register Your Face"
-          subtitle="Complete all 4 liveness checks to secure your withdrawals"
+          subtitle="Complete the 3 checks to secure your withdrawals"
           onSuccess={handleFaceRegisterSuccess}
           onCancel={() => {
             setShowFaceRegister(false)

@@ -2,14 +2,11 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 
-// face-api.js is loaded via script tag
 declare global {
-  interface Window {
-    faceapi: any
-  }
+  interface Window { faceapi: any }
 }
 
-type LivenessStep = 'loading' | 'center' | 'turn_left' | 'turn_right' | 'blink' | 'open_mouth' | 'complete' | 'error'
+type LivenessStep = 'loading' | 'center' | 'turn_right' | 'turn_left' | 'complete' | 'error'
 
 interface FaceVerificationProps {
   mode: 'register' | 'verify'
@@ -19,18 +16,18 @@ interface FaceVerificationProps {
   subtitle?: string
 }
 
-const STEP_CONFIG: Record<string, { instruction: string; icon: string; color: string }> = {
-  loading:     { instruction: 'Loading face detection models...', icon: '⚙️', color: '#6366f1' },
-  center:      { instruction: 'Look straight at the camera', icon: '👁️', color: '#6366f1' },
-  turn_left:   { instruction: 'Slowly turn your head LEFT', icon: '⬅️', color: '#f59e0b' },
-  turn_right:  { instruction: 'Slowly turn your head RIGHT', icon: '➡️', color: '#f59e0b' },
-  blink:       { instruction: 'Blink your eyes slowly', icon: '👀', color: '#8b5cf6' },
-  open_mouth:  { instruction: 'Open your mouth wide', icon: '😮', color: '#ec4899' },
-  complete:    { instruction: 'Verification complete!', icon: '✅', color: '#10b981' },
-  error:       { instruction: 'Error detected. Please try again.', icon: '❌', color: '#ef4444' },
+const STEP_CONFIG: Record<string, { instruction: string; sub: string; icon: string; color: string }> = {
+  loading:    { instruction: 'Loading face detection...',     sub: 'Just a moment',                          icon: '⚙️', color: '#6366f1' },
+  center:     { instruction: 'Look straight at the camera',  sub: 'Centre your face and hold still',        icon: '👁️', color: '#6366f1' },
+  turn_right: { instruction: 'Turn your head right',         sub: 'Slowly turn right until captured',       icon: '➡️', color: '#f59e0b' },
+  turn_left:  { instruction: 'Turn your head left',          sub: 'Slowly turn left until captured',        icon: '⬅️', color: '#f59e0b' },
+  complete:   { instruction: 'All done!',                    sub: 'Face captured successfully',             icon: '✅', color: '#10b981' },
+  error:      { instruction: 'Something went wrong',         sub: 'Please try again',                       icon: '❌', color: '#ef4444' },
 }
 
-// Load face-api.js script dynamically
+const LIVENESS_STEPS: LivenessStep[] = ['center', 'turn_right', 'turn_left']
+const REQUIRED_HOLD_FRAMES = 18
+
 function loadFaceApiScript(): Promise<void> {
   return new Promise((resolve, reject) => {
     if (window.faceapi) { resolve(); return }
@@ -43,24 +40,23 @@ function loadFaceApiScript(): Promise<void> {
 }
 
 export default function FaceVerification({ mode, onSuccess, onCancel, title, subtitle }: FaceVerificationProps) {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const streamRef = useRef<MediaStream | null>(null)
+  const videoRef         = useRef<HTMLVideoElement>(null)
+  const canvasRef        = useRef<HTMLCanvasElement>(null)
+  const streamRef        = useRef<MediaStream | null>(null)
   const detectionLoopRef = useRef<number | null>(null)
-  const stepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const stepTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const stepIndexRef     = useRef(0)
+  const stepHoldRef      = useRef(0)
+  const advancingRef     = useRef(false)
+  const descriptorRef    = useRef<Float32Array | null>(null)
 
-  const [step, setStep] = useState<LivenessStep>('loading')
-  const [progress, setProgress] = useState(0)
+  const [step,         setStep]         = useState<LivenessStep>('loading')
+  const [progress,     setProgress]     = useState(0)
   const [faceDetected, setFaceDetected] = useState(false)
-  const [errorMsg, setErrorMsg] = useState('')
-  const [modelsLoaded, setModelsLoaded] = useState(false)
-  const [capturedDescriptor, setCapturedDescriptor] = useState<Float32Array | null>(null)
-
-  // Step sequence
-  const LIVENESS_STEPS: LivenessStep[] = ['center', 'turn_left', 'turn_right', 'blink', 'open_mouth']
-  const stepIndexRef = useRef(0)
-  const stepHoldCountRef = useRef(0) // frames held in valid position
-  const REQUIRED_HOLD_FRAMES = 18 // ~0.6s at 30fps
+  const [errorMsg,     setErrorMsg]     = useState('')
+  const [centerDone,   setCenterDone]   = useState(false)
+  const [rightDone,    setRightDone]    = useState(false)
+  const [leftDone,     setLeftDone]     = useState(false)
 
   const cleanup = useCallback(() => {
     if (detectionLoopRef.current) cancelAnimationFrame(detectionLoopRef.current)
@@ -68,7 +64,7 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
     if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop())
   }, [])
 
-  // Load models
+  // Load models + start camera
   useEffect(() => {
     const init = async () => {
       try {
@@ -80,9 +76,8 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
           faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
           faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
         ])
-        setModelsLoaded(true)
         startCamera()
-      } catch (err) {
+      } catch {
         setErrorMsg('Could not load face detection. Check your internet connection.')
         setStep('error')
       }
@@ -101,8 +96,10 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
         videoRef.current.srcObject = stream
         videoRef.current.onloadedmetadata = () => {
           videoRef.current!.play()
-          setStep('center')
           stepIndexRef.current = 0
+          stepHoldRef.current  = 0
+          advancingRef.current = false
+          setStep('center')
           startDetectionLoop()
         }
       }
@@ -112,15 +109,44 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
     }
   }
 
+  const advanceStep = () => {
+    if (advancingRef.current) return
+    advancingRef.current = true
+
+    const current = LIVENESS_STEPS[stepIndexRef.current]
+    if (current === 'center')     setCenterDone(true)
+    if (current === 'turn_right') setRightDone(true)
+    if (current === 'turn_left')  setLeftDone(true)
+
+    const nextIndex = stepIndexRef.current + 1
+
+    if (nextIndex >= LIVENESS_STEPS.length) {
+      if (detectionLoopRef.current) cancelAnimationFrame(detectionLoopRef.current)
+      setStep('complete')
+      setProgress(100)
+      stepTimerRef.current = setTimeout(() => {
+        cleanup()
+        onSuccess(descriptorRef.current || undefined)
+      }, 1000)
+    } else {
+      stepIndexRef.current = nextIndex
+      setStep(LIVENESS_STEPS[nextIndex])
+      setProgress(0)
+      stepHoldRef.current  = 0
+      setTimeout(() => { advancingRef.current = false }, 600)
+    }
+  }
+
   const startDetectionLoop = () => {
     const loop = async () => {
       if (!videoRef.current || !canvasRef.current || !window.faceapi) {
         detectionLoopRef.current = requestAnimationFrame(loop)
         return
       }
+
       const faceapi = window.faceapi
-      const video = videoRef.current
-      const canvas = canvasRef.current
+      const video   = videoRef.current
+      const canvas  = canvasRef.current
 
       if (video.readyState < 2) {
         detectionLoopRef.current = requestAnimationFrame(loop)
@@ -135,47 +161,43 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
           .withFaceLandmarks(true)
           .withFaceDescriptor()
 
-        // Draw on canvas overlay
-        const dims = { width: video.videoWidth, height: video.videoHeight }
-        canvas.width = dims.width
-        canvas.height = dims.height
+        canvas.width  = video.videoWidth
+        canvas.height = video.videoHeight
         const ctx = canvas.getContext('2d')!
         ctx.clearRect(0, 0, canvas.width, canvas.height)
 
         if (result) {
           setFaceDetected(true)
-          const { box } = result.detection
+
+          // Passively store descriptor
+          descriptorRef.current = result.descriptor
+
           const currentStep = LIVENESS_STEPS[stepIndexRef.current]
+          const color = STEP_CONFIG[currentStep]?.color || '#6366f1'
 
           // Draw face box
-          const color = STEP_CONFIG[currentStep]?.color || '#6366f1'
+          const { box } = result.detection
           ctx.strokeStyle = color
-          ctx.lineWidth = 3
+          ctx.lineWidth   = 3
           ctx.strokeRect(box.x, box.y, box.width, box.height)
 
-          // Check liveness condition
-          const passed = checkLivenessCondition(result, currentStep)
+          if (!advancingRef.current) {
+            const passed = checkCondition(result, currentStep)
 
-          if (passed) {
-            stepHoldCountRef.current++
-            const holdProgress = Math.min(stepHoldCountRef.current / REQUIRED_HOLD_FRAMES, 1)
-            setProgress(Math.round(holdProgress * 100))
-
-            if (stepHoldCountRef.current >= REQUIRED_HOLD_FRAMES) {
-              // Step passed — capture descriptor on final step
-              if (currentStep === 'open_mouth') {
-                setCapturedDescriptor(result.descriptor)
+            if (passed) {
+              stepHoldRef.current++
+              setProgress(Math.round(Math.min(stepHoldRef.current / REQUIRED_HOLD_FRAMES, 1) * 100))
+              if (stepHoldRef.current >= REQUIRED_HOLD_FRAMES) {
+                advanceStep()
               }
-              advanceStep()
-              stepHoldCountRef.current = 0
+            } else {
+              stepHoldRef.current = Math.max(0, stepHoldRef.current - 2)
+              setProgress(Math.round((stepHoldRef.current / REQUIRED_HOLD_FRAMES) * 100))
             }
-          } else {
-            stepHoldCountRef.current = Math.max(0, stepHoldCountRef.current - 2)
-            setProgress(Math.round((stepHoldCountRef.current / REQUIRED_HOLD_FRAMES) * 100))
           }
         } else {
           setFaceDetected(false)
-          stepHoldCountRef.current = Math.max(0, stepHoldCountRef.current - 1)
+          stepHoldRef.current = Math.max(0, stepHoldRef.current - 1)
         }
       } catch { /* ignore frame errors */ }
 
@@ -184,95 +206,34 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
     detectionLoopRef.current = requestAnimationFrame(loop)
   }
 
-  const checkLivenessCondition = (result: any, currentStep: LivenessStep): boolean => {
-    const landmarks = result.landmarks
-    const positions = landmarks.positions
+  const checkCondition = (result: any, currentStep: LivenessStep): boolean => {
+    const positions = result.landmarks.positions
+    const box       = result.detection.box
+    const nose      = positions[30]
+    const centerX   = box.x + box.width / 2
 
     if (currentStep === 'center') {
-      // Check nose is roughly centered relative to face box
-      const box = result.detection.box
-      const nose = positions[30]
-      const centerX = box.x + box.width / 2
       return Math.abs(nose.x - centerX) < box.width * 0.15
     }
-
-    if (currentStep === 'turn_left') {
-      // Left turn: nose shifts LEFT relative to face center
-      const box = result.detection.box
-      const nose = positions[30]
-      const centerX = box.x + box.width / 2
+    if (currentStep === 'turn_right') {
+      // Video is mirrored — user turning right = nose moves left in raw coords
       return nose.x < centerX - box.width * 0.12
     }
-
-    if (currentStep === 'turn_right') {
-      // Right turn: nose shifts RIGHT relative to face center
-      const box = result.detection.box
-      const nose = positions[30]
-      const centerX = box.x + box.width / 2
+    if (currentStep === 'turn_left') {
+      // User turning left = nose moves right in raw coords
       return nose.x > centerX + box.width * 0.12
     }
-
-    if (currentStep === 'blink') {
-      // Eye aspect ratio — low = eyes closed
-      const leftEye = positions.slice(36, 42)
-      const rightEye = positions.slice(42, 48)
-      const ear = (eyeAspectRatio(leftEye) + eyeAspectRatio(rightEye)) / 2
-      return ear < 0.18
-    }
-
-    if (currentStep === 'open_mouth') {
-      // Mouth aspect ratio — high = mouth open
-      const mouth = positions.slice(60, 68)
-      const mar = mouthAspectRatio(mouth)
-      return mar > 0.45
-    }
-
     return false
   }
 
-  const eyeAspectRatio = (eye: any[]): number => {
-    const v1 = dist(eye[1], eye[5])
-    const v2 = dist(eye[2], eye[4])
-    const h = dist(eye[0], eye[3])
-    return (v1 + v2) / (2 * h)
-  }
+  const currentConfig     = STEP_CONFIG[step]
+  const currentStepNumber = step === 'complete' ? LIVENESS_STEPS.length : stepIndexRef.current + 1
 
-  const mouthAspectRatio = (mouth: any[]): number => {
-    const v1 = dist(mouth[2], mouth[6])
-    const v2 = dist(mouth[3], mouth[5])
-    const h = dist(mouth[0], mouth[4])
-    return (v1 + v2) / (2 * h)
-  }
-
-  const dist = (a: any, b: any): number => {
-    return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2))
-  }
-
-  const advanceStep = () => {
-    const nextIndex = stepIndexRef.current + 1
-    if (nextIndex >= LIVENESS_STEPS.length) {
-      // All steps complete
-      if (detectionLoopRef.current) cancelAnimationFrame(detectionLoopRef.current)
-      setStep('complete')
-      setProgress(100)
-      stepTimerRef.current = setTimeout(() => {
-        cleanup()
-        // capturedDescriptor is set via state but we need latest value
-        setCapturedDescriptor(prev => {
-          onSuccess(prev || undefined)
-          return prev
-        })
-      }, 1200)
-    } else {
-      stepIndexRef.current = nextIndex
-      setStep(LIVENESS_STEPS[nextIndex])
-      setProgress(0)
-    }
-  }
-
-  const currentConfig = STEP_CONFIG[step]
-  const totalSteps = LIVENESS_STEPS.length
-  const currentStepNumber = step === 'complete' ? totalSteps : (stepIndexRef.current + 1)
+  const stepRows = [
+    { id: 'center',     label: 'Face centered', done: centerDone },
+    { id: 'turn_right', label: 'Turn right',    done: rightDone  },
+    { id: 'turn_left',  label: 'Turn left',     done: leftDone   },
+  ]
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
@@ -287,8 +248,8 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
               </h2>
               <p className="text-sm text-gray-500 mt-1">
                 {subtitle || (mode === 'register'
-                  ? 'We\'ll scan your face to protect your account'
-                  : 'Verify your identity to proceed with withdrawal')}
+                  ? 'Complete 3 quick checks to secure your account'
+                  : 'Complete 3 quick checks to authorise your withdrawal')}
               </p>
             </div>
             <button
@@ -299,7 +260,7 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
             </button>
           </div>
 
-          {/* Step progress dots */}
+          {/* Progress bar */}
           {step !== 'loading' && step !== 'error' && (
             <div className="flex gap-2 mt-4">
               {LIVENESS_STEPS.map((s, i) => (
@@ -312,7 +273,7 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
                         ? '#10b981'
                         : i === stepIndexRef.current
                         ? currentConfig.color
-                        : '#e5e7eb'
+                        : '#e5e7eb',
                   }}
                 />
               ))}
@@ -320,13 +281,11 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
           )}
         </div>
 
-        {/* Camera view */}
+        {/* Camera */}
         <div className="relative mx-6 mb-4 rounded-2xl overflow-hidden bg-gray-900" style={{ aspectRatio: '4/3' }}>
           <video
             ref={videoRef}
-            autoPlay
-            muted
-            playsInline
+            autoPlay muted playsInline
             className="w-full h-full object-cover scale-x-[-1]"
           />
           <canvas
@@ -334,7 +293,7 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
             className="absolute inset-0 w-full h-full object-cover scale-x-[-1] pointer-events-none"
           />
 
-          {/* Oval face guide overlay */}
+          {/* Oval guide */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div
               className="rounded-full border-4 transition-all duration-300"
@@ -350,6 +309,28 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
               }}
             />
           </div>
+
+          {/* Directional arrow overlay */}
+          {step === 'turn_right' && !rightDone && (
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
+              <div className="w-10 h-10 rounded-full bg-amber-500/80 flex items-center justify-center animate-pulse">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7"/>
+                </svg>
+              </div>
+              <span className="text-white text-xs font-bold">RIGHT</span>
+            </div>
+          )}
+          {step === 'turn_left' && !leftDone && (
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
+              <div className="w-10 h-10 rounded-full bg-amber-500/80 flex items-center justify-center animate-pulse">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7"/>
+                </svg>
+              </div>
+              <span className="text-white text-xs font-bold">LEFT</span>
+            </div>
+          )}
 
           {/* Complete overlay */}
           {step === 'complete' && (
@@ -371,8 +352,8 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
           )}
         </div>
 
-        {/* Instruction area */}
-        <div className="px-6 pb-6 space-y-4">
+        {/* Bottom area */}
+        <div className="px-6 pb-6 space-y-3">
           {step === 'error' ? (
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
               <p className="text-red-600 font-medium">{errorMsg}</p>
@@ -390,13 +371,17 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
             </div>
           ) : (
             <>
-              {/* Current instruction */}
+              {/* Instruction card */}
               <div
-                className="rounded-xl p-4 text-center transition-all duration-300"
-                style={{ backgroundColor: currentConfig.color + '15', borderColor: currentConfig.color + '30', border: '1px solid' }}
+                className="rounded-xl p-3 text-center transition-all duration-300"
+                style={{
+                  backgroundColor: currentConfig.color + '15',
+                  border: `1px solid ${currentConfig.color}30`,
+                }}
               >
-                <span className="text-3xl">{currentConfig.icon}</span>
-                <p className="font-semibold text-gray-800 mt-2 text-sm">{currentConfig.instruction}</p>
+                <span className="text-2xl">{currentConfig.icon}</span>
+                <p className="font-semibold text-gray-800 mt-1 text-sm">{currentConfig.instruction}</p>
+                <p className="text-gray-500 text-xs mt-0.5">{currentConfig.sub}</p>
               </div>
 
               {/* Hold progress bar */}
@@ -415,12 +400,44 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
                 </div>
               )}
 
-              {/* Step counter */}
-              {step !== 'complete' && (
-                <p className="text-center text-xs text-gray-400">
-                  Step {currentStepNumber} of {totalSteps}
-                </p>
-              )}
+              {/* Step status rows */}
+              <div className="flex flex-col gap-1.5">
+                {stepRows.map(({ id, label, done }) => {
+                  const active = step === id && !done
+                  return (
+                    <div
+                      key={id}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300"
+                      style={{
+                        background: done ? 'rgba(16,185,129,0.08)' : active ? 'rgba(99,102,241,0.08)' : 'transparent',
+                        border: done ? '1px solid rgba(16,185,129,0.2)' : active ? '1px solid rgba(99,102,241,0.2)' : '1px solid transparent',
+                      }}
+                    >
+                      <div
+                        className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ background: done ? '#10b981' : active ? currentConfig.color : '#e5e7eb' }}
+                      >
+                        {done ? (
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/>
+                          </svg>
+                        ) : (
+                          <div className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-white animate-pulse' : 'bg-gray-400'}`} />
+                        )}
+                      </div>
+                      <span
+                        className="text-sm font-medium flex-1"
+                        style={{ color: done ? '#059669' : active ? '#4338ca' : '#9ca3af' }}
+                      >
+                        {label}
+                      </span>
+                      <span className="text-xs" style={{ color: done ? '#059669' : active ? '#6366f1' : 'transparent' }}>
+                        {done ? 'Captured ✓' : active ? 'Waiting...' : '·'}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
             </>
           )}
 
