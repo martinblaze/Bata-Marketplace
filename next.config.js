@@ -4,7 +4,6 @@ const nextConfig = {
     domains: ['localhost', 'res.cloudinary.com', 'lh3.googleusercontent.com'],
   },
 
-  // TEMP: unblock builds while you fix lint/types properly
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -12,7 +11,9 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
 
-  // Removed experimental.serverActions as it's now stable and enabled by default
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
+  },
 };
 
 module.exports = nextConfig;
