@@ -14,6 +14,8 @@ interface FaceVerificationProps {
   onCancel: () => void
   title?: string
   subtitle?: string
+  /** Required for verify mode — JWT token to call /api/auth/verify-face */
+  authToken?: string
 }
 
 const STEP_CONFIG: Record<string, { instruction: string; sub: string; icon: string; color: string }> = {
@@ -27,28 +29,49 @@ const STEP_CONFIG: Record<string, { instruction: string; sub: string; icon: stri
 
 const LIVENESS_STEPS: LivenessStep[] = ['center', 'turn_right', 'turn_left']
 const REQUIRED_HOLD_FRAMES = 18
+const SESSION_TIMEOUT_MS   = 60_000 // 60s — auto-fail if user gets stuck
 
+// ── Model URL: served from /public/models/ ────────────────────────────────────
+const MODEL_URL = '/models'
+
+// ── Load face-api.js script once ──────────────────────────────────────────────
 function loadFaceApiScript(): Promise<void> {
   return new Promise((resolve, reject) => {
     if (window.faceapi) { resolve(); return }
+    const existing = document.querySelector('script[data-face-api]')
+    if (existing) {
+      existing.addEventListener('load', () => resolve())
+      existing.addEventListener('error', () => reject(new Error('Failed to load face-api.js')))
+      return
+    }
     const script = document.createElement('script')
     script.src = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js'
-    script.onload = () => resolve()
+    script.setAttribute('data-face-api', 'true')
+    script.onload  = () => resolve()
     script.onerror = () => reject(new Error('Failed to load face-api.js'))
     document.head.appendChild(script)
   })
 }
 
-export default function FaceVerification({ mode, onSuccess, onCancel, title, subtitle }: FaceVerificationProps) {
+export default function FaceVerification({
+  mode,
+  onSuccess,
+  onCancel,
+  title,
+  subtitle,
+  authToken,
+}: FaceVerificationProps) {
   const videoRef         = useRef<HTMLVideoElement>(null)
   const canvasRef        = useRef<HTMLCanvasElement>(null)
   const streamRef        = useRef<MediaStream | null>(null)
   const detectionLoopRef = useRef<number | null>(null)
   const stepTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const timeoutRef       = useRef<ReturnType<typeof setTimeout> | null>(null)
   const stepIndexRef     = useRef(0)
   const stepHoldRef      = useRef(0)
   const advancingRef     = useRef(false)
-  const descriptorRef    = useRef<Float32Array | null>(null)
+  // Collect multiple descriptors throughout the session for a better average
+  const descriptorsRef   = useRef<Float32Array[]>([])
 
   const [step,         setStep]         = useState<LivenessStep>('loading')
   const [progress,     setProgress]     = useState(0)
@@ -57,20 +80,66 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
   const [centerDone,   setCenterDone]   = useState(false)
   const [rightDone,    setRightDone]    = useState(false)
   const [leftDone,     setLeftDone]     = useState(false)
+  const [verifying,    setVerifying]    = useState(false)
 
   const cleanup = useCallback(() => {
     if (detectionLoopRef.current) cancelAnimationFrame(detectionLoopRef.current)
-    if (stepTimerRef.current) clearTimeout(stepTimerRef.current)
-    if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop())
+    if (stepTimerRef.current)     clearTimeout(stepTimerRef.current)
+    if (timeoutRef.current)       clearTimeout(timeoutRef.current)
+    if (streamRef.current)        streamRef.current.getTracks().forEach(t => t.stop())
   }, [])
 
-  // Load models + start camera
+  // ── Average all collected descriptors into one ─────────────────────────────
+  const getAveragedDescriptor = useCallback((): Float32Array | null => {
+    const all = descriptorsRef.current
+    if (all.length === 0) return null
+    const averaged = new Float32Array(128)
+    for (const d of all) {
+      for (let i = 0; i < 128; i++) averaged[i] += d[i]
+    }
+    for (let i = 0; i < 128; i++) averaged[i] /= all.length
+    return averaged
+  }, [])
+
+  // ── Call backend to verify descriptor ─────────────────────────────────────
+  const verifyWithBackend = useCallback(async (descriptor: Float32Array) => {
+    if (!authToken) {
+      setErrorMsg('Authentication token missing. Please log in again.')
+      setStep('error')
+      return
+    }
+    setVerifying(true)
+    try {
+      const res = await fetch('/api/auth/verify-face', {
+        method: 'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ descriptor: Array.from(descriptor) }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        cleanup()
+        onSuccess(descriptor)
+      } else {
+        setErrorMsg(data.error || 'Face verification failed. Please try again.')
+        setStep('error')
+      }
+    } catch {
+      setErrorMsg('Network error. Please check your connection and try again.')
+      setStep('error')
+    } finally {
+      setVerifying(false)
+    }
+  }, [authToken, cleanup, onSuccess])
+
+  // ── Load models + start camera ─────────────────────────────────────────────
   useEffect(() => {
     const init = async () => {
       try {
         await loadFaceApiScript()
         const faceapi = window.faceapi
-        const MODEL_URL = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights'
         await Promise.all([
           faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
           faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
@@ -86,32 +155,48 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
     return cleanup
   }, [])
 
-  const startCamera = async () => {
+  const startCamera = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+        video: { facingMode: 'user', width: { ideal: 480, max: 640 }, height: { ideal: 360, max: 480 } }
       })
       streamRef.current = stream
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         videoRef.current.onloadedmetadata = () => {
           videoRef.current!.play()
-          stepIndexRef.current = 0
-          stepHoldRef.current  = 0
-          advancingRef.current = false
+          // Reset state
+          stepIndexRef.current  = 0
+          stepHoldRef.current   = 0
+          advancingRef.current  = false
+          descriptorsRef.current = []
+          setCenterDone(false)
+          setRightDone(false)
+          setLeftDone(false)
+          setProgress(0)
           setStep('center')
           startDetectionLoop()
+
+          // ── Session timeout: 60 s ──────────────────────────────────────────
+          timeoutRef.current = setTimeout(() => {
+            if (detectionLoopRef.current) cancelAnimationFrame(detectionLoopRef.current)
+            setErrorMsg('Session timed out. Please try again.')
+            setStep('error')
+          }, SESSION_TIMEOUT_MS)
         }
       }
     } catch {
       setErrorMsg('Camera access denied. Please allow camera access and try again.')
       setStep('error')
     }
-  }
+  }, [])
 
-  const advanceStep = () => {
+  const advanceStep = useCallback(() => {
     if (advancingRef.current) return
     advancingRef.current = true
+
+    // Clear session timeout — user is making progress
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
 
     const current = LIVENESS_STEPS[stepIndexRef.current]
     if (current === 'center')     setCenterDone(true)
@@ -121,23 +206,39 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
     const nextIndex = stepIndexRef.current + 1
 
     if (nextIndex >= LIVENESS_STEPS.length) {
+      // All steps done
       if (detectionLoopRef.current) cancelAnimationFrame(detectionLoopRef.current)
       setStep('complete')
       setProgress(100)
-      stepTimerRef.current = setTimeout(() => {
-        cleanup()
-        onSuccess(descriptorRef.current || undefined)
-      }, 1000)
+
+      const averaged = getAveragedDescriptor()
+
+      stepTimerRef.current = setTimeout(async () => {
+        if (!averaged) {
+          setErrorMsg('Could not capture face data. Please try again.')
+          setStep('error')
+          return
+        }
+
+        if (mode === 'verify') {
+          // ── Verify mode: compare against DB via API ──────────────────────
+          await verifyWithBackend(averaged)
+        } else {
+          // ── Register mode: pass descriptor back to parent to save ────────
+          cleanup()
+          onSuccess(averaged)
+        }
+      }, 800)
     } else {
       stepIndexRef.current = nextIndex
       setStep(LIVENESS_STEPS[nextIndex])
       setProgress(0)
-      stepHoldRef.current  = 0
+      stepHoldRef.current = 0
       setTimeout(() => { advancingRef.current = false }, 600)
     }
-  }
+  }, [mode, getAveragedDescriptor, verifyWithBackend, cleanup, onSuccess])
 
-  const startDetectionLoop = () => {
+  const startDetectionLoop = useCallback(() => {
     const loop = async () => {
       if (!videoRef.current || !canvasRef.current || !window.faceapi) {
         detectionLoopRef.current = requestAnimationFrame(loop)
@@ -153,7 +254,7 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
         return
       }
 
-      const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.4 })
+      const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.2 })
 
       try {
         const result = await faceapi
@@ -161,16 +262,18 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
           .withFaceLandmarks(true)
           .withFaceDescriptor()
 
-        canvas.width  = video.videoWidth
-        canvas.height = video.videoHeight
+        const vw = video.videoWidth || video.clientWidth; const vh = video.videoHeight || video.clientHeight; if (canvas.width !== vw) canvas.width = vw
+        if (canvas.height !== vh) canvas.height = vh
         const ctx = canvas.getContext('2d')!
         ctx.clearRect(0, 0, canvas.width, canvas.height)
 
         if (result) {
           setFaceDetected(true)
 
-          // Passively store descriptor
-          descriptorRef.current = result.descriptor
+          // ── Continuously collect descriptors (max 30) ──────────────────
+          if (descriptorsRef.current.length < 30) {
+            descriptorsRef.current.push(result.descriptor)
+          }
 
           const currentStep = LIVENESS_STEPS[stepIndexRef.current]
           const color = STEP_CONFIG[currentStep]?.color || '#6366f1'
@@ -204,7 +307,7 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
       detectionLoopRef.current = requestAnimationFrame(loop)
     }
     detectionLoopRef.current = requestAnimationFrame(loop)
-  }
+  }, [advanceStep])
 
   const checkCondition = (result: any, currentStep: LivenessStep): boolean => {
     const positions = result.landmarks.positions
@@ -213,21 +316,45 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
     const centerX   = box.x + box.width / 2
 
     if (currentStep === 'center') {
-      return Math.abs(nose.x - centerX) < box.width * 0.15
+      // Wider tolerance — easier to pass center
+      return Math.abs(nose.x - centerX) < box.width * 0.20
     }
     if (currentStep === 'turn_right') {
-      // Video is mirrored — user turning right = nose moves left in raw coords
-      return nose.x < centerX - box.width * 0.12
+      // Mirrored video: user turning right = nose moves left in raw coords
+      return nose.x < centerX - box.width * 0.10
     }
     if (currentStep === 'turn_left') {
       // User turning left = nose moves right in raw coords
-      return nose.x > centerX + box.width * 0.12
+      return nose.x > centerX + box.width * 0.10
     }
     return false
   }
 
-  const currentConfig     = STEP_CONFIG[step]
-  const currentStepNumber = step === 'complete' ? LIVENESS_STEPS.length : stepIndexRef.current + 1
+  const handleRetry = useCallback(() => {
+    setStep('loading')
+    setErrorMsg('')
+    setVerifying(false)
+    descriptorsRef.current = []
+    // Re-init models then camera
+    const reinit = async () => {
+      try {
+        await loadFaceApiScript()
+        const faceapi = window.faceapi
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+          faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
+          faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+        ])
+        startCamera()
+      } catch {
+        setErrorMsg('Could not load face detection. Check your internet connection.')
+        setStep('error')
+      }
+    }
+    reinit()
+  }, [startCamera])
+
+  const currentConfig = STEP_CONFIG[step]
 
   const stepRows = [
     { id: 'center',     label: 'Face centered', done: centerDone },
@@ -260,7 +387,7 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
             </button>
           </div>
 
-          {/* Progress bar */}
+          {/* Step progress bar */}
           {step !== 'loading' && step !== 'error' && (
             <div className="flex gap-2 mt-4">
               {LIVENESS_STEPS.map((s, i) => (
@@ -310,7 +437,7 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
             />
           </div>
 
-          {/* Directional arrow overlay */}
+          {/* Directional arrow overlays */}
           {step === 'turn_right' && !rightDone && (
             <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
               <div className="w-10 h-10 rounded-full bg-amber-500/80 flex items-center justify-center animate-pulse">
@@ -333,11 +460,21 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
           )}
 
           {/* Complete overlay */}
-          {step === 'complete' && (
+          {step === 'complete' && !verifying && (
             <div className="absolute inset-0 flex items-center justify-center bg-green-500/80">
               <div className="text-center text-white">
                 <div className="text-6xl mb-2">✅</div>
                 <p className="font-bold text-xl">Done!</p>
+              </div>
+            </div>
+          )}
+
+          {/* Verifying overlay */}
+          {verifying && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+              <div className="text-center text-white">
+                <div className="inline-block w-10 h-10 border-4 border-white border-t-transparent rounded-full animate-spin mb-3" />
+                <p className="font-semibold">Verifying your face...</p>
               </div>
             </div>
           )}
@@ -358,7 +495,7 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
               <p className="text-red-600 font-medium">{errorMsg}</p>
               <button
-                onClick={() => { setStep('loading'); setErrorMsg(''); startCamera() }}
+                onClick={handleRetry}
                 className="mt-3 text-sm text-red-600 underline"
               >
                 Try again
@@ -451,4 +588,4 @@ export default function FaceVerification({ mode, onSuccess, onCancel, title, sub
       </div>
     </div>
   )
-}
+} 
