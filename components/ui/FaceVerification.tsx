@@ -420,21 +420,43 @@ export default function FaceVerification({
             className="absolute inset-0 w-full h-full object-cover scale-x-[-1] pointer-events-none"
           />
 
-          {/* Oval guide */}
+          {/* Oval guide + face silhouette */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div
-              className="rounded-full border-4 transition-all duration-300"
+              className="relative rounded-full border-4 transition-all duration-300 flex items-center justify-center overflow-hidden"
               style={{
                 width: '55%',
                 height: '75%',
                 borderColor: faceDetected
                   ? (step === 'complete' ? '#10b981' : currentConfig.color)
-                  : 'rgba(255,255,255,0.4)',
+                  : 'rgba(255,255,255,0.5)',
                 boxShadow: faceDetected
-                  ? `0 0 0 9999px rgba(0,0,0,0.45)`
+                  ? `0 0 0 9999px rgba(0,0,0,0.45), 0 0 20px ${currentConfig.color}60`
                   : `0 0 0 9999px rgba(0,0,0,0.6)`,
               }}
-            />
+            >
+              {/* Face silhouette — fades out once face is detected */}
+              <svg
+                viewBox="0 0 100 120"
+                xmlns="http://www.w3.org/2000/svg"
+                className="absolute transition-opacity duration-500"
+                style={{ width: '80%', height: '80%', opacity: faceDetected ? 0 : 0.25 }}
+              >
+                <ellipse cx="50" cy="48" rx="28" ry="34" fill="white" />
+                <rect x="42" y="78" width="16" height="14" rx="4" fill="white" />
+                <ellipse cx="50" cy="102" rx="36" ry="18" fill="white" />
+                <ellipse cx="38" cy="44" rx="5" ry="3.5" fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="1.5" />
+                <ellipse cx="62" cy="44" rx="5" ry="3.5" fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="1.5" />
+                <circle cx="38" cy="44" r="2" fill="rgba(0,0,0,0.35)" />
+                <circle cx="62" cy="44" r="2" fill="rgba(0,0,0,0.35)" />
+                <path d="M50 48 Q47 56 49 58 Q50 59 51 58 Q53 56 50 48Z" fill="rgba(0,0,0,0.2)" />
+                <path d="M42 66 Q50 72 58 66" fill="none" stroke="rgba(0,0,0,0.3)" strokeWidth="1.5" strokeLinecap="round" />
+                <ellipse cx="22" cy="50" rx="4" ry="6" fill="white" />
+                <ellipse cx="78" cy="50" rx="4" ry="6" fill="white" />
+                <path d="M33 39 Q38 36 43 38" fill="none" stroke="rgba(0,0,0,0.3)" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M57 38 Q62 36 67 39" fill="none" stroke="rgba(0,0,0,0.3)" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </div>
           </div>
 
           {/* Directional arrow overlays */}
@@ -588,4 +610,4 @@ export default function FaceVerification({
       </div>
     </div>
   )
-} 
+}
