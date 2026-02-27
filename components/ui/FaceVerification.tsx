@@ -142,7 +142,7 @@ export default function FaceVerification({
         const faceapi = window.faceapi
         await Promise.all([
           faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-          faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
+          faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
           faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
         ])
         startCamera()
@@ -259,7 +259,7 @@ export default function FaceVerification({
       try {
         const result = await faceapi
           .detectSingleFace(video, options)
-          .withFaceLandmarks(true)
+          .withFaceLandmarks()
           .withFaceDescriptor()
 
         const vw = video.videoWidth || video.clientWidth; const vh = video.videoHeight || video.clientHeight; if (canvas.width !== vw) canvas.width = vw
@@ -342,7 +342,7 @@ export default function FaceVerification({
         const faceapi = window.faceapi
         await Promise.all([
           faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-          faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
+          faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
           faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
         ])
         startCamera()
