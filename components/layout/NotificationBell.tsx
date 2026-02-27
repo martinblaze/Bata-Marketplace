@@ -1,4 +1,3 @@
-// components/layout/NotificationBell.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -174,7 +173,7 @@ export default function NotificationBell() {
 
   return (
     <div className="relative">
-      {/* Bell Icon */}
+      {/* Bell Icon - Updated styling to match Cart size */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
