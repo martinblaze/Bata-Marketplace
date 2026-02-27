@@ -45,7 +45,7 @@ function loadFaceApiScript(): Promise<void> {
       return
     }
     const script = document.createElement('script')
-    script.src = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js'
+    script.src = '/face-api.min.js'
     script.setAttribute('data-face-api', 'true')
     script.onload  = () => resolve()
     script.onerror = () => reject(new Error('Failed to load face-api.js'))
