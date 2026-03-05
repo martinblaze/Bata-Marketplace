@@ -182,9 +182,9 @@ export default function WalletPage() {
   const [showSetPin, setShowSetPin] = useState(false)
   const [newPin, setNewPin] = useState('')
   const [confirmPin, setConfirmPin] = useState('')
-  const [setPinLoading, setSetPinLoading] = useState(false)
-  const [setPinError, setSetPinError] = useState('')
-  const [setPinSuccess, setSetPinSuccess] = useState(false)
+  const [savePinLoading, setSavePinLoading] = useState(false)   // ✅ fixed
+  const [savePinError, setSavePinError] = useState('')           // ✅ fixed
+  const [savePinSuccess, setSavePinSuccess] = useState(false)    // ✅ fixed
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -419,10 +419,10 @@ export default function WalletPage() {
 
   // ── Set PIN submit ────────────────────────────────────────────────────────
   const handleSetPinSubmit = async () => {
-    if (!/^\d{6}$/.test(newPin)) { setSetPinError('PIN must be exactly 6 digits'); return }
-    if (newPin !== confirmPin) { setSetPinError('PINs do not match'); return }
-    setSetPinLoading(true)
-    setSetPinError('')
+    if (!/^\d{6}$/.test(newPin)) { setSavePinError('PIN must be exactly 6 digits'); return }
+    if (newPin !== confirmPin) { setSavePinError('PINs do not match'); return }
+    setSavePinLoading(true)
+    setSavePinError('')
     try {
       const token = localStorage.getItem('token')
       const res = await fetch('/api/wallet/set-pin', {
@@ -432,21 +432,21 @@ export default function WalletPage() {
       })
       const data = await res.json()
       if (res.ok) {
-        setSetPinSuccess(true)
+        setSavePinSuccess(true)
         setUser(prev => prev ? { ...prev, hasWithdrawalPin: true } : prev)
         setTimeout(() => {
           setShowSetPin(false)
-          setSetPinSuccess(false)
+          setSavePinSuccess(false)
           setNewPin('')
           setConfirmPin('')
         }, 2000)
       } else {
-        setSetPinError(data.error || 'Failed to set PIN')
+        setSavePinError(data.error || 'Failed to set PIN')
       }
     } catch {
-      setSetPinError('Network error. Please try again.')
+      setSavePinError('Network error. Please try again.')
     } finally {
-      setSetPinLoading(false)
+      setSavePinLoading(false)
     }
   }
 
@@ -492,7 +492,7 @@ export default function WalletPage() {
           <div className="flex items-center gap-3">
             {/* Set / Change PIN shortcut */}
             <button
-              onClick={() => { setNewPin(''); setConfirmPin(''); setSetPinError(''); setSetPinSuccess(false); setShowSetPin(true) }}
+              onClick={() => { setNewPin(''); setConfirmPin(''); setSavePinError(''); setSavePinSuccess(false); setShowSetPin(true) }}
               className="inline-flex items-center gap-2 border border-gray-300 text-gray-600 hover:border-bata-primary hover:text-bata-primary text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -995,7 +995,7 @@ export default function WalletPage() {
               <p className="text-gray-400 text-sm mt-1">A 6-digit backup for when Face ID fails</p>
             </div>
             <div className="px-6 py-6 space-y-4">
-              {setPinSuccess ? (
+              {savePinSuccess ? (
                 <div className="text-center space-y-3 py-2">
                   <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto">
                     <svg className="w-7 h-7 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1031,22 +1031,22 @@ export default function WalletPage() {
                       placeholder="••••••"
                     />
                   </div>
-                  {setPinError && (
-                    <p className="text-sm text-red-600 font-medium">{setPinError}</p>
+                  {savePinError && (
+                    <p className="text-sm text-red-600 font-medium">{savePinError}</p>
                   )}
                   <div className="flex gap-3 pt-1">
                     <button
-                      onClick={() => { setShowSetPin(false); setNewPin(''); setConfirmPin(''); setSetPinError('') }}
+                      onClick={() => { setShowSetPin(false); setNewPin(''); setConfirmPin(''); setSavePinError('') }}
                       className="flex-1 py-3 border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
                     >
                       {pendingWithdrawal ? 'Skip for now' : 'Cancel'}
                     </button>
                     <button
                       onClick={handleSetPinSubmit}
-                      disabled={setPinLoading || newPin.length !== 6 || confirmPin.length !== 6}
+                      disabled={savePinLoading || newPin.length !== 6 || confirmPin.length !== 6}
                       className="flex-1 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-sm font-semibold transition disabled:opacity-50 flex items-center justify-center"
                     >
-                      {setPinLoading ? (
+                      {savePinLoading ? (
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       ) : 'Save PIN'}
                     </button>
