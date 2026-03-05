@@ -31,6 +31,7 @@ interface User {
   name: string
   phone: string
   email?: string
+  hasFaceId: boolean
 }
 
 interface Bank {
@@ -196,7 +197,31 @@ export default function WalletPage() {
     ? NIGERIAN_BANKS.filter(b => b.name.toLowerCase().includes(bankSearch.toLowerCase()))
     : NIGERIAN_BANKS
 
-  const openWithdrawModal = () => {
+  // ── Upfront face-ID check before opening withdraw form ───────────────────
+  const openWithdrawModal = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch('/api/auth/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        // Sync local user state so hasFaceId is always fresh
+        setUser(data.user)
+
+        if (!data.user.hasFaceId) {
+          // No face saved → show registration flow first, don't open withdraw modal
+          setFaceRegisterSuccess(false)
+          setFaceRegisterError('')
+          setShowFaceIdRequired(true)
+          return
+        }
+      }
+    } catch {
+      // Network hiccup — fall through; backend will reject if face is truly missing
+    }
+
+    // Face confirmed (or check failed gracefully) → open withdraw form
     setWithdrawAmount('')
     setAccountNumber('')
     setAccountName('')
@@ -245,6 +270,8 @@ export default function WalletPage() {
       })
       const d = await r.json()
 
+      // Safety-net: backend still returned FACE_ID_REQUIRED (should not happen now
+      // but handled defensively)
       if (!r.ok && d.error === 'FACE_ID_REQUIRED') {
         setShowWithdrawModal(false)
         setPendingWithdrawal(null)
@@ -285,6 +312,9 @@ export default function WalletPage() {
       const data = await res.json()
       if (res.ok) {
         setFaceRegisterSuccess(true)
+        // ✅ Update local user state immediately so openWithdrawModal sees
+        // hasFaceId = true on the very next "Continue to Withdraw" click
+        setUser(prev => prev ? { ...prev, hasFaceId: true } : prev)
       } else {
         setFaceRegisterError(data.error || 'Failed to save face data. Please try again.')
       }
@@ -467,7 +497,7 @@ export default function WalletPage() {
         </div>
       </div>
 
-      {/* Withdraw Modal */}
+      {/* ── Withdraw Modal ── */}
       {showWithdrawModal && (
         <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[92vh] overflow-y-auto">
@@ -701,7 +731,7 @@ export default function WalletPage() {
         </div>
       )}
 
-      {/* ── FACE ID REQUIRED MODAL ── */}
+      {/* ── Face ID Required Modal ── */}
       {showFaceIdRequired && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
@@ -739,7 +769,6 @@ export default function WalletPage() {
                     To protect your earnings, BATA requires a one-time Face ID registration before you can withdraw funds.
                   </p>
 
-                  {/* ── UPDATED: 3 steps only ── */}
                   <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 space-y-2">
                     <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">What you'll do:</p>
                     {[

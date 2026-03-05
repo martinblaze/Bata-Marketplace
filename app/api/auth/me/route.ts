@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth/auth'
+import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,6 +11,12 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    // Fetch faceDescriptor separately (getUserFromRequest may not select it)
+    const faceRow = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { faceDescriptor: true },
+    })
 
     return NextResponse.json({
       user: {
@@ -31,8 +38,8 @@ export async function GET(request: NextRequest) {
         
         // Trust & Ratings
         trustLevel: user.trustLevel,
-        rating: user.avgRating,          // FIXED: was user.rating, now user.avgRating
-        totalRatings: user.totalReviews, // FIXED: was user.totalRatings, now user.totalReviews
+        rating: user.avgRating,
+        totalRatings: user.totalReviews,
         completedOrders: user.completedOrders,
         
         // Wallet
@@ -51,6 +58,9 @@ export async function GET(request: NextRequest) {
         // Timestamps
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
+
+        // ✅ Face ID status — used by wallet page for upfront check
+        hasFaceId: !!faceRow?.faceDescriptor,
       },
     })
   } catch (error) {
