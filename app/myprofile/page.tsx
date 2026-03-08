@@ -1,14 +1,14 @@
-// app/myprofile/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  User, ShoppingBag, Store, PlusCircle, Wallet, Package, 
-  AlertTriangle, LogOut, ChevronRight, MapPin, Phone, 
-  Home, Mail, Edit2, Check, X, Loader2, Menu, ChevronLeft
+  User, ShoppingBag, Store, PlusCircle, Wallet, Package,
+  AlertTriangle, LogOut, ChevronRight, MapPin, Phone,
+  Home, Mail, Edit2, Check, X, Loader2, Menu, Gift
 } from 'lucide-react'
+import { ReferralCard } from '@/components/ui/ReferralCard'
 
 interface UserProfile {
   id: string
@@ -42,7 +42,6 @@ export default function MyProfilePage() {
     fetchProfileData()
   }, [])
 
-  // Close mobile menu on escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setIsMobileMenuOpen(false)
@@ -51,25 +50,19 @@ export default function MyProfilePage() {
     return () => document.removeEventListener('keydown', handleEscape)
   }, [])
 
-  // Prevent body scroll when mobile menu is open
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = 'unset'
     }
-    return () => {
-      document.body.style.overflow = 'unset'
-    }
+    return () => { document.body.style.overflow = 'unset' }
   }, [isMobileMenuOpen])
 
   const fetchProfileData = async () => {
     try {
       const token = localStorage.getItem('token')
-      if (!token) {
-        router.push('/login')
-        return
-      }
+      if (!token) { router.push('/login'); return }
 
       const [userRes, walletRes] = await Promise.all([
         fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } }),
@@ -79,10 +72,7 @@ export default function MyProfilePage() {
       const userData = await userRes.json()
       const walletData = await walletRes.json()
 
-      if (userRes.ok) {
-        setUser(userData.user)
-        setEditedUser(userData.user)
-      }
+      if (userRes.ok) { setUser(userData.user); setEditedUser(userData.user) }
       if (walletRes.ok) setWallet(walletData.wallet)
     } catch (error) {
       console.error('Error fetching profile:', error)
@@ -100,10 +90,7 @@ export default function MyProfilePage() {
       const token = localStorage.getItem('token')
       const response = await fetch('/api/auth/update-profile', {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           name: editedUser.name,
           phone: editedUser.phone,
@@ -125,7 +112,7 @@ export default function MyProfilePage() {
       } else {
         setSaveError(data.error || 'Failed to update profile')
       }
-    } catch (error) {
+    } catch {
       setSaveError('Network error. Please try again.')
     } finally {
       setSaving(false)
@@ -163,12 +150,13 @@ export default function MyProfilePage() {
     ...(isSeller && user.isSellerMode ? [{ icon: <PlusCircle className="w-5 h-5" />, label: 'Sell', href: '/sell' }] : []),
     { icon: <Package className="w-5 h-5" />, label: 'Orders', href: '/orders' },
     { icon: <Wallet className="w-5 h-5" />, label: 'Wallet', href: '/wallet' },
+    { icon: <Gift className="w-5 h-5" />, label: 'Referrals', href: '/referrals' },
     ...(user.role !== 'RIDER' ? [{ icon: <AlertTriangle className="w-5 h-5" />, label: 'Disputes', href: '/dispute/select-order' }] : []),
   ]
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile Header with Hamburger */}
+      {/* Mobile Header */}
       <div className="lg:hidden bg-white border-b border-gray-200 sticky top-0 z-30">
         <div className="flex items-center justify-between px-4 py-3">
           <button
@@ -179,23 +167,19 @@ export default function MyProfilePage() {
             <Menu className="w-6 h-6 text-gray-700" />
           </button>
           <h1 className="font-bold text-gray-900">My Account</h1>
-          <div className="w-10" /> {/* Spacer for centering */}
+          <div className="w-10" />
         </div>
       </div>
 
       {/* Mobile Slide-out Menu */}
       {isMobileMenuOpen && (
         <>
-          {/* Backdrop */}
-          <div 
+          <div
             className="fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-          
-          {/* Slide-out Panel */}
           <div className="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-white z-50 lg:hidden shadow-2xl transform transition-transform duration-300 ease-out">
             <div className="flex flex-col h-full">
-              {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-bata-primary rounded-full flex items-center justify-center">
@@ -215,7 +199,6 @@ export default function MyProfilePage() {
                 </button>
               </div>
 
-              {/* Menu Items */}
               <nav className="flex-1 overflow-y-auto py-2">
                 {menuItems.map((item, index) => (
                   <Link
@@ -231,13 +214,9 @@ export default function MyProfilePage() {
                 ))}
               </nav>
 
-              {/* Logout */}
               <div className="p-4 border-t border-gray-200 bg-gray-50">
                 <button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false)
-                    handleLogout()
-                  }}
+                  onClick={() => { setIsMobileMenuOpen(false); handleLogout() }}
                   className="flex items-center gap-3 w-full px-4 py-3 text-orange-600 hover:bg-orange-50 rounded-xl font-medium transition-colors"
                 >
                   <LogOut className="w-5 h-5" />
@@ -249,7 +228,7 @@ export default function MyProfilePage() {
         </>
       )}
 
-      {/* Breadcrumb - Hidden on mobile */}
+      {/* Breadcrumb - Desktop only */}
       <div className="hidden lg:block bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3">
           <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -262,8 +241,8 @@ export default function MyProfilePage() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 lg:py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          
-          {/* Desktop Sidebar - Hidden on mobile */}
+
+          {/* Desktop Sidebar */}
           <div className="hidden lg:block lg:col-span-1">
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden sticky top-20">
               <div className="px-4 py-4 bg-gray-100 border-b border-gray-200">
@@ -305,7 +284,7 @@ export default function MyProfilePage() {
 
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-4 lg:space-y-6">
-            
+
             {/* Account Overview Header */}
             <div className="flex items-center justify-between">
               <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Account Overview</h1>
@@ -332,11 +311,7 @@ export default function MyProfilePage() {
                     disabled={saving}
                     className="flex items-center gap-2 bg-bata-primary hover:bg-bata-dark text-white font-medium text-sm px-3 lg:px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
                   >
-                    {saving ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Check className="w-4 h-4" />
-                    )}
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                     <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save'}</span>
                     <span className="sm:hidden">Save</span>
                   </button>
@@ -360,7 +335,7 @@ export default function MyProfilePage() {
 
             {/* Account Details & Address Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
-              
+
               {/* Account Details */}
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-gray-100 flex items-center justify-between">
@@ -369,9 +344,7 @@ export default function MyProfilePage() {
                 </div>
                 <div className="p-4 lg:p-5 space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
-                      Full Name
-                    </label>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Full Name</label>
                     {isEditing ? (
                       <input
                         type="text"
@@ -385,9 +358,7 @@ export default function MyProfilePage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
-                      Email Address
-                    </label>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Email Address</label>
                     <div className="flex items-center gap-2">
                       <Mail className="w-4 h-4 text-gray-400" />
                       <p className="text-gray-900 font-medium text-sm break-all">{user.email}</p>
@@ -396,14 +367,10 @@ export default function MyProfilePage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
-                      Phone Number
-                    </label>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Phone Number</label>
                     {isEditing ? (
                       <div className="flex">
-                        <span className="inline-flex items-center px-3 border border-r-0 border-gray-300 rounded-l-lg bg-gray-50 text-gray-500 text-sm">
-                          +234
-                        </span>
+                        <span className="inline-flex items-center px-3 border border-r-0 border-gray-300 rounded-l-lg bg-gray-50 text-gray-500 text-sm">+234</span>
                         <input
                           type="tel"
                           value={(editedUser.phone || '').replace(/^\+?234/, '')}
@@ -430,24 +397,16 @@ export default function MyProfilePage() {
                 <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-gray-100 flex items-center justify-between">
                   <h2 className="font-bold text-gray-900 text-sm lg:text-base">ADDRESS BOOK</h2>
                   {isEditing && (
-                    <button
-                      onClick={handleSave}
-                      disabled={saving}
-                      className="text-bata-primary hover:text-bata-dark text-sm font-medium"
-                    >
+                    <button onClick={handleSave} disabled={saving} className="text-bata-primary hover:text-bata-dark text-sm font-medium">
                       {saving ? 'Saving...' : 'Save'}
                     </button>
                   )}
                 </div>
                 <div className="p-4 lg:p-5 space-y-4">
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                    Your default shipping address:
-                  </p>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Your default shipping address:</p>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
-                      Hostel/Location
-                    </label>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Hostel/Location</label>
                     {isEditing ? (
                       <input
                         type="text"
@@ -465,9 +424,7 @@ export default function MyProfilePage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
-                      Room Number
-                    </label>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Room Number</label>
                     {isEditing ? (
                       <input
                         type="text"
@@ -482,9 +439,7 @@ export default function MyProfilePage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
-                      Landmark
-                    </label>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Landmark</label>
                     {isEditing ? (
                       <input
                         type="text"
@@ -520,17 +475,17 @@ export default function MyProfilePage() {
                       ₦{wallet?.availableBalance?.toLocaleString('en-NG', { minimumFractionDigits: 2 }) || '0.00'}
                     </p>
                   </div>
-                  <Link
-                    href="/wallet"
-                    className="ml-auto text-bata-primary hover:text-bata-dark font-medium text-sm flex items-center gap-1 flex-shrink-0"
-                  >
+                  <Link href="/wallet" className="ml-auto text-bata-primary hover:text-bata-dark font-medium text-sm flex items-center gap-1 flex-shrink-0">
                     View <ChevronRight className="w-4 h-4" />
                   </Link>
                 </div>
               </div>
             </div>
 
-            {/* Recommended For You Section */}
+            {/* ── Referral Card ─────────────────────────────────── */}
+            <ReferralCard />
+
+            {/* Recommended For You */}
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
               <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-gray-100 flex items-center justify-between">
                 <h2 className="font-bold text-gray-900 text-sm lg:text-base">Recommended For You</h2>
@@ -543,15 +498,12 @@ export default function MyProfilePage() {
               </div>
             </div>
 
-            {/* Search History Section */}
+            {/* Search History */}
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
               <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-gray-100 flex items-center justify-between">
                 <h2 className="font-bold text-gray-900 text-sm lg:text-base">Your Search History</h2>
-                <button 
-                  onClick={() => {
-                    localStorage.removeItem('bata-recent-searches')
-                    window.location.reload()
-                  }}
+                <button
+                  onClick={() => { localStorage.removeItem('bata-recent-searches'); window.location.reload() }}
                   className="text-gray-500 hover:text-red-600 text-sm font-medium"
                 >
                   Clear
@@ -569,29 +521,21 @@ export default function MyProfilePage() {
   )
 }
 
-// Component for recommended products
 function RecommendedProducts() {
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
-  useEffect(() => {
-    fetchRecommended()
-  }, [])
+  useEffect(() => { fetchRecommended() }, [])
 
   const fetchRecommended = async () => {
     try {
-      const recentlyViewed = JSON.parse(localStorage.getItem('bata-recently-viewed') || '[]')
       const interests = JSON.parse(localStorage.getItem('bata-interests') || '[]')
-      
       const res = await fetch('/api/products?limit=6')
       const data = await res.json()
-      
       if (data.products) {
         const sorted = data.products.sort((a: any, b: any) => {
-          const aMatch = interests.includes(a.category) ? 1 : 0
-          const bMatch = interests.includes(b.category) ? 1 : 0
-          return bMatch - aMatch
+          return (interests.includes(b.category) ? 1 : 0) - (interests.includes(a.category) ? 1 : 0)
         })
         setProducts(sorted.slice(0, 6))
       }
@@ -619,40 +563,24 @@ function RecommendedProducts() {
   }
 
   if (products.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-500">
-        <p>Start browsing to get personalized recommendations!</p>
-      </div>
-    )
+    return <div className="text-center py-8 text-gray-500"><p>Start browsing to get personalized recommendations!</p></div>
   }
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
       {products.map((product) => (
-        <div
-          key={product.id}
-          onClick={() => router.push(`/product/${product.id}`)}
-          className="cursor-pointer group"
-        >
+        <div key={product.id} onClick={() => router.push(`/product/${product.id}`)} className="cursor-pointer group">
           <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 mb-2">
-            <img
-              src={product.images?.[0] || '/placeholder.png'}
-              alt={product.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-            />
+            <img src={product.images?.[0] || '/placeholder.png'} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
           </div>
           <p className="text-sm font-medium text-gray-900 line-clamp-2 mb-1">{product.name}</p>
           <p className="text-sm font-bold text-bata-primary">{fmt(product.price)}</p>
-          {product.originalPrice && product.originalPrice > product.price && (
-            <p className="text-xs text-gray-400 line-through">{fmt(product.originalPrice)}</p>
-          )}
         </div>
       ))}
     </div>
   )
 }
 
-// Component for search history
 function SearchHistory() {
   const [searches, setSearches] = useState<string[]>([])
   const router = useRouter()
@@ -663,11 +591,7 @@ function SearchHistory() {
   }, [])
 
   if (searches.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-500">
-        <p>No search history yet</p>
-      </div>
-    )
+    return <div className="text-center py-8 text-gray-500"><p>No search history yet</p></div>
   }
 
   return (

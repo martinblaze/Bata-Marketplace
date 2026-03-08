@@ -1,18 +1,18 @@
+// app/api/auth/signup-with-password/route.ts
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { generateToken, hashPassword } from '@/lib/auth/auth'  // removed verifyOTP
+import { generateToken, hashPassword } from '@/lib/auth/auth'
+import { generateUniqueReferralCode } from '@/lib/referral/generateReferralCode'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, name, password, otpCode, role, phone } = body
+    const { email, name, password, otpCode, role, phone, referralCode } = body
 
     if (!email || !otpCode || !password || !name || !phone) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
-
-    // ✅ OTP already verified in step 2 — skip re-verification here
 
     // Check if user already exists by email or phone
     const existingUser = await prisma.user.findFirst({
@@ -29,7 +29,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // ── Resolve referral code ────────────────────────────────
+    let referredById: string | undefined = undefined
+
+    if (referralCode && typeof referralCode === 'string') {
+      const referrer = await prisma.user.findUnique({
+        where: { referralCode: referralCode.trim().toUpperCase() },
+        select: { id: true },
+      })
+
+      if (referrer) {
+        referredById = referrer.id
+        // Self-referral prevention is implicit (new user has no id yet),
+        // but we add an explicit guard for safety.
+      }
+      // If code not found we silently ignore — don't block signup
+    }
+
     const hashedPassword = await hashPassword(password)
+    const newReferralCode = await generateUniqueReferralCode()
 
     const user = await prisma.user.create({
       data: {
@@ -38,6 +56,8 @@ export async function POST(request: NextRequest) {
         phone,
         password: hashedPassword,
         role: role || 'BUYER',
+        referralCode: newReferralCode,
+        ...(referredById ? { referredById } : {}),
       },
     })
 
@@ -53,6 +73,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         role: user.role,
         hostelName: user.hostelName,
+        referralCode: user.referralCode,
       },
     })
   } catch (error) {

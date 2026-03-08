@@ -1,25 +1,20 @@
-// app/api/orders/confirm-delivery/route.ts - FULLY CORRECTED
+// app/api/orders/confirm-delivery/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUserFromRequest } from '@/lib/auth/auth'
+import { processReferralReward } from '@/lib/referral/processReferralReward'
 
 export const dynamic = 'force-dynamic'
 
-// Track recent confirmations to prevent duplicates (in-memory cache)
 const recentConfirmations = new Map<string, number>()
-const CONFIRMATION_COOLDOWN = 5000 // 5 seconds cooldown
+const CONFIRMATION_COOLDOWN = 5000
 
-// Cleanup old entries periodically
 function cleanupOldEntries() {
   const now = Date.now()
   const keysToDelete: string[] = []
-  
   recentConfirmations.forEach((timestamp, key) => {
-    if (now - timestamp > 60000) {
-      keysToDelete.push(key)
-    }
+    if (now - timestamp > 60000) keysToDelete.push(key)
   })
-  
   keysToDelete.forEach(key => recentConfirmations.delete(key))
 }
 
@@ -68,10 +63,10 @@ export async function POST(request: NextRequest) {
 
     if (order.status === 'COMPLETED') {
       return NextResponse.json(
-        { 
+        {
           error: 'Order already completed',
           message: 'This order has already been confirmed and payment released',
-          alreadyCompleted: true
+          alreadyCompleted: true,
         },
         { status: 400 }
       )
@@ -85,9 +80,10 @@ export async function POST(request: NextRequest) {
     }
 
     // ═══════════════════════════════════════════════════════
-    // ✅ TRANSACTION: ONLY database operations
+    // TRANSACTION: all DB operations including referral reward
     // ═══════════════════════════════════════════════════════
     const result = await prisma.$transaction(async (tx) => {
+      // 1. Mark order COMPLETED
       const updatedOrder = await tx.order.update({
         where: { id: orderId },
         data: {
@@ -96,63 +92,71 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      // Release seller payment
-      const sellerPending = order.seller.pendingBalance || 0
+      // 2. Release seller payment
       const sellerAvailable = order.seller.availableBalance || 0
       const sellerShare = order.totalAmount - order.platformCommission - (order.rider ? 560 : 0)
 
       await tx.user.update({
         where: { id: order.sellerId },
         data: {
-          pendingBalance: { decrement: sellerShare },
+          pendingBalance:   { decrement: sellerShare },
           availableBalance: { increment: sellerShare },
         },
       })
 
       await tx.transaction.create({
         data: {
-          userId: order.sellerId,
-          type: 'CREDIT',
-          amount: sellerShare,
-          description: `Payment received for Order: ${order.orderNumber}`,
-          reference: `${order.orderNumber}-SELLER-RELEASE`,
+          userId:        order.sellerId,
+          type:          'CREDIT',
+          amount:        sellerShare,
+          description:   `Payment received for Order: ${order.orderNumber}`,
+          reference:     `${order.orderNumber}-SELLER-RELEASE`,
           balanceBefore: sellerAvailable,
-          balanceAfter: sellerAvailable + sellerShare,
+          balanceAfter:  sellerAvailable + sellerShare,
         },
       })
 
-      // Release rider payment (if assigned)
+      // 3. Release rider payment (if assigned)
       if (order.riderId) {
         const rider = await tx.user.findUnique({
-          where: { id: order.riderId },
+          where:  { id: order.riderId },
           select: { availableBalance: true },
         })
 
-        const riderShare = 560
+        const riderShare   = 560
         const riderBalance = rider?.availableBalance || 0
 
         await tx.user.update({
           where: { id: order.riderId },
-          data: { availableBalance: { increment: riderShare } },
+          data:  { availableBalance: { increment: riderShare } },
         })
 
         await tx.transaction.create({
           data: {
-            userId: order.riderId,
-            type: 'CREDIT',
-            amount: riderShare,
-            description: `Delivery fee for Order: ${order.orderNumber}`,
-            reference: `${order.orderNumber}-RIDER-RELEASE`,
+            userId:        order.riderId,
+            type:          'CREDIT',
+            amount:        riderShare,
+            description:   `Delivery fee for Order: ${order.orderNumber}`,
+            reference:     `${order.orderNumber}-RIDER-RELEASE`,
             balanceBefore: riderBalance,
-            balanceAfter: riderBalance + riderShare,
+            balanceAfter:  riderBalance + riderShare,
           },
         })
       }
 
+      // 4. ── REFERRAL REWARD (new) ──────────────────────────
+      await processReferralReward(tx, {
+        orderId,
+        orderNumber: order.orderNumber,
+        orderAmount: order.totalAmount,
+        buyerId:     order.buyerId,
+      })
+      // processReferralReward is silent on errors and no-ops if no referrer
+
       return updatedOrder
     }, {
       timeout: 15000,
-      maxWait: 20000,
+      maxWait:  20000,
     })
 
     console.log(`✅ Order ${order.orderNumber} completed by buyer ${user.name}`)
@@ -160,17 +164,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: '🎉 Payment released! Seller and rider have been paid.',
-      order: result,
+      order:   result,
     })
   } catch (error) {
     console.error('Confirm delivery error:', error)
-    
+
     if (error instanceof Error && error.message.includes('Unique constraint')) {
       return NextResponse.json(
-        { 
-          error: 'Order already processed',
-          message: 'This order has already been confirmed',
-          alreadyCompleted: true
+        {
+          error:            'Order already processed',
+          message:          'This order has already been confirmed',
+          alreadyCompleted: true,
         },
         { status: 400 }
       )

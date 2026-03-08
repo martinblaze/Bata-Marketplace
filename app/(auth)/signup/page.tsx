@@ -1,14 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
 
 const FaceVerification = dynamic(() => import('@/components/ui/FaceVerification'), { ssr: false })
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+
   const [step, setStep] = useState(1)
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
@@ -25,6 +27,13 @@ export default function SignupPage() {
   const [faceRegistered, setFaceRegistered] = useState(false)
   const [faceLoading, setFaceLoading] = useState(false)
   const [createdToken, setCreatedToken] = useState<string | null>(null)
+
+  // ── Read referral code from URL (?ref=BATA-XXXXXX) ──────────
+  const [referralCode, setReferralCode] = useState('')
+  useEffect(() => {
+    const ref = searchParams.get('ref')
+    if (ref) setReferralCode(ref.trim().toUpperCase())
+  }, [searchParams])
 
   const validatePassword = (pwd: string) => {
     if (pwd.length < 8) return 'Password must be at least 8 characters'
@@ -135,6 +144,7 @@ export default function SignupPage() {
           password,
           otpCode: otp.join(''),
           role: wantToSell ? 'SELLER' : 'BUYER',
+          referralCode: referralCode || undefined,  // ← pass referral code
         }),
       })
 
@@ -276,6 +286,26 @@ export default function SignupPage() {
                   placeholder="you@example.com"
                 />
                 <p className="text-xs text-gray-500 mt-1">A verification code will be sent to this email</p>
+              </div>
+
+              {/* ── Referral Code Field ───────────────────────────── */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Referral Code <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value.trim().toUpperCase())}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none font-mono tracking-widest uppercase"
+                  placeholder="BATA-XXXXXX"
+                  maxLength={11}
+                />
+                {referralCode && (
+                  <p className="text-xs text-green-600 mt-1 font-medium">
+                    🎉 Referral code applied!
+                  </p>
+                )}
               </div>
 
               <div className="pt-3 border-t border-gray-100">
@@ -456,7 +486,7 @@ export default function SignupPage() {
             </form>
           )}
 
-          {/* ── Step 4: Face Registration (sellers only) ── */}
+          {/* Step 4: Face Registration (sellers only) */}
           {step === 4 && (
             <div className="space-y-6">
               <div className="text-center">
@@ -550,5 +580,18 @@ export default function SignupPage() {
         />
       )}
     </div>
+  )
+}
+
+// useSearchParams requires Suspense boundary in Next.js 14 App Router
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="w-8 h-8 border-2 border-bata-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <SignupForm />
+    </Suspense>
   )
 }

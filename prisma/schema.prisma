@@ -1,3 +1,7 @@
+// ============================================================
+// COMPLETE PRISMA SCHEMA WITH REFERRAL SYSTEM
+// ============================================================
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -40,6 +44,7 @@ enum TransactionType {
   DEBIT
   ESCROW
   WITHDRAWAL
+  REFERRAL_REWARD   // ← ADDED
 }
 
 enum ReviewType {
@@ -120,6 +125,7 @@ enum NotificationType {
 
   WITHDRAWAL_PROCESSED
   PAYMENT_RECEIVED
+  REFERRAL_REWARD     // ← ADDED
 }
 
 enum SupportTicketStatus {
@@ -209,6 +215,14 @@ model User {
   isDeleted          Boolean     @default(false)
   deletedAt          DateTime?
 
+  // Referral System Fields - ADDED
+  referralCode        String              @unique
+  referredById        String?
+  referredBy          User?               @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals           User[]              @relation("UserReferrals")
+  referralRewardsEarned   ReferralReward[] @relation("ReferrerRewards")
+  referralRewardsGenerated ReferralReward[] @relation("ReferredUserRewards")
+
   // Relations
   products           Product[]
   orders             Order[]     @relation("BuyerOrders")
@@ -250,6 +264,7 @@ model User {
   @@index([isSuspended])
   @@index([isDeleted])
   @@index([createdAt])
+  @@index([referralCode]) // ADDED index for faster referral lookups
 }
 
 model Product {
@@ -329,8 +344,7 @@ model Order {
   deliveredAt        DateTime?
   completedAt        DateTime?
 
-  // ✅ FIXED: plain back-reference only — no fields/references here
-  // The FK lives on Payment.orderId, so Payment owns the relation
+  // Relations
   payment            Payment?
 
   isPaid             Boolean     @default(false)
@@ -342,6 +356,9 @@ model Order {
   productReviews     ProductReview[]
   reports            Report[]
   dispute            Dispute?
+
+  // Referral reward relation
+  referralReward     ReferralReward? // ADDED relation for referral rewards
 
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
@@ -421,7 +438,6 @@ model OTP {
 model Payment {
   id        String   @id @default(cuid())
 
-  // ✅ FIXED: Payment owns the FK — this is the only side with fields/references
   orderId   String   @unique
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
@@ -615,6 +631,7 @@ model Notification {
   disputeId String?
   reportId  String?
   reviewId  String?
+  referralRewardId String? // ADDED for referral reward notifications
 
   metadata Json?
 
@@ -709,4 +726,27 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([createdAt])
   @@index([action])
+}
+
+// ============================================================
+// NEW REFERRAL REWARD MODEL - ADDED
+// ============================================================
+model ReferralReward {
+  id              String   @id @default(cuid())
+
+  referrerId      String
+  referrer        User     @relation("ReferrerRewards", fields: [referrerId], references: [id])
+
+  referredUserId  String
+  referredUser    User     @relation("ReferredUserRewards", fields: [referredUserId], references: [id])
+
+  orderId         String   @unique
+  order           Order    @relation(fields: [orderId], references: [id])
+
+  amount          Float
+  createdAt       DateTime @default(now())
+
+  @@index([referrerId])
+  @@index([referredUserId])
+  @@index([createdAt])
 }
