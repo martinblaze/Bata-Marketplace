@@ -264,10 +264,10 @@ export default function WalletPage() {
         setShowWithdrawModal(false)
         setFaceRegisterSuccess(false)
         setFaceRegisterError('')
-  setShowFaceIdRequired(true)
-} else {
-  setShowFaceVerify(true)
-}
+        setShowFaceIdRequired(true)
+    } else {
+        setShowFaceVerify(true)
+    }
   }
 
   // ── Face verified: the component already called /api/auth/verify-face ─────
