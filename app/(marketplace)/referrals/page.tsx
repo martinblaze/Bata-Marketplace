@@ -193,9 +193,6 @@ export default function ReferralsPage() {
               </div>
             ))}
           </div>
-          <div className="mt-4 bg-purple-50 rounded-xl p-3 text-sm text-purple-700">
-            <strong>Example:</strong> Friend places ₦10,000 order → Platform earns ₦500 commission → You earn <strong>₦50</strong>
-          </div>
         </div>
 
         {/* Stats */}
