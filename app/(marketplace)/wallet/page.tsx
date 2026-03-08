@@ -136,7 +136,6 @@ const TX_LABEL: Record<string, { label: string; color: string; bg: string; sign:
   ESCROW:     { label: 'Escrow',     color: 'text-amber-700',   bg: 'bg-amber-50',    sign: '' },
 }
 
-// ── Auth method for current withdrawal attempt ────────────────────────────────
 type AuthMethod = 'face' | 'pin'
 
 export default function WalletPage() {
@@ -147,7 +146,9 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(true)
   const [withdrawing, setWithdrawing] = useState(false)
 
-  // ── Withdraw form state ───────────────────────────────────────────────────
+  // ── NEW: store token in state so we can pass it to FaceVerification ───────
+  const [authToken, setAuthToken] = useState<string>('')
+
   const [showWithdrawModal, setShowWithdrawModal] = useState(false)
   const [withdrawAmount, setWithdrawAmount] = useState('')
   const [accountNumber, setAccountNumber] = useState('')
@@ -157,34 +158,30 @@ export default function WalletPage() {
   const [showBankDropdown, setShowBankDropdown] = useState(false)
   const bankRef = useRef<HTMLDivElement>(null)
 
-  // ── Face verification state ───────────────────────────────────────────────
   const [showFaceVerify, setShowFaceVerify] = useState(false)
   const [faceError, setFaceError] = useState('')
   const [pendingWithdrawal, setPendingWithdrawal] = useState<{
     amount: number; accountNumber: string; accountName: string; bankCode: string
   } | null>(null)
 
-  // ── Face registration state ───────────────────────────────────────────────
   const [showFaceIdRequired, setShowFaceIdRequired] = useState(false)
   const [showFaceRegister, setShowFaceRegister] = useState(false)
   const [faceRegisterLoading, setFaceRegisterLoading] = useState(false)
   const [faceRegisterError, setFaceRegisterError] = useState('')
   const [faceRegisterSuccess, setFaceRegisterSuccess] = useState(false)
 
-  // ── PIN state ─────────────────────────────────────────────────────────────
   const [authMethod, setAuthMethod] = useState<AuthMethod>('face')
   const [showPinEntry, setShowPinEntry] = useState(false)
   const [pinValue, setPinValue] = useState('')
   const [pinError, setPinError] = useState('')
   const [pinLoading, setPinLoading] = useState(false)
 
-  // ── Set PIN modal state ───────────────────────────────────────────────────
   const [showSetPin, setShowSetPin] = useState(false)
   const [newPin, setNewPin] = useState('')
   const [confirmPin, setConfirmPin] = useState('')
-  const [savePinLoading, setSavePinLoading] = useState(false)   // ✅ fixed
-  const [savePinError, setSavePinError] = useState('')           // ✅ fixed
-  const [savePinSuccess, setSavePinSuccess] = useState(false)    // ✅ fixed
+  const [savePinLoading, setSavePinLoading] = useState(false)
+  const [savePinError, setSavePinError] = useState('')
+  const [savePinSuccess, setSavePinSuccess] = useState(false)
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -202,6 +199,8 @@ export default function WalletPage() {
     try {
       const token = localStorage.getItem('token')
       if (!token) { router.push('/login'); return }
+      // ── Store token in state for FaceVerification ──────────────────────────
+      setAuthToken(token)
       const [uR, wR, tR] = await Promise.all([
         fetch('/api/auth/me',             { headers: { Authorization: `Bearer ${token}` } }),
         fetch('/api/wallet',              { headers: { Authorization: `Bearer ${token}` } }),
@@ -219,7 +218,6 @@ export default function WalletPage() {
     ? NIGERIAN_BANKS.filter(b => b.name.toLowerCase().includes(bankSearch.toLowerCase()))
     : NIGERIAN_BANKS
 
-  // ── Upfront face-ID check before opening withdraw form ───────────────────
   const openWithdrawModal = async () => {
     try {
       const token = localStorage.getItem('token')
@@ -229,21 +227,14 @@ export default function WalletPage() {
       if (res.ok) {
         const data = await res.json()
         setUser(data.user)
-
-        if (!data.user.hasFaceId) {
-          // No face AND no PIN → must register face first
-          if (!data.user.hasWithdrawalPin) {
-            setFaceRegisterSuccess(false)
-            setFaceRegisterError('')
-            setShowFaceIdRequired(true)
-            return
-          }
-          // Has PIN but no face → can still proceed, will use PIN
+        if (!data.user.hasFaceId && !data.user.hasWithdrawalPin) {
+          setFaceRegisterSuccess(false)
+          setFaceRegisterError('')
+          setShowFaceIdRequired(true)
+          return
         }
       }
-    } catch {
-      // Network hiccup — fall through
-    }
+    } catch { /* fall through */ }
 
     setWithdrawAmount('')
     setAccountNumber('')
@@ -265,7 +256,6 @@ export default function WalletPage() {
     setPendingWithdrawal({ amount, accountNumber, accountName, bankCode: selectedBank.code })
     setFaceError('')
     setPinError('')
-
     if (authMethod === 'pin') {
       setPinValue('')
       setShowPinEntry(true)
@@ -274,46 +264,23 @@ export default function WalletPage() {
     }
   }
 
-  // ── Face verified successfully ────────────────────────────────────────────
-  const handleFaceVerified = async (descriptor?: Float32Array) => {
+  // ── Face verified: the component already called /api/auth/verify-face ─────
+  // onSuccess fires ONLY after the API confirmed a match, so we go straight
+  // to executing the withdrawal — no need to call verify-face again here.
+  const handleFaceVerified = async (_descriptor?: Float32Array) => {
     setShowFaceVerify(false)
-    if (!descriptor) {
-      setFaceError('Could not capture face. Please try again.')
+    if (!user?.hasWithdrawalPin) {
+      setShowWithdrawModal(false)
+      setShowSetPin(true)
+      executeWithdrawal()
       return
     }
-    try {
-      const token = localStorage.getItem('token')
-      const vr = await fetch('/api/auth/verify-face', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ descriptor: Array.from(descriptor) }),
-      })
-      const vd = await vr.json()
-      if (!vr.ok) {
-        setFaceError(vd.error || 'Face verification failed.')
-        setPendingWithdrawal(null)
-        return
-      }
-      // ✅ Face passed — prompt to set PIN if they don't have one yet
-      if (!user?.hasWithdrawalPin) {
-        setShowWithdrawModal(false)
-        setShowSetPin(true)
-        // Execute withdrawal in parallel — don't block on PIN setup
-        executeWithdrawal()
-        return
-      }
-      await executeWithdrawal()
-    } catch {
-      setFaceError('Verification error. Please try again.')
-      setPendingWithdrawal(null)
-    }
+    await executeWithdrawal()
   }
 
-  // ── Face failed — offer PIN fallback ─────────────────────────────────────
   const handleFaceCancelled = () => {
     setShowFaceVerify(false)
     if (user?.hasWithdrawalPin) {
-      // Offer PIN as fallback
       setFaceError('')
       setAuthMethod('pin')
       setPinValue('')
@@ -324,7 +291,6 @@ export default function WalletPage() {
     }
   }
 
-  // ── PIN entry submitted ───────────────────────────────────────────────────
   const handlePinSubmit = async () => {
     if (pinValue.length !== 6) { setPinError('Enter your 6-digit PIN'); return }
     setPinLoading(true)
@@ -337,11 +303,7 @@ export default function WalletPage() {
         body: JSON.stringify({ pin: pinValue }),
       })
       const data = await res.json()
-      if (!res.ok) {
-        setPinError(data.error || 'Incorrect PIN')
-        setPinValue('')
-        return
-      }
+      if (!res.ok) { setPinError(data.error || 'Incorrect PIN'); setPinValue(''); return }
       setShowPinEntry(false)
       await executeWithdrawal()
     } catch {
@@ -351,7 +313,6 @@ export default function WalletPage() {
     }
   }
 
-  // ── Execute the actual withdrawal ─────────────────────────────────────────
   const executeWithdrawal = async () => {
     if (!pendingWithdrawal) return
     setWithdrawing(true)
@@ -363,7 +324,6 @@ export default function WalletPage() {
         body: JSON.stringify(pendingWithdrawal),
       })
       const d = await r.json()
-
       if (!r.ok && d.error === 'FACE_ID_REQUIRED') {
         setShowWithdrawModal(false)
         setPendingWithdrawal(null)
@@ -372,7 +332,6 @@ export default function WalletPage() {
         setShowFaceIdRequired(true)
         return
       }
-
       if (r.ok) {
         setShowWithdrawModal(false)
         setShowSetPin(false)
@@ -387,13 +346,9 @@ export default function WalletPage() {
     finally { setWithdrawing(false) }
   }
 
-  // ── Face registration ─────────────────────────────────────────────────────
   const handleFaceRegisterSuccess = async (descriptor?: Float32Array) => {
     setShowFaceRegister(false)
-    if (!descriptor) {
-      setFaceRegisterError('Could not capture face data. Please try again.')
-      return
-    }
+    if (!descriptor) { setFaceRegisterError('Could not capture face data. Please try again.'); return }
     setFaceRegisterLoading(true)
     setFaceRegisterError('')
     try {
@@ -417,7 +372,6 @@ export default function WalletPage() {
     }
   }
 
-  // ── Set PIN submit ────────────────────────────────────────────────────────
   const handleSetPinSubmit = async () => {
     if (!/^\d{6}$/.test(newPin)) { setSavePinError('PIN must be exactly 6 digits'); return }
     if (newPin !== confirmPin) { setSavePinError('PINs do not match'); return }
@@ -434,12 +388,7 @@ export default function WalletPage() {
       if (res.ok) {
         setSavePinSuccess(true)
         setUser(prev => prev ? { ...prev, hasWithdrawalPin: true } : prev)
-        setTimeout(() => {
-          setShowSetPin(false)
-          setSavePinSuccess(false)
-          setNewPin('')
-          setConfirmPin('')
-        }, 2000)
+        setTimeout(() => { setShowSetPin(false); setSavePinSuccess(false); setNewPin(''); setConfirmPin('') }, 2000)
       } else {
         setSavePinError(data.error || 'Failed to set PIN')
       }
@@ -467,13 +416,8 @@ export default function WalletPage() {
     )
   }
 
-  const totalEarned = transactions
-    .filter(t => t.type === 'CREDIT')
-    .reduce((s, t) => s + t.amount, 0)
-
-  const totalWithdrawn = transactions
-    .filter(t => t.type === 'WITHDRAWAL' || t.type === 'DEBIT')
-    .reduce((s, t) => s + t.amount, 0)
+  const totalEarned = transactions.filter(t => t.type === 'CREDIT').reduce((s, t) => s + t.amount, 0)
+  const totalWithdrawn = transactions.filter(t => t.type === 'WITHDRAWAL' || t.type === 'DEBIT').reduce((s, t) => s + t.amount, 0)
 
   return (
     <div className="min-h-screen bg-[#f7f8fa]">
@@ -490,7 +434,6 @@ export default function WalletPage() {
             <h1 className="text-xl font-semibold text-gray-900">Wallet & Payouts</h1>
           </div>
           <div className="flex items-center gap-3">
-            {/* Set / Change PIN shortcut */}
             <button
               onClick={() => { setNewPin(''); setConfirmPin(''); setSavePinError(''); setSavePinSuccess(false); setShowSetPin(true) }}
               className="inline-flex items-center gap-2 border border-gray-300 text-gray-600 hover:border-bata-primary hover:text-bata-primary text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors"
@@ -524,9 +467,7 @@ export default function WalletPage() {
             </p>
             <p className="text-xs text-gray-400 mt-2">Ready to withdraw</p>
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <button onClick={openWithdrawModal} className="text-sm font-semibold text-bata-primary hover:underline">
-                Withdraw →
-              </button>
+              <button onClick={openWithdrawModal} className="text-sm font-semibold text-bata-primary hover:underline">Withdraw →</button>
             </div>
           </div>
 
@@ -564,7 +505,6 @@ export default function WalletPage() {
                 <span className="text-sm font-bold text-gray-900">{wallet.completedOrders}</span>
               </div>
             </div>
-            {/* Security status pills */}
             <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap gap-2">
               <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${user.hasFaceId ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
                 {user.hasFaceId ? '✓' : '✗'} Face ID
@@ -612,9 +552,7 @@ export default function WalletPage() {
                       <p className="text-xs text-gray-400 mt-0.5 font-mono">{tx.reference}</p>
                     </div>
                     <div className="col-span-2 mb-2 md:mb-0">
-                      <span className={`inline-block px-2.5 py-1 rounded-md text-xs font-semibold ${meta.bg} ${meta.color}`}>
-                        {meta.label}
-                      </span>
+                      <span className={`inline-block px-2.5 py-1 rounded-md text-xs font-semibold ${meta.bg} ${meta.color}`}>{meta.label}</span>
                     </div>
                     <div className="col-span-2 mb-2 md:mb-0">
                       <p className="text-sm text-gray-600">
@@ -626,12 +564,9 @@ export default function WalletPage() {
                     </div>
                     <div className="col-span-3 text-left md:text-right">
                       <p className={`text-sm font-bold tabular-nums ${meta.color}`}>
-                        {tx.type === 'ESCROW' ? '🔒 ' : meta.sign}
-                        ₦{tx.amount.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                        {tx.type === 'ESCROW' ? '🔒 ' : meta.sign}₦{tx.amount.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
                       </p>
-                      <p className="text-xs text-gray-400 mt-0.5 tabular-nums">
-                        Bal: ₦{tx.balanceAfter.toLocaleString()}
-                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5 tabular-nums">Bal: ₦{tx.balanceAfter.toLocaleString()}</p>
                     </div>
                   </div>
                 )
@@ -666,7 +601,6 @@ export default function WalletPage() {
             </div>
 
             <div className="px-6 py-5">
-              {/* Face error with PIN fallback option */}
               {faceError && (
                 <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-5 text-sm">
                   <svg className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -675,17 +609,11 @@ export default function WalletPage() {
                   <div>
                     <p className="text-red-700 font-medium">{faceError}</p>
                     <div className="flex gap-3 mt-1.5">
-                      <button
-                        onClick={() => { setFaceError(''); if (pendingWithdrawal) setShowFaceVerify(true) }}
-                        className="text-red-600 underline text-xs"
-                      >
+                      <button onClick={() => { setFaceError(''); if (pendingWithdrawal) setShowFaceVerify(true) }} className="text-red-600 underline text-xs">
                         Try face scan again
                       </button>
                       {user.hasWithdrawalPin && (
-                        <button
-                          onClick={() => { setFaceError(''); setAuthMethod('pin'); setPinValue(''); setShowPinEntry(true) }}
-                          className="text-bata-primary underline text-xs font-semibold"
-                        >
+                        <button onClick={() => { setFaceError(''); setAuthMethod('pin'); setPinValue(''); setShowPinEntry(true) }} className="text-bata-primary underline text-xs font-semibold">
                           Use PIN instead
                         </button>
                       )}
@@ -694,115 +622,51 @@ export default function WalletPage() {
                 </div>
               )}
 
-              {/* Auth method toggle — only show if user has PIN */}
               {user.hasWithdrawalPin && (
                 <div className="flex rounded-xl border border-gray-200 overflow-hidden mb-5">
-                  <button
-                    type="button"
-                    onClick={() => setAuthMethod('face')}
-                    className={`flex-1 py-2.5 text-sm font-semibold flex items-center justify-center gap-2 transition ${
-                      authMethod === 'face'
-                        ? 'bg-bata-primary text-white'
-                        : 'bg-white text-gray-500 hover:bg-gray-50'
-                    }`}
-                  >
+                  <button type="button" onClick={() => setAuthMethod('face')} className={`flex-1 py-2.5 text-sm font-semibold flex items-center justify-center gap-2 transition ${authMethod === 'face' ? 'bg-bata-primary text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
                     <span>👤</span> Face ID
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setAuthMethod('pin')}
-                    className={`flex-1 py-2.5 text-sm font-semibold flex items-center justify-center gap-2 transition ${
-                      authMethod === 'pin'
-                        ? 'bg-bata-primary text-white'
-                        : 'bg-white text-gray-500 hover:bg-gray-50'
-                    }`}
-                  >
+                  <button type="button" onClick={() => setAuthMethod('pin')} className={`flex-1 py-2.5 text-sm font-semibold flex items-center justify-center gap-2 transition ${authMethod === 'pin' ? 'bg-bata-primary text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
                     <span>🔢</span> PIN
                   </button>
                 </div>
               )}
 
               <form onSubmit={handleWithdrawSubmit} className="space-y-5">
-                {/* Amount */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Amount <span className="text-gray-400 font-normal">(NGN)</span>
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Amount <span className="text-gray-400 font-normal">(NGN)</span></label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium text-sm">₦</span>
-                    <input
-                      type="number"
-                      value={withdrawAmount}
-                      onChange={(e) => setWithdrawAmount(e.target.value)}
-                      placeholder="0.00"
-                      min="1000"
-                      max={wallet.availableBalance}
-                      className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-bata-primary focus:border-transparent"
-                      required
-                    />
+                    <input type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder="0.00" min="1000" max={wallet.availableBalance} className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-bata-primary focus:border-transparent" required />
                   </div>
                   <div className="flex items-center justify-between mt-1.5">
                     <p className="text-xs text-gray-400">Minimum: ₦1,000</p>
-                    <button
-                      type="button"
-                      onClick={() => setWithdrawAmount(String(wallet.availableBalance))}
-                      className="text-xs text-bata-primary font-semibold hover:underline"
-                    >
-                      Max: ₦{wallet.availableBalance.toLocaleString()}
-                    </button>
+                    <button type="button" onClick={() => setWithdrawAmount(String(wallet.availableBalance))} className="text-xs text-bata-primary font-semibold hover:underline">Max: ₦{wallet.availableBalance.toLocaleString()}</button>
                   </div>
                 </div>
 
-                {/* Bank */}
                 <div ref={bankRef}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Bank <span className="text-gray-400 font-normal">({NIGERIAN_BANKS.length} supported)</span>
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Bank <span className="text-gray-400 font-normal">({NIGERIAN_BANKS.length} supported)</span></label>
                   {!showBankDropdown ? (
-                    <button
-                      type="button"
-                      onClick={() => { setBankSearch(''); setShowBankDropdown(true) }}
-                      className="w-full flex items-center justify-between px-4 py-3 border border-gray-300 rounded-lg text-sm hover:border-bata-primary transition text-left group"
-                    >
+                    <button type="button" onClick={() => { setBankSearch(''); setShowBankDropdown(true) }} className="w-full flex items-center justify-between px-4 py-3 border border-gray-300 rounded-lg text-sm hover:border-bata-primary transition text-left group">
                       <span className="font-medium text-gray-900">{selectedBank.name}</span>
-                      <svg className="w-4 h-4 text-gray-400 group-hover:text-bata-primary transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
-                      </svg>
+                      <svg className="w-4 h-4 text-gray-400 group-hover:text-bata-primary transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
                     </button>
                   ) : (
                     <div className="relative">
                       <div className="relative">
-                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                        </svg>
-                        <input
-                          type="text"
-                          value={bankSearch}
-                          onChange={(e) => setBankSearch(e.target.value)}
-                          placeholder="Search bank..."
-                          className="w-full pl-10 pr-4 py-3 border-2 border-bata-primary rounded-lg text-sm focus:outline-none"
-                          autoFocus
-                        />
+                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        <input type="text" value={bankSearch} onChange={(e) => setBankSearch(e.target.value)} placeholder="Search bank..." className="w-full pl-10 pr-4 py-3 border-2 border-bata-primary rounded-lg text-sm focus:outline-none" autoFocus />
                       </div>
                       <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-56 overflow-y-auto">
                         {filteredBanks.length === 0 ? (
                           <p className="text-center text-gray-400 py-5 text-sm">No bank found</p>
                         ) : (
                           filteredBanks.map((bank) => (
-                            <button
-                              key={bank.code + bank.name}
-                              type="button"
-                              onClick={() => { setSelectedBank(bank); setBankSearch(''); setShowBankDropdown(false) }}
-                              className={`w-full text-left px-4 py-2.5 text-sm flex items-center justify-between hover:bg-gray-50 transition ${
-                                selectedBank.code === bank.code ? 'text-bata-primary font-semibold bg-blue-50' : 'text-gray-800'
-                              }`}
-                            >
+                            <button key={bank.code + bank.name} type="button" onClick={() => { setSelectedBank(bank); setBankSearch(''); setShowBankDropdown(false) }} className={`w-full text-left px-4 py-2.5 text-sm flex items-center justify-between hover:bg-gray-50 transition ${selectedBank.code === bank.code ? 'text-bata-primary font-semibold bg-blue-50' : 'text-gray-800'}`}>
                               <span>{bank.name}</span>
-                              {selectedBank.code === bank.code && (
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-                                </svg>
-                              )}
+                              {selectedBank.code === bank.code && <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>}
                             </button>
                           ))
                         )}
@@ -811,98 +675,39 @@ export default function WalletPage() {
                   )}
                 </div>
 
-                {/* Account number */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Account Number</label>
-                  <input
-                    type="text"
-                    value={accountNumber}
-                    onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ''))}
-                    placeholder="10-digit account number"
-                    maxLength={10}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-bata-primary focus:border-transparent"
-                    required
-                  />
+                  <input type="text" value={accountNumber} onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ''))} placeholder="10-digit account number" maxLength={10} className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-bata-primary focus:border-transparent" required />
                 </div>
 
-                {/* Account name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Account Name</label>
-                  <input
-                    type="text"
-                    value={accountName}
-                    onChange={(e) => setAccountName(e.target.value)}
-                    placeholder="As it appears on your bank account"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-bata-primary focus:border-transparent"
-                    required
-                  />
+                  <input type="text" value={accountName} onChange={(e) => setAccountName(e.target.value)} placeholder="As it appears on your bank account" className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-bata-primary focus:border-transparent" required />
                 </div>
 
-                {/* Summary */}
                 {withdrawAmount && parseFloat(withdrawAmount) >= 1000 && accountNumber.length >= 10 && accountName && (
                   <div className="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden">
                     <div className="px-4 py-2.5 bg-gray-100 border-b border-gray-200">
                       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Withdrawal Summary</p>
                     </div>
                     <div className="px-4 py-3 space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Amount</span>
-                        <span className="font-semibold text-gray-900">₦{parseFloat(withdrawAmount).toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Bank</span>
-                        <span className="font-medium text-gray-900 text-right max-w-[55%]">{selectedBank.name}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Account No.</span>
-                        <span className="font-mono text-gray-900">{accountNumber}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Account Name</span>
-                        <span className="font-medium text-gray-900">{accountName}</span>
-                      </div>
+                      <div className="flex justify-between"><span className="text-gray-500">Amount</span><span className="font-semibold text-gray-900">₦{parseFloat(withdrawAmount).toLocaleString()}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-500">Bank</span><span className="font-medium text-gray-900 text-right max-w-[55%]">{selectedBank.name}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-500">Account No.</span><span className="font-mono text-gray-900">{accountNumber}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-500">Account Name</span><span className="font-medium text-gray-900">{accountName}</span></div>
                     </div>
                   </div>
                 )}
 
-                {/* Security note */}
                 <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-xs text-blue-700">
-                  <svg className="w-4 h-4 flex-shrink-0 mt-0.5 text-bata-primary" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"/>
-                  </svg>
-                  <span>
-                    {authMethod === 'pin'
-                      ? 'Your 6-digit PIN will be required to authorise this withdrawal.'
-                      : 'A face scan will be required to authorise this withdrawal.'}
-                  </span>
+                  <svg className="w-4 h-4 flex-shrink-0 mt-0.5 text-bata-primary" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"/></svg>
+                  <span>{authMethod === 'pin' ? 'Your 6-digit PIN will be required to authorise this withdrawal.' : 'A face scan will be required to authorise this withdrawal.'}</span>
                 </div>
 
                 <div className="flex gap-3 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => { setShowWithdrawModal(false); setPendingWithdrawal(null); setFaceError(''); setPinError('') }}
-                    className="flex-1 py-3 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={withdrawing}
-                    className="flex-1 py-3 bg-bata-primary hover:bg-bata-dark text-white rounded-lg text-sm font-semibold transition disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {withdrawing ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"/>
-                        </svg>
-                        {authMethod === 'pin' ? 'Continue to PIN' : 'Continue to Face Scan'}
-                      </>
-                    )}
+                  <button type="button" onClick={() => { setShowWithdrawModal(false); setPendingWithdrawal(null); setFaceError(''); setPinError('') }} className="flex-1 py-3 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">Cancel</button>
+                  <button type="submit" disabled={withdrawing} className="flex-1 py-3 bg-bata-primary hover:bg-bata-dark text-white rounded-lg text-sm font-semibold transition disabled:opacity-50 flex items-center justify-center gap-2">
+                    {withdrawing ? (<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Processing...</>) : (<><svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"/></svg>{authMethod === 'pin' ? 'Continue to PIN' : 'Continue to Face Scan'}</>)}
                   </button>
                 </div>
               </form>
@@ -916,63 +721,26 @@ export default function WalletPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
             <div className="bg-gradient-to-br from-bata-primary to-bata-dark px-6 py-8 text-center">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                <span className="text-3xl">🔢</span>
-              </div>
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3"><span className="text-3xl">🔢</span></div>
               <h3 className="text-xl font-bold text-white">Enter Withdrawal PIN</h3>
               <p className="text-white/70 text-sm mt-1">Enter your 6-digit PIN to authorise</p>
             </div>
             <div className="px-6 py-6 space-y-4">
-              {/* PIN dots display */}
               <div className="flex justify-center gap-3 mb-2">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`w-4 h-4 rounded-full border-2 transition-all ${
-                      i < pinValue.length
-                        ? 'bg-bata-primary border-bata-primary'
-                        : 'border-gray-300'
-                    }`}
-                  />
+                  <div key={i} className={`w-4 h-4 rounded-full border-2 transition-all ${i < pinValue.length ? 'bg-bata-primary border-bata-primary' : 'border-gray-300'}`} />
                 ))}
               </div>
-              <input
-                type="password"
-                inputMode="numeric"
-                maxLength={6}
-                value={pinValue}
-                onChange={e => setPinValue(e.target.value.replace(/\D/g, ''))}
-                onKeyDown={e => e.key === 'Enter' && handlePinSubmit()}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-center text-2xl font-bold tracking-[0.5em] focus:border-bata-primary focus:outline-none"
-                placeholder="••••••"
-                autoFocus
-              />
-              {pinError && (
-                <p className="text-sm text-red-600 text-center font-medium">{pinError}</p>
-              )}
+              <input type="password" inputMode="numeric" maxLength={6} value={pinValue} onChange={e => setPinValue(e.target.value.replace(/\D/g, ''))} onKeyDown={e => e.key === 'Enter' && handlePinSubmit()} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-center text-2xl font-bold tracking-[0.5em] focus:border-bata-primary focus:outline-none" placeholder="••••••" autoFocus />
+              {pinError && <p className="text-sm text-red-600 text-center font-medium">{pinError}</p>}
               <div className="flex gap-3 pt-1">
-                <button
-                  onClick={() => { setShowPinEntry(false); setPinValue(''); setPinError(''); setPendingWithdrawal(null) }}
-                  className="flex-1 py-3 border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handlePinSubmit}
-                  disabled={pinLoading || pinValue.length !== 6}
-                  className="flex-1 py-3 bg-bata-primary hover:bg-bata-dark text-white rounded-xl text-sm font-semibold transition disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {pinLoading ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : 'Confirm'}
+                <button onClick={() => { setShowPinEntry(false); setPinValue(''); setPinError(''); setPendingWithdrawal(null) }} className="flex-1 py-3 border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">Cancel</button>
+                <button onClick={handlePinSubmit} disabled={pinLoading || pinValue.length !== 6} className="flex-1 py-3 bg-bata-primary hover:bg-bata-dark text-white rounded-xl text-sm font-semibold transition disabled:opacity-50 flex items-center justify-center gap-2">
+                  {pinLoading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Confirm'}
                 </button>
               </div>
-              {/* Switch to face */}
               {user.hasFaceId && (
-                <button
-                  onClick={() => { setShowPinEntry(false); setPinValue(''); setAuthMethod('face'); setShowFaceVerify(true) }}
-                  className="w-full text-sm text-gray-400 hover:text-bata-primary transition text-center"
-                >
+                <button onClick={() => { setShowPinEntry(false); setPinValue(''); setAuthMethod('face'); setShowFaceVerify(true) }} className="w-full text-sm text-gray-400 hover:text-bata-primary transition text-center">
                   Use Face ID instead →
                 </button>
               )}
@@ -986,21 +754,15 @@ export default function WalletPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
             <div className="bg-gradient-to-br from-gray-800 to-gray-900 px-6 py-8 text-center">
-              <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                <span className="text-3xl">🔐</span>
-              </div>
-              <h3 className="text-xl font-bold text-white">
-                {user.hasWithdrawalPin ? 'Change Withdrawal PIN' : 'Set Withdrawal PIN'}
-              </h3>
+              <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-3"><span className="text-3xl">🔐</span></div>
+              <h3 className="text-xl font-bold text-white">{user.hasWithdrawalPin ? 'Change Withdrawal PIN' : 'Set Withdrawal PIN'}</h3>
               <p className="text-gray-400 text-sm mt-1">A 6-digit backup for when Face ID fails</p>
             </div>
             <div className="px-6 py-6 space-y-4">
               {savePinSuccess ? (
                 <div className="text-center space-y-3 py-2">
                   <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                    <svg className="w-7 h-7 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
-                    </svg>
+                    <svg className="w-7 h-7 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
                   </div>
                   <p className="font-bold text-gray-900">PIN {user.hasWithdrawalPin ? 'Updated' : 'Set'}!</p>
                   <p className="text-sm text-gray-500">You can now use your PIN as a backup for withdrawals.</p>
@@ -1009,46 +771,19 @@ export default function WalletPage() {
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">New PIN</label>
-                    <input
-                      type="password"
-                      inputMode="numeric"
-                      maxLength={6}
-                      value={newPin}
-                      onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-center text-2xl font-bold tracking-[0.5em] focus:border-bata-primary focus:outline-none"
-                      placeholder="••••••"
-                    />
+                    <input type="password" inputMode="numeric" maxLength={6} value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-center text-2xl font-bold tracking-[0.5em] focus:border-bata-primary focus:outline-none" placeholder="••••••" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm PIN</label>
-                    <input
-                      type="password"
-                      inputMode="numeric"
-                      maxLength={6}
-                      value={confirmPin}
-                      onChange={e => setConfirmPin(e.target.value.replace(/\D/g, ''))}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-center text-2xl font-bold tracking-[0.5em] focus:border-bata-primary focus:outline-none"
-                      placeholder="••••••"
-                    />
+                    <input type="password" inputMode="numeric" maxLength={6} value={confirmPin} onChange={e => setConfirmPin(e.target.value.replace(/\D/g, ''))} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-center text-2xl font-bold tracking-[0.5em] focus:border-bata-primary focus:outline-none" placeholder="••••••" />
                   </div>
-                  {savePinError && (
-                    <p className="text-sm text-red-600 font-medium">{savePinError}</p>
-                  )}
+                  {savePinError && <p className="text-sm text-red-600 font-medium">{savePinError}</p>}
                   <div className="flex gap-3 pt-1">
-                    <button
-                      onClick={() => { setShowSetPin(false); setNewPin(''); setConfirmPin(''); setSavePinError('') }}
-                      className="flex-1 py-3 border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
-                    >
+                    <button onClick={() => { setShowSetPin(false); setNewPin(''); setConfirmPin(''); setSavePinError('') }} className="flex-1 py-3 border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
                       {pendingWithdrawal ? 'Skip for now' : 'Cancel'}
                     </button>
-                    <button
-                      onClick={handleSetPinSubmit}
-                      disabled={savePinLoading || newPin.length !== 6 || confirmPin.length !== 6}
-                      className="flex-1 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-sm font-semibold transition disabled:opacity-50 flex items-center justify-center"
-                    >
-                      {savePinLoading ? (
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : 'Save PIN'}
+                    <button onClick={handleSetPinSubmit} disabled={savePinLoading || newPin.length !== 6 || confirmPin.length !== 6} className="flex-1 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-sm font-semibold transition disabled:opacity-50 flex items-center justify-center">
+                      {savePinLoading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Save PIN'}
                     </button>
                   </div>
                 </>
@@ -1063,9 +798,7 @@ export default function WalletPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
             <div className="bg-gradient-to-br from-indigo-500 to-purple-600 px-6 py-8 text-center">
-              <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-4xl">🔐</span>
-              </div>
+              <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4"><span className="text-4xl">🔐</span></div>
               <h3 className="text-xl font-bold text-white">Face ID Required</h3>
               <p className="text-indigo-100 text-sm mt-1">Secure your withdrawals with Face ID</p>
             </div>
@@ -1073,26 +806,17 @@ export default function WalletPage() {
               {faceRegisterSuccess ? (
                 <div className="text-center space-y-4">
                   <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                    <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
-                    </svg>
+                    <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
                   </div>
                   <div>
                     <p className="font-bold text-gray-900 text-lg">Face ID Registered!</p>
                     <p className="text-gray-500 text-sm mt-1">Your face has been saved. You can now withdraw funds securely.</p>
                   </div>
-                  <button
-                    onClick={() => { closeFaceIdRequiredModal(); openWithdrawModal() }}
-                    className="w-full bg-bata-primary hover:bg-bata-dark text-white py-3 rounded-xl font-bold transition"
-                  >
-                    Continue to Withdraw →
-                  </button>
+                  <button onClick={() => { closeFaceIdRequiredModal(); openWithdrawModal() }} className="w-full bg-bata-primary hover:bg-bata-dark text-white py-3 rounded-xl font-bold transition">Continue to Withdraw →</button>
                 </div>
               ) : (
                 <>
-                  <p className="text-gray-600 text-sm text-center">
-                    To protect your earnings, BATA requires a one-time Face ID registration before you can withdraw funds.
-                  </p>
+                  <p className="text-gray-600 text-sm text-center">To protect your earnings, BATA requires a one-time Face ID registration before you can withdraw funds.</p>
                   <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 space-y-2">
                     <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">What you'll do:</p>
                     {['Look straight at the camera', 'Turn your head right', 'Turn your head left'].map((step, i) => (
@@ -1102,11 +826,7 @@ export default function WalletPage() {
                       </div>
                     ))}
                   </div>
-                  {faceRegisterError && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
-                      {faceRegisterError}
-                    </div>
-                  )}
+                  {faceRegisterError && <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">{faceRegisterError}</div>}
                   {faceRegisterLoading ? (
                     <div className="flex items-center justify-center gap-3 py-2">
                       <div className="w-5 h-5 border-2 border-bata-primary border-t-transparent rounded-full animate-spin" />
@@ -1114,15 +834,10 @@ export default function WalletPage() {
                     </div>
                   ) : (
                     <div className="space-y-2 pt-1">
-                      <button
-                        onClick={() => { setFaceRegisterError(''); setShowFaceRegister(true) }}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2"
-                      >
+                      <button onClick={() => { setFaceRegisterError(''); setShowFaceRegister(true) }} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2">
                         <span>📸</span> Register Face ID Now
                       </button>
-                      <button onClick={closeFaceIdRequiredModal} className="w-full text-sm text-gray-400 hover:text-gray-600 py-2 transition">
-                        Cancel
-                      </button>
+                      <button onClick={closeFaceIdRequiredModal} className="w-full text-sm text-gray-400 hover:text-gray-600 py-2 transition">Cancel</button>
                     </div>
                   )}
                 </>
@@ -1132,12 +847,13 @@ export default function WalletPage() {
         </div>
       )}
 
-      {/* Face verification for withdrawal */}
+      {/* ── Face verification for withdrawal — authToken FIXED ── */}
       {showFaceVerify && (
         <FaceVerification
           mode="verify"
           title="Verify Your Identity"
           subtitle="Complete the 3 checks to authorise this withdrawal"
+          authToken={authToken}
           onSuccess={handleFaceVerified}
           onCancel={handleFaceCancelled}
         />
