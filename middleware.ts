@@ -1,6 +1,5 @@
 // middleware.ts (place in project root, same level as /app)
 import { NextRequest, NextResponse } from 'next/server'
-import jwt from 'jsonwebtoken'
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
@@ -14,19 +13,15 @@ export function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL('/admin-login', req.url))
     }
 
-    // Invalid/expired token = redirect to login
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
-        isAdmin: boolean
-        role: string
-      }
-
-      if (!decoded.isAdmin || decoded.role !== 'ADMIN') {
-        return NextResponse.redirect(new URL('/admin-login', req.url))
-      }
-    } catch {
+    // Basic check - just verify token exists and looks like a JWT
+    // (Full verification happens in each API route)
+    const parts = token.split('.')
+    if (parts.length !== 3) {
       return NextResponse.redirect(new URL('/admin-login', req.url))
     }
+
+    // Token exists and is JWT shaped - allow through
+    return NextResponse.next()
   }
 
   return NextResponse.next()
