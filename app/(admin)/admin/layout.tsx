@@ -78,7 +78,11 @@ export default function AdminLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const handleLogout = () => {
+    // Clear localStorage
     localStorage.removeItem('adminToken')
+    // Clear cookie (needed for middleware protection)
+    document.cookie = 'adminToken=; path=/; max-age=0; SameSite=Strict'
+    // Redirect to login
     router.push('/admin-login')
   }
 

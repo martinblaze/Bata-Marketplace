@@ -29,7 +29,12 @@ export default function AdminLoginPage() {
       const data = await response.json()
 
       if (response.ok) {
+        // Save token as secure cookie (works with middleware) instead of localStorage
+        document.cookie = `adminToken=${data.token}; path=/; max-age=86400; SameSite=Strict`
+        
+        // Also keep in localStorage as fallback for API calls
         localStorage.setItem('adminToken', data.token)
+        
         router.push('/admin')
       } else {
         setError(data.error || 'Invalid credentials')
