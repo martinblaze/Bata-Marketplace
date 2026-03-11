@@ -9,6 +9,7 @@ import {
   Home, Mail, Edit2, Check, X, Loader2, Menu, Gift
 } from 'lucide-react'
 import { ReferralCard } from '@/components/ui/ReferralCard'
+import { usePushSubscription } from '@/hooks/usePushSubscription'
 
 interface UserProfile {
   id: string
@@ -37,6 +38,8 @@ export default function MyProfilePage() {
   const [saveError, setSaveError] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  const { isSupported, isSubscribed, isLoading: notifLoading, permission, subscribe, unsubscribe } = usePushSubscription()
 
   useEffect(() => {
     fetchProfileData()
@@ -482,7 +485,59 @@ export default function MyProfilePage() {
               </div>
             </div>
 
-            {/* ── Referral Card ─────────────────────────────────── */}
+            {/* Notifications */}
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-gray-100">
+                <h2 className="font-bold text-gray-900 text-sm lg:text-base">NOTIFICATIONS</h2>
+              </div>
+              <div className="p-4 lg:p-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isSubscribed ? 'bg-green-100' : 'bg-gray-100'}`}>
+                      <span className="text-lg">{isSubscribed ? '🔔' : '🔕'}</span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900 text-sm">Push Notifications</p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {!isSupported
+                          ? 'Not supported in this browser'
+                          : permission === 'denied'
+                          ? 'Blocked — enable in browser settings'
+                          : isSubscribed
+                          ? "You'll get updates even when browser is closed"
+                          : 'Enable to get order and payment alerts'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {isSupported && permission !== 'denied' && (
+                    <button
+                      onClick={isSubscribed ? unsubscribe : subscribe}
+                      disabled={notifLoading}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+                        isSubscribed
+                          ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      {notifLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : isSubscribed ? (
+                        'Turn Off'
+                      ) : (
+                        'Enable'
+                      )}
+                    </button>
+                  )}
+
+                  {permission === 'denied' && (
+                    <span className="text-xs text-red-500 font-medium">Blocked</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Referral Card */}
             <ReferralCard />
 
             {/* Recommended For You */}
