@@ -44,7 +44,7 @@ enum TransactionType {
   DEBIT
   ESCROW
   WITHDRAWAL
-  REFERRAL_REWARD   // ← ADDED
+  REFERRAL_REWARD
 }
 
 enum ReviewType {
@@ -125,7 +125,7 @@ enum NotificationType {
 
   WITHDRAWAL_PROCESSED
   PAYMENT_RECEIVED
-  REFERRAL_REWARD     // ← ADDED
+  REFERRAL_REWARD
 }
 
 enum SupportTicketStatus {
@@ -199,8 +199,16 @@ model User {
   suspensionReason   String?
 
   faceDescriptor     Json?
-  withdrawalPin         String?
-  withdrawalPinAttempts Int       @default(0)
+
+  // ── Face token ────────────────────────────────────────────────────────────
+  // Issued after successful face verification. Only the SHA-256 hash is stored.
+  // Raw token is returned to the client once and sent with the withdrawal request.
+  // Single-use and expires 2 minutes after issuance.
+  faceToken            String?
+  faceTokenExpiry      DateTime?
+
+  withdrawalPin            String?
+  withdrawalPinAttempts    Int       @default(0)
   withdrawalPinLockedUntil DateTime?
 
   // Dispute & Safety fields
@@ -215,13 +223,13 @@ model User {
   isDeleted          Boolean     @default(false)
   deletedAt          DateTime?
 
-  // Referral System Fields - ADDED
-  referralCode        String              @unique
-  referredById        String?
-  referredBy          User?               @relation("UserReferrals", fields: [referredById], references: [id])
-  referrals           User[]              @relation("UserReferrals")
-  referralRewardsEarned   ReferralReward[] @relation("ReferrerRewards")
-  referralRewardsGenerated ReferralReward[] @relation("ReferredUserRewards")
+  // Referral System Fields
+  referralCode              String         @unique
+  referredById              String?
+  referredBy                User?          @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals                 User[]         @relation("UserReferrals")
+  referralRewardsEarned     ReferralReward[] @relation("ReferrerRewards")
+  referralRewardsGenerated  ReferralReward[] @relation("ReferredUserRewards")
 
   // Relations
   products           Product[]
@@ -264,7 +272,7 @@ model User {
   @@index([isSuspended])
   @@index([isDeleted])
   @@index([createdAt])
-  @@index([referralCode]) // ADDED index for faster referral lookups
+  @@index([referralCode])
 }
 
 model Product {
@@ -344,7 +352,6 @@ model Order {
   deliveredAt        DateTime?
   completedAt        DateTime?
 
-  // Relations
   payment            Payment?
 
   isPaid             Boolean     @default(false)
@@ -356,9 +363,7 @@ model Order {
   productReviews     ProductReview[]
   reports            Report[]
   dispute            Dispute?
-
-  // Referral reward relation
-  referralReward     ReferralReward? // ADDED relation for referral rewards
+  referralReward     ReferralReward?
 
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
@@ -626,12 +631,12 @@ model Notification {
   title   String
   message String
 
-  orderId   String?
-  productId String?
-  disputeId String?
-  reportId  String?
-  reviewId  String?
-  referralRewardId String? // ADDED for referral reward notifications
+  orderId          String?
+  productId        String?
+  disputeId        String?
+  reportId         String?
+  reviewId         String?
+  referralRewardId String?
 
   metadata Json?
 
@@ -728,23 +733,20 @@ model AuditLog {
   @@index([action])
 }
 
-// ============================================================
-// NEW REFERRAL REWARD MODEL - ADDED
-// ============================================================
 model ReferralReward {
-  id              String   @id @default(cuid())
+  id             String   @id @default(cuid())
 
-  referrerId      String
-  referrer        User     @relation("ReferrerRewards", fields: [referrerId], references: [id])
+  referrerId     String
+  referrer       User     @relation("ReferrerRewards", fields: [referrerId], references: [id])
 
-  referredUserId  String
-  referredUser    User     @relation("ReferredUserRewards", fields: [referredUserId], references: [id])
+  referredUserId String
+  referredUser   User     @relation("ReferredUserRewards", fields: [referredUserId], references: [id])
 
-  orderId         String   @unique
-  order           Order    @relation(fields: [orderId], references: [id])
+  orderId        String   @unique
+  order          Order    @relation(fields: [orderId], references: [id])
 
-  amount          Float
-  createdAt       DateTime @default(now())
+  amount         Float
+  createdAt      DateTime @default(now())
 
   @@index([referrerId])
   @@index([referredUserId])

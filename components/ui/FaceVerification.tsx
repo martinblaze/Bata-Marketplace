@@ -10,7 +10,9 @@ type LivenessStep = 'loading' | 'center' | 'turn_right' | 'turn_left' | 'complet
 
 interface FaceVerificationProps {
   mode: 'register' | 'verify'
-  onSuccess: (descriptor?: Float32Array) => void
+  // faceToken is passed alongside descriptor on successful verify so the
+  // wallet page can include it in the withdrawal request body.
+  onSuccess: (descriptor?: Float32Array, faceToken?: string) => void
   onCancel: () => void
   title?: string
   subtitle?: string
@@ -31,10 +33,8 @@ const LIVENESS_STEPS: LivenessStep[] = ['center', 'turn_right', 'turn_left']
 const REQUIRED_HOLD_FRAMES = 18
 const SESSION_TIMEOUT_MS   = 60_000 // 60s — auto-fail if user gets stuck
 
-// ── Model URL: served from /public/models/ ────────────────────────────────────
 const MODEL_URL = '/models'
 
-// ── Load face-api.js script once ──────────────────────────────────────────────
 function loadFaceApiScript(): Promise<void> {
   return new Promise((resolve, reject) => {
     if (window.faceapi) { resolve(); return }
@@ -70,7 +70,6 @@ export default function FaceVerification({
   const stepIndexRef     = useRef(0)
   const stepHoldRef      = useRef(0)
   const advancingRef     = useRef(false)
-  // Collect multiple descriptors throughout the session for a better average
   const descriptorsRef   = useRef<Float32Array[]>([])
 
   const [step,         setStep]         = useState<LivenessStep>('loading')
@@ -102,6 +101,8 @@ export default function FaceVerification({
   }, [])
 
   // ── Call backend to verify descriptor ─────────────────────────────────────
+  // On success the API now returns a faceToken — we pass it up to the parent
+  // so it can be included in the withdrawal request.
   const verifyWithBackend = useCallback(async (descriptor: Float32Array) => {
     if (!authToken) {
       setErrorMsg('Authentication token missing. Please log in again.')
@@ -121,7 +122,8 @@ export default function FaceVerification({
       const data = await res.json()
       if (res.ok && data.success) {
         cleanup()
-        onSuccess(descriptor)
+        // ✅ Pass both descriptor AND faceToken to parent
+        onSuccess(descriptor, data.faceToken)
       } else {
         setErrorMsg(data.error || 'Face verification failed. Please try again.')
         setStep('error')
@@ -165,7 +167,6 @@ export default function FaceVerification({
         videoRef.current.srcObject = stream
         videoRef.current.onloadedmetadata = () => {
           videoRef.current!.play()
-          // Reset state
           stepIndexRef.current  = 0
           stepHoldRef.current   = 0
           advancingRef.current  = false
@@ -177,7 +178,6 @@ export default function FaceVerification({
           setStep('center')
           startDetectionLoop()
 
-          // ── Session timeout: 60 s ──────────────────────────────────────────
           timeoutRef.current = setTimeout(() => {
             if (detectionLoopRef.current) cancelAnimationFrame(detectionLoopRef.current)
             setErrorMsg('Session timed out. Please try again.')
@@ -195,7 +195,6 @@ export default function FaceVerification({
     if (advancingRef.current) return
     advancingRef.current = true
 
-    // Clear session timeout — user is making progress
     if (timeoutRef.current) clearTimeout(timeoutRef.current)
 
     const current = LIVENESS_STEPS[stepIndexRef.current]
@@ -206,7 +205,6 @@ export default function FaceVerification({
     const nextIndex = stepIndexRef.current + 1
 
     if (nextIndex >= LIVENESS_STEPS.length) {
-      // All steps done
       if (detectionLoopRef.current) cancelAnimationFrame(detectionLoopRef.current)
       setStep('complete')
       setProgress(100)
@@ -221,10 +219,10 @@ export default function FaceVerification({
         }
 
         if (mode === 'verify') {
-          // ── Verify mode: compare against DB via API ──────────────────────
+          // Verify mode: compare against DB via API, receive faceToken on success
           await verifyWithBackend(averaged)
         } else {
-          // ── Register mode: pass descriptor back to parent to save ────────
+          // Register mode: pass descriptor back to parent to save
           cleanup()
           onSuccess(averaged)
         }
@@ -262,7 +260,9 @@ export default function FaceVerification({
           .withFaceLandmarks()
           .withFaceDescriptor()
 
-        const vw = video.videoWidth || video.clientWidth; const vh = video.videoHeight || video.clientHeight; if (canvas.width !== vw) canvas.width = vw
+        const vw = video.videoWidth || video.clientWidth
+        const vh = video.videoHeight || video.clientHeight
+        if (canvas.width  !== vw) canvas.width  = vw
         if (canvas.height !== vh) canvas.height = vh
         const ctx = canvas.getContext('2d')!
         ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -270,7 +270,7 @@ export default function FaceVerification({
         if (result) {
           setFaceDetected(true)
 
-          // ── Continuously collect descriptors (max 30) ──────────────────
+          // Continuously collect descriptors (max 30) for averaging
           if (descriptorsRef.current.length < 30) {
             descriptorsRef.current.push(result.descriptor)
           }
@@ -278,7 +278,6 @@ export default function FaceVerification({
           const currentStep = LIVENESS_STEPS[stepIndexRef.current]
           const color = STEP_CONFIG[currentStep]?.color || '#6366f1'
 
-          // Draw face box
           const { box } = result.detection
           ctx.strokeStyle = color
           ctx.lineWidth   = 3
@@ -316,7 +315,6 @@ export default function FaceVerification({
     const centerX   = box.x + box.width / 2
 
     if (currentStep === 'center') {
-      // Wider tolerance — easier to pass center
       return Math.abs(nose.x - centerX) < box.width * 0.20
     }
     if (currentStep === 'turn_right') {
@@ -335,7 +333,6 @@ export default function FaceVerification({
     setErrorMsg('')
     setVerifying(false)
     descriptorsRef.current = []
-    // Re-init models then camera
     const reinit = async () => {
       try {
         await loadFaceApiScript()

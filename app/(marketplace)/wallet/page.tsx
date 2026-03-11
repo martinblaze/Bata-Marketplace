@@ -146,8 +146,12 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(true)
   const [withdrawing, setWithdrawing] = useState(false)
 
-  // ── NEW: store token in state so we can pass it to FaceVerification ───────
   const [authToken, setAuthToken] = useState<string>('')
+
+  // ── faceToken: short-lived proof that THIS user's face was just verified ────
+  // Received from FaceVerification component after backend confirms a match.
+  // Sent along with the withdrawal request and consumed server-side (single-use).
+  const [faceToken, setFaceToken] = useState<string | null>(null)
 
   const [showWithdrawModal, setShowWithdrawModal] = useState(false)
   const [withdrawAmount, setWithdrawAmount] = useState('')
@@ -199,7 +203,6 @@ export default function WalletPage() {
     try {
       const token = localStorage.getItem('token')
       if (!token) { router.push('/login'); return }
-      // ── Store token in state for FaceVerification ──────────────────────────
       setAuthToken(token)
       const [uR, wR, tR] = await Promise.all([
         fetch('/api/auth/me',             { headers: { Authorization: `Bearer ${token}` } }),
@@ -243,6 +246,7 @@ export default function WalletPage() {
     setBankSearch('')
     setFaceError('')
     setPinError('')
+    setFaceToken(null) // clear any previous face token when opening modal
     setAuthMethod('face')
     setShowWithdrawModal(true)
   }
@@ -269,22 +273,26 @@ export default function WalletPage() {
     }
   }
 
-  // ── Face verified: the component already called /api/auth/verify-face ─────
-  // onSuccess fires ONLY after the API confirmed a match, so we go straight
-  // to executing the withdrawal — no need to call verify-face again here.
-  const handleFaceVerified = async (_descriptor?: Float32Array) => {
+  // ── Face verified ─────────────────────────────────────────────────────────
+  // FaceVerification calls /api/auth/verify-face internally. On success it now
+  // returns (descriptor, faceToken). We store the faceToken in state and
+  // immediately proceed to executeWithdrawal which sends it to /api/wallet/withdraw.
+  const handleFaceVerified = async (_descriptor?: Float32Array, token?: string) => {
     setShowFaceVerify(false)
+    // Store the short-lived face token for use in the withdrawal call
+    const resolvedToken = token ?? null
+    setFaceToken(resolvedToken)
+
     if (!user?.hasWithdrawalPin) {
       setShowWithdrawModal(false)
       setShowSetPin(true)
-      executeWithdrawal()
-      return
     }
-    await executeWithdrawal()
+    await executeWithdrawal(resolvedToken)
   }
 
   const handleFaceCancelled = () => {
     setShowFaceVerify(false)
+    setFaceToken(null)
     if (user?.hasWithdrawalPin) {
       setFaceError('')
       setAuthMethod('pin')
@@ -310,7 +318,8 @@ export default function WalletPage() {
       const data = await res.json()
       if (!res.ok) { setPinError(data.error || 'Incorrect PIN'); setPinValue(''); return }
       setShowPinEntry(false)
-      await executeWithdrawal()
+      // PIN path does not use faceToken — pass null explicitly
+      await executeWithdrawal(null)
     } catch {
       setPinError('Network error. Please try again.')
     } finally {
@@ -318,37 +327,67 @@ export default function WalletPage() {
     }
   }
 
-  const executeWithdrawal = async () => {
+  // ── executeWithdrawal ─────────────────────────────────────────────────────
+  // Accepts the faceToken directly as a parameter (instead of reading from
+  // state) so it always uses the freshest value even before React re-renders.
+  const executeWithdrawal = async (resolvedFaceToken: string | null) => {
     if (!pendingWithdrawal) return
     setWithdrawing(true)
     try {
       const token = localStorage.getItem('token')
+
+      // Build the body — include faceToken only when auth method is face
+      const body: Record<string, unknown> = { ...pendingWithdrawal }
+      if (resolvedFaceToken) {
+        body.faceToken = resolvedFaceToken
+      }
+
       const r = await fetch('/api/wallet/withdraw', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(pendingWithdrawal),
+        body:    JSON.stringify(body),
       })
       const d = await r.json()
-      if (!r.ok && d.error === 'FACE_ID_REQUIRED') {
-        setShowWithdrawModal(false)
-        setPendingWithdrawal(null)
-        setFaceRegisterSuccess(false)
-        setFaceRegisterError('')
-        setShowFaceIdRequired(true)
-        return
-      }
-      if (r.ok) {
-        setShowWithdrawModal(false)
-        setShowSetPin(false)
-        setPendingWithdrawal(null)
-        fetchWalletData()
-        alert(`Withdrawal of ₦${pendingWithdrawal.amount.toLocaleString()} initiated.\nReference: ${d.reference}`)
-      } else {
+
+      if (!r.ok) {
+        if (d.error === 'FACE_ID_REQUIRED') {
+          setShowWithdrawModal(false)
+          setPendingWithdrawal(null)
+          setFaceToken(null)
+          setFaceRegisterSuccess(false)
+          setFaceRegisterError('')
+          setShowFaceIdRequired(true)
+          return
+        }
+        if (d.error === 'FACE_VERIFICATION_REQUIRED') {
+          // Token expired or missing — clear it and force a fresh face scan
+          setFaceToken(null)
+          setPendingWithdrawal(null)
+          setShowWithdrawModal(false)
+          alert(d.message || 'Face verification required. Please scan your face again.')
+          setAuthMethod('face')
+          setShowWithdrawModal(true)
+          return
+        }
         alert(d.error || 'Withdrawal failed')
         setPendingWithdrawal(null)
+        return
       }
-    } catch { alert('Network error. Please try again.'); setPendingWithdrawal(null) }
-    finally { setWithdrawing(false) }
+
+      // ✅ Success
+      setShowWithdrawModal(false)
+      setShowSetPin(false)
+      setPendingWithdrawal(null)
+      setFaceToken(null)
+      fetchWalletData()
+      alert(`Withdrawal of ₦${pendingWithdrawal.amount.toLocaleString()} initiated.\nReference: ${d.reference}`)
+    } catch {
+      alert('Network error. Please try again.')
+      setPendingWithdrawal(null)
+      setFaceToken(null)
+    } finally {
+      setWithdrawing(false)
+    }
   }
 
   const handleFaceRegisterSuccess = async (descriptor?: Float32Array) => {
@@ -359,9 +398,9 @@ export default function WalletPage() {
     try {
       const token = localStorage.getItem('token')
       const res = await fetch('/api/auth/save-face', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ descriptor: Array.from(descriptor) }),
+        body:    JSON.stringify({ descriptor: Array.from(descriptor) }),
       })
       const data = await res.json()
       if (res.ok) {
@@ -385,9 +424,9 @@ export default function WalletPage() {
     try {
       const token = localStorage.getItem('token')
       const res = await fetch('/api/wallet/set-pin', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ pin: newPin }),
+        body:    JSON.stringify({ pin: newPin }),
       })
       const data = await res.json()
       if (res.ok) {
@@ -421,7 +460,7 @@ export default function WalletPage() {
     )
   }
 
-  const totalEarned = transactions.filter(t => t.type === 'CREDIT').reduce((s, t) => s + t.amount, 0)
+  const totalEarned    = transactions.filter(t => t.type === 'CREDIT').reduce((s, t) => s + t.amount, 0)
   const totalWithdrawn = transactions.filter(t => t.type === 'WITHDRAWAL' || t.type === 'DEBIT').reduce((s, t) => s + t.amount, 0)
 
   return (
@@ -463,7 +502,7 @@ export default function WalletPage() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-8 space-y-4 sm:space-y-6">
 
-        {/* Balance cards — horizontal scroll on mobile */}
+        {/* Balance cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 sm:mb-3">Available Balance</p>
@@ -596,7 +635,7 @@ export default function WalletPage() {
                 </p>
               </div>
               <button
-                onClick={() => { setShowWithdrawModal(false); setPendingWithdrawal(null); setFaceError(''); setPinError('') }}
+                onClick={() => { setShowWithdrawModal(false); setPendingWithdrawal(null); setFaceToken(null); setFaceError(''); setPinError('') }}
                 className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -710,7 +749,7 @@ export default function WalletPage() {
                 </div>
 
                 <div className="flex gap-3 pt-1">
-                  <button type="button" onClick={() => { setShowWithdrawModal(false); setPendingWithdrawal(null); setFaceError(''); setPinError('') }} className="flex-1 py-3 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">Cancel</button>
+                  <button type="button" onClick={() => { setShowWithdrawModal(false); setPendingWithdrawal(null); setFaceToken(null); setFaceError(''); setPinError('') }} className="flex-1 py-3 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">Cancel</button>
                   <button type="submit" disabled={withdrawing} className="flex-1 py-3 bg-bata-primary hover:bg-bata-dark text-white rounded-lg text-sm font-semibold transition disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap">
                     {withdrawing ? (<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Processing...</>) : (<><svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"/></svg>{authMethod === 'pin' ? 'Enter PIN' : 'Face Scan'}</>)}
                   </button>
@@ -852,7 +891,7 @@ export default function WalletPage() {
         </div>
       )}
 
-      {/* ── Face verification for withdrawal — authToken FIXED ── */}
+      {/* ── Face verification for withdrawal ── */}
       {showFaceVerify && (
         <FaceVerification
           mode="verify"

@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth/auth'
+import crypto from 'crypto'
 
 // ── Euclidean distance between two 128-point descriptors ──────────────────────
 function euclideanDistance(a: number[], b: number[]): number {
@@ -25,29 +26,19 @@ function isValidDescriptor(val: unknown): val is number[] {
 //   Current (v2): { version: 2, descriptor: number[] } — averaged descriptor
 function parseStoredDescriptor(raw: unknown): number[] | null {
   if (!raw) return null
-
-  // v1: plain array stored directly
-  if (Array.isArray(raw)) {
-    return isValidDescriptor(raw) ? raw : null
-  }
-
-  // v2: { version: 2, descriptor: number[] }
+  if (Array.isArray(raw)) return isValidDescriptor(raw) ? raw : null
   if (typeof raw === 'object') {
     const obj = raw as Record<string, unknown>
-    if (isValidDescriptor(obj.descriptor)) {
-      return obj.descriptor as number[]
-    }
+    if (isValidDescriptor(obj.descriptor)) return obj.descriptor as number[]
   }
-
   return null
 }
 
 // ── In-memory rate limiter ────────────────────────────────────────────────────
 // 5 failed attempts per user per 15-minute window.
-// For multi-instance / serverless: swap this map for Upstash Redis.
 const failedAttempts = new Map<string, { count: number; resetAt: number }>()
-const RATE_LIMIT_MAX        = 5
-const RATE_LIMIT_WINDOW_MS  = 15 * 60 * 1000 // 15 minutes
+const RATE_LIMIT_MAX       = 5
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000
 
 function checkRateLimit(userId: string): { allowed: boolean; remainingMs?: number } {
   const now   = Date.now()
@@ -72,6 +63,19 @@ function clearFailures(userId: string): void {
   failedAttempts.delete(userId)
 }
 
+// ── Face token helpers ────────────────────────────────────────────────────────
+// 2-minute TTL — long enough to complete the withdrawal form, short enough
+// that walking away from an unlocked device is safe.
+const FACE_TOKEN_TTL_MS = 2 * 60 * 1000
+
+function generateFaceToken(): string {
+  return crypto.randomBytes(32).toString('hex') // 64 hex chars
+}
+
+function hashFaceToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex')
+}
+
 // ── Route handler ─────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
@@ -86,14 +90,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // ✅ Rate limit check before doing any DB work
+    // ✅ Rate limit check before any DB work
     const rateCheck = checkRateLimit(payload.userId)
     if (!rateCheck.allowed) {
       const minutes = Math.ceil((rateCheck.remainingMs ?? 0) / 60000)
       return NextResponse.json(
-        {
-          error: `Too many failed attempts. Please try again in ${minutes} minute${minutes !== 1 ? 's' : ''}.`,
-        },
+        { error: `Too many failed attempts. Please try again in ${minutes} minute${minutes !== 1 ? 's' : ''}.` },
         { status: 429 }
       )
     }
@@ -109,54 +111,41 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Fetch stored descriptor
     const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
+      where:  { id: payload.userId },
       select: { faceDescriptor: true },
     })
 
-    // No face registered at all
     if (!user?.faceDescriptor) {
       return NextResponse.json(
         {
-          error: 'FACE_ID_REQUIRED',
+          error:   'FACE_ID_REQUIRED',
           message: 'No face registered for this account. Please register your Face ID first.',
         },
         { status: 400 }
       )
     }
 
-    // ✅ Safely parse stored descriptor — handles v1 (plain array) and v2 ({ version, descriptor })
     const storedDescriptor = parseStoredDescriptor(user.faceDescriptor)
 
     if (!storedDescriptor) {
-      // Stored data is corrupted — clear it so user can re-register cleanly
       await prisma.user.update({
         where: { id: payload.userId },
-        data: { faceDescriptor: null },
+        data:  { faceDescriptor: null },
       })
       return NextResponse.json(
-        {
-          error: 'Your stored Face ID data was corrupted and has been cleared. Please register your face again.',
-        },
+        { error: 'Your stored Face ID data was corrupted and has been cleared. Please register your face again.' },
         { status: 400 }
       )
     }
 
-    // ✅ Compare descriptors
-    const distance = euclideanDistance(storedDescriptor, descriptor)
-
-    // face-api.js standard threshold: 0.6
-    // We use 0.55 for tighter withdrawal security.
-    // Multi-descriptor averaging during registration keeps false-rejection rate low
-    // even at this stricter threshold.
+    const distance        = euclideanDistance(storedDescriptor, descriptor)
     const MATCH_THRESHOLD = 0.55
-    const isMatch = distance < MATCH_THRESHOLD
+    const isMatch         = distance < MATCH_THRESHOLD
 
     if (!isMatch) {
       const failCount    = recordFailure(payload.userId)
       const attemptsLeft = Math.max(0, RATE_LIMIT_MAX - failCount)
-
       return NextResponse.json(
         {
           error:
@@ -168,12 +157,26 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // ✅ Verified — clear any recorded failures
+    // ✅ Face matched — clear failures and issue a short-lived single-use face token
     clearFailures(payload.userId)
 
+    const rawToken    = generateFaceToken()
+    const hashedToken = hashFaceToken(rawToken)
+    const expiry      = new Date(Date.now() + FACE_TOKEN_TTL_MS)
+
+    // Only the HASH is stored in DB — raw token is returned to client once and never stored
+    await prisma.user.update({
+      where: { id: payload.userId },
+      data:  {
+        faceToken:       hashedToken,
+        faceTokenExpiry: expiry,
+      },
+    })
+
     return NextResponse.json({
-      success: true,
-      message: 'Face verified successfully',
+      success:   true,
+      message:   'Face verified successfully',
+      faceToken: rawToken,
     })
   } catch (error) {
     console.error('[verify-face]', error)
