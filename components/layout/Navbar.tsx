@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
@@ -7,47 +8,18 @@ import { useCartStore } from '@/lib/cart-store'
 import NotificationBell from '@/components/layout/NotificationBell'
 import { ChevronDown, User, LogOut, Store, ShoppingBag, Wallet, Package, AlertTriangle, PlusCircle, Globe } from 'lucide-react'
 
-// ── BataMart Logo Component ───────────────────────────────────────────────────
 function BataMartLogo() {
   return (
-    <Link href="/" className="flex items-center space-x-2.5">
-      {/* Shopping bag SVG matching the reference logo */}
-      <svg
-        width="38"
-        height="38"
-        viewBox="0 0 100 100"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <defs>
-          <linearGradient id="bagGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#1a56db" />
-            <stop offset="100%" stopColor="#3b9ef5" />
-          </linearGradient>
-        </defs>
-        {/* Bag body */}
-        <path
-          d="M18 38 L10 90 Q10 95 16 95 L84 95 Q90 95 90 90 L82 38 Z"
-          fill="url(#bagGrad)"
-        />
-        {/* Bag handles */}
-        <path
-          d="M36 38 Q36 18 50 18 Q64 18 64 38"
-          stroke="url(#bagGrad)"
-          strokeWidth="7"
-          strokeLinecap="round"
-          fill="none"
-        />
-        {/* Handle rivets */}
-        <circle cx="36" cy="38" r="4" fill="white" opacity="0.7" />
-        <circle cx="64" cy="38" r="4" fill="white" opacity="0.7" />
-      </svg>
-
-      {/* Wordmark: "Bata" dark blue + "Mart" light blue */}
-      <span className="font-extrabold text-2xl tracking-tight leading-none select-none">
-        <span style={{ color: '#1a3f8f' }}>Bata</span>
-        <span style={{ color: '#3b9ef5' }}>Mart</span>
-      </span>
+    <Link href="/" className="flex items-center">
+      <Image
+        src="/BATAMART - logo.png"
+        alt="BataMart"
+        width={180}
+        height={55}
+        priority
+        className="object-contain"
+        style={{ maxHeight: '55px', width: 'auto' }}
+      />
     </Link>
   )
 }
@@ -184,6 +156,7 @@ export function Navbar() {
 
           {/* ── Desktop Navigation ── */}
           <div className="hidden md:flex items-center space-x-2">
+
             {/* Cart */}
             {isLoggedIn && (
               <Link href="/cart" className="relative p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all">
@@ -341,7 +314,12 @@ export function Navbar() {
               </div>
             ) : (
               <div className="flex items-center space-x-3">
-                <Link href="/login" className="font-semibold transition-colors" style={{ color: '#1a3f8f' }}>Login</Link>
+                <Link
+                  href="/login"
+                  className="font-semibold text-blue-900 hover:text-blue-700 transition-colors"
+                >
+                  Login
+                </Link>
                 <Link
                   href="/signup"
                   className="text-white px-4 py-2 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg text-sm"
@@ -354,7 +332,10 @@ export function Navbar() {
           </div>
 
           {/* ── Mobile Menu Button ── */}
-          <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          >
             <svg className="w-6 h-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               {isMenuOpen ? (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -505,8 +486,7 @@ export function Navbar() {
                 <Link
                   href="/login"
                   onClick={() => setIsMenuOpen(false)}
-                  className="text-center py-3 border-2 rounded-lg font-medium transition-all"
-                  style={{ borderColor: '#1a3f8f', color: '#1a3f8f' }}
+                  className="text-center py-3 border-2 border-blue-900 text-blue-900 rounded-lg font-medium hover:bg-blue-900 hover:text-white transition-all"
                 >
                   Login
                 </Link>
