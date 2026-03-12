@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
       let message = ''
       if (!user.suspendedUntil) {
-        message = `Your account has been permanently suspended.\n\nReason: ${reason}\n\nContact support@bata.ng to appeal.`
+        message = `Your account has been permanently suspended.\n\nReason: ${reason}\n\nContact support@bata-mart.com to appeal.`
       } else {
         const until = new Date(user.suspendedUntil)
         const diffMs = until.getTime() - Date.now()
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
         const untilFormatted = until.toLocaleDateString('en-NG', {
           weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
         })
-        message = `Your account is suspended for ${timeLeft}.\n\nReason: ${reason}\n\nSuspension lifts: ${untilFormatted}\n\nContact support@bata.ng to appeal.`
+        message = `Your account is suspended for ${timeLeft}.\n\nReason: ${reason}\n\nSuspension lifts: ${untilFormatted}\n\nContact support@bata-mart.com to appeal.`
       }
 
       return NextResponse.json({ error: message, suspended: true }, { status: 403 })
