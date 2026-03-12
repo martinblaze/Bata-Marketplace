@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState, useCallback } from 'react'
+import Image from 'next/image'
 
 // ── Particle Canvas ────────────────────────────────────────────────────────────
 function ParticleCanvas() {
@@ -705,9 +706,14 @@ export default function HomePage() {
           <div className="max-w-6xl mx-auto">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
               <div className="col-span-2 md:col-span-1">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 bg-gradient-to-br from-purple-700 to-indigo-600 rounded-lg flex items-center justify-center text-sm font-bold text-white">B</div>
-                  <span className="bata-display font-bold text-gray-900 text-lg tracking-wide">BATA</span>
+                <div className="flex items-center mb-4">
+                  <Image 
+                    src="/BATAMART - logo.png" 
+                    alt="BATA Logo" 
+                    width={400} 
+                    height={400} 
+                    className="w-32 h-32 object-contain mb-0.5"
+                  />
                 </div>
                 <p className="text-gray-500 text-sm leading-relaxed">
                   Student-to-student marketplace built exclusively for UNIZIK.
