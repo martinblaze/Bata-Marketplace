@@ -9,16 +9,16 @@ function NavbarContent() {
   const searchParams = useSearchParams()
   const isApp = searchParams.get('app') === 'true'
 
-  const hideNav = isApp ||
-    pathname?.startsWith('/admin') ||
+  const hideNav = pathname?.startsWith('/admin') ||
     pathname?.startsWith('/admin-login') ||
     pathname === '/'
 
   if (hideNav) return null
+
   return (
     <>
       <Navbar />
-      <div className="pt-16" />
+      <div className={isApp ? 'pt-14' : 'pt-16'} />
     </>
   )
 }
