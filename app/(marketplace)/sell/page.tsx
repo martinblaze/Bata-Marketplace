@@ -190,7 +190,7 @@ export default function SellPage() {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
-          <Link href="/" className="text-bata-primary hover:underline mb-4 inline-block">← Back to Home</Link>
+          <Link href={typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('app') === 'true' ? '/marketplace?app=true' : '/marketplace'} className="text-bata-primary hover:underline mb-4 inline-block">← Back to Marketplace</Link>
           <h1 className="text-3xl font-bold text-gray-900">Sell Your Product</h1>
           <p className="text-gray-600 mt-2">List your item on BATA marketplace</p>
         </div>
