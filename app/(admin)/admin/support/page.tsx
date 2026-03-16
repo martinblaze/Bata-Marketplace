@@ -21,18 +21,18 @@ const CATEGORY_LABELS: Record<string, string> = {
   PAYMENT_ISSUE: '💳 Payment Issue',
   ORDER_PROBLEM: '📦 Order Problem',
   ACCOUNT_ISSUE: '👤 Account Issue',
-  DISPUTE_HELP:  '⚖️ Dispute Help',
-  SELLER_ISSUE:  '🛍️ Seller Issue',
-  RIDER_ISSUE:   '🚴 Rider Issue',
-  BUG_REPORT:    '🐛 Bug Report',
-  OTHER:         '💬 Other',
+  DISPUTE_HELP: '⚖️ Dispute Help',
+  SELLER_ISSUE: '🛍️ Seller Issue',
+  RIDER_ISSUE: '🚴 Rider Issue',
+  BUG_REPORT: '🐛 Bug Report',
+  OTHER: '💬 Other',
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  OPEN:      'bg-yellow-500/10 text-yellow-400',
+  OPEN: 'bg-yellow-500/10 text-yellow-400',
   IN_REVIEW: 'bg-blue-500/10 text-blue-400',
-  RESOLVED:  'bg-green-500/10 text-green-400',
-  CLOSED:    'bg-gray-500/10 text-gray-400',
+  RESOLVED: 'bg-green-500/10 text-green-400',
+  CLOSED: 'bg-gray-500/10 text-gray-400',
 }
 
 export default function AdminSupportPage() {
@@ -95,7 +95,7 @@ export default function AdminSupportPage() {
     return matchSearch && matchStatus
   })
 
-  const openCount     = tickets.filter(t => t.status === 'OPEN').length
+  const openCount = tickets.filter(t => t.status === 'OPEN').length
   const inReviewCount = tickets.filter(t => t.status === 'IN_REVIEW').length
   const resolvedCount = tickets.filter(t => t.status === 'RESOLVED').length
 
@@ -105,9 +105,9 @@ export default function AdminSupportPage() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Open',      count: openCount,     color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
-          { label: 'In Review', count: inReviewCount, color: 'text-blue-400',   bg: 'bg-blue-500/10' },
-          { label: 'Resolved',  count: resolvedCount, color: 'text-green-400',  bg: 'bg-green-500/10' },
+          { label: 'Open', count: openCount, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
+          { label: 'In Review', count: inReviewCount, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+          { label: 'Resolved', count: resolvedCount, color: 'text-green-400', bg: 'bg-green-500/10' },
         ].map(s => (
           <div key={s.label} className={`${s.bg} rounded-2xl p-4 text-center`}>
             <p className={`text-3xl font-black ${s.color}`}>{s.count}</p>
@@ -251,7 +251,7 @@ export default function AdminSupportPage() {
                   Mark Resolved
                 </button>
                 <a
-                  href={`mailto:${selected.email}?subject=Re: Your BATA Support Request`}
+                  href={`mailto:${selected.email}?subject=Re: Your BATAMART Support Request`}
                   className="w-full text-center px-4 py-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl text-sm font-semibold hover:bg-indigo-500/20 transition-colors"
                 >
                   ✉️ Reply via Email

@@ -74,7 +74,7 @@ export default function SellPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-bata-primary border-t-transparent mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-BATAMART-primary border-t-transparent mx-auto mb-4"></div>
           <p className="text-gray-600">Checking authentication...</p>
         </div>
       </div>
@@ -190,9 +190,9 @@ export default function SellPage() {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
-          <Link href={typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('app') === 'true' ? '/marketplace?app=true' : '/marketplace'} className="text-bata-primary hover:underline mb-4 inline-block">← Back to Marketplace</Link>
+          <Link href={typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('app') === 'true' ? '/marketplace?app=true' : '/marketplace'} className="text-BATAMART-primary hover:underline mb-4 inline-block">← Back to Marketplace</Link>
           <h1 className="text-3xl font-bold text-gray-900">Sell Your Product</h1>
-          <p className="text-gray-600 mt-2">List your item on BATA marketplace</p>
+          <p className="text-gray-600 mt-2">List your item on BATAMART marketplace</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
@@ -208,7 +208,7 @@ export default function SellPage() {
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                 required
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-BATAMART-primary focus:outline-none"
                 placeholder="e.g., iPhone 13 Pro"
               />
             </div>
@@ -223,7 +223,7 @@ export default function SellPage() {
                 value={formData.price}
                 onChange={e => setFormData({ ...formData, price: e.target.value })}
                 required min="0" step="0.01"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-BATAMART-primary focus:outline-none"
                 placeholder="e.g., 50000"
               />
             </div>
@@ -238,7 +238,7 @@ export default function SellPage() {
                 value={formData.quantity}
                 onChange={e => setFormData({ ...formData, quantity: e.target.value })}
                 required min="1"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-BATAMART-primary focus:outline-none"
                 placeholder="e.g., 10"
               />
               <p className="text-xs text-gray-500 mt-1">How many units do you have in stock?</p>
@@ -253,7 +253,7 @@ export default function SellPage() {
                 value={formData.category}
                 onChange={e => setFormData({ ...formData, category: e.target.value })}
                 required
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-BATAMART-primary focus:outline-none"
               >
                 <option value="">Select category</option>
                 {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
@@ -271,13 +271,13 @@ export default function SellPage() {
 
               {/* Tag chips display + input */}
               <div
-                className="min-h-[56px] w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus-within:border-bata-primary transition-colors cursor-text flex flex-wrap gap-2 items-center"
+                className="min-h-[56px] w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus-within:border-BATAMART-primary transition-colors cursor-text flex flex-wrap gap-2 items-center"
                 onClick={() => tagInputRef.current?.focus()}
               >
                 {tags.map((tag, i) => (
                   <span
                     key={i}
-                    className="inline-flex items-center gap-1 px-3 py-1 bg-bata-primary/10 text-bata-primary text-sm font-semibold rounded-full"
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-BATAMART-primary/10 text-BATAMART-primary text-sm font-semibold rounded-full"
                   >
                     {tag}
                     <button
@@ -303,7 +303,7 @@ export default function SellPage() {
                     <button
                       type="button"
                       onClick={() => addTag(tagInput)}
-                      className="flex items-center gap-1 px-3 py-1 bg-bata-primary text-white text-xs font-bold rounded-full hover:bg-bata-dark transition-colors flex-shrink-0"
+                      className="flex items-center gap-1 px-3 py-1 bg-BATAMART-primary text-white text-xs font-bold rounded-full hover:bg-BATAMART-dark transition-colors flex-shrink-0"
                     >
                       <Plus className="w-3 h-3" /> Add
                     </button>
@@ -321,7 +321,7 @@ export default function SellPage() {
                         key={s}
                         type="button"
                         onClick={() => addTag(s)}
-                        className="px-3 py-1.5 bg-gray-100 hover:bg-bata-primary/10 hover:text-bata-primary text-gray-600 text-xs font-semibold rounded-full transition-all border border-gray-200 hover:border-bata-primary/30"
+                        className="px-3 py-1.5 bg-gray-100 hover:bg-BATAMART-primary/10 hover:text-BATAMART-primary text-gray-600 text-xs font-semibold rounded-full transition-all border border-gray-200 hover:border-BATAMART-primary/30"
                       >
                         + {s}
                       </button>
@@ -368,7 +368,7 @@ export default function SellPage() {
                 {images.length < 3 && (
                   <label className="block cursor-pointer">
                     <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-bata-primary transition-colors">
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-BATAMART-primary transition-colors">
                       <svg className="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
@@ -378,7 +378,7 @@ export default function SellPage() {
                   </label>
                 )}
                 {images.some(img => img.uploading) && (
-                  <p className="text-sm text-bata-primary font-medium">⏳ Uploading images, please wait...</p>
+                  <p className="text-sm text-BATAMART-primary font-medium">⏳ Uploading images, please wait...</p>
                 )}
               </div>
             </div>
@@ -395,7 +395,7 @@ export default function SellPage() {
                     value={formData.hostelName}
                     onChange={e => setFormData({ ...formData, hostelName: e.target.value })}
                     required
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-BATAMART-primary focus:outline-none"
                   >
                     <option value="">Select hostel</option>
                     {HOSTELS.map(hostel => <option key={hostel} value={hostel}>{hostel}</option>)}
@@ -410,7 +410,7 @@ export default function SellPage() {
                     value={formData.roomNumber}
                     onChange={e => setFormData({ ...formData, roomNumber: e.target.value })}
                     required
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-BATAMART-primary focus:outline-none"
                     placeholder="e.g., Room 12, Block A"
                   />
                 </div>
@@ -423,7 +423,7 @@ export default function SellPage() {
                     value={formData.landmark}
                     onChange={e => setFormData({ ...formData, landmark: e.target.value })}
                     required
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-BATAMART-primary focus:outline-none"
                     placeholder="e.g., Near the water dispenser"
                   />
                 </div>
@@ -437,7 +437,7 @@ export default function SellPage() {
             <button
               type="submit"
               disabled={loading || !allUploaded}
-              className="w-full bg-bata-primary hover:bg-bata-dark text-white py-3.5 rounded-lg font-bold text-lg disabled:opacity-50 transition-all"
+              className="w-full bg-BATAMART-primary hover:bg-BATAMART-dark text-white py-3.5 rounded-lg font-bold text-lg disabled:opacity-50 transition-all"
             >
               {loading ? 'Listing Product...' : !allUploaded && images.length > 0 ? 'Uploading images...' : 'List Product'}
             </button>

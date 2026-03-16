@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { 
+import {
   ChevronLeft,
-  Star, 
+  Star,
   User,
   MessageSquare,
   TrendingUp,
@@ -130,11 +130,10 @@ export default function ProductReviewsPage() {
                   {[1, 2, 3, 4, 5].map((star) => (
                     <Star
                       key={star}
-                      className={`w-5 h-5 ${
-                        star <= Math.floor(product.avgRating || 0)
+                      className={`w-5 h-5 ${star <= Math.floor(product.avgRating || 0)
                           ? 'fill-yellow-400 text-yellow-400'
                           : 'text-gray-300'
-                      }`}
+                        }`}
                     />
                   ))}
                 </div>
@@ -151,7 +150,7 @@ export default function ProductReviewsPage() {
         <div className="lg:col-span-1">
           <div className="bg-white rounded-2xl border p-6 sticky top-24 shadow-sm">
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-bata-primary" />
+              <TrendingUp className="w-5 h-5 text-BATAMART-primary" />
               Rating Overview
             </h2>
 
@@ -164,11 +163,10 @@ export default function ProductReviewsPage() {
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
                     key={star}
-                    className={`w-6 h-6 ${
-                      star <= Math.floor(product.avgRating || 0)
+                    className={`w-6 h-6 ${star <= Math.floor(product.avgRating || 0)
                         ? 'fill-yellow-400 text-yellow-400'
                         : 'text-gray-300'
-                    }`}
+                      }`}
                   />
                 ))}
               </div>
@@ -204,7 +202,7 @@ export default function ProductReviewsPage() {
                 {filterRating !== null && (
                   <button
                     onClick={() => setFilterRating(null)}
-                    className="text-xs text-bata-primary hover:text-bata-dark flex items-center gap-1"
+                    className="text-xs text-BATAMART-primary hover:text-BATAMART-dark flex items-center gap-1"
                   >
                     <X className="w-3 h-3" />
                     Clear
@@ -216,11 +214,10 @@ export default function ProductReviewsPage() {
                   <button
                     key={rating}
                     onClick={() => setFilterRating(filterRating === rating ? null : rating)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                      filterRating === rating
-                        ? 'bg-bata-primary text-white'
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${filterRating === rating
+                        ? 'bg-BATAMART-primary text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                      }`}
                   >
                     {rating} ★
                   </button>
@@ -234,7 +231,7 @@ export default function ProductReviewsPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-bata-primary focus:border-bata-primary"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-BATAMART-primary focus:border-BATAMART-primary"
               >
                 <option value="recent">Most Recent</option>
                 <option value="highest">Highest Rating</option>
@@ -249,7 +246,7 @@ export default function ProductReviewsPage() {
           <div className="bg-white rounded-2xl border p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold flex items-center gap-2">
-                <MessageSquare className="w-6 h-6 text-bata-primary" />
+                <MessageSquare className="w-6 h-6 text-BATAMART-primary" />
                 All Reviews ({filteredAndSortedReviews.length})
               </h2>
             </div>
@@ -283,11 +280,10 @@ export default function ProductReviewsPage() {
                               {[1, 2, 3, 4, 5].map((star) => (
                                 <Star
                                   key={star}
-                                  className={`w-4 h-4 ${
-                                    star <= review.rating
+                                  className={`w-4 h-4 ${star <= review.rating
                                       ? 'fill-yellow-400 text-yellow-400'
                                       : 'text-gray-300'
-                                  }`}
+                                    }`}
                                 />
                               ))}
                             </div>

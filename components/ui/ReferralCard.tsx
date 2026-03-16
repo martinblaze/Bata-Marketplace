@@ -10,8 +10,8 @@ import Link from 'next/link'
 import { Gift, Copy, Check, Users, TrendingUp, ChevronRight } from 'lucide-react'
 
 export function ReferralCard() {
-  const [referralCode, setReferralCode]   = useState('')
-  const [referralLink, setReferralLink]   = useState('')
+  const [referralCode, setReferralCode] = useState('')
+  const [referralLink, setReferralLink] = useState('')
   const [totalReferrals, setTotalReferrals] = useState(0)
   const [totalEarnings, setTotalEarnings] = useState(0)
   const [copied, setCopied] = useState(false)
@@ -22,7 +22,7 @@ export function ReferralCard() {
       try {
         const token = localStorage.getItem('token')
         if (!token) return
-        const res  = await fetch('/api/referrals', {
+        const res = await fetch('/api/referrals', {
           headers: { Authorization: `Bearer ${token}` },
         })
         if (!res.ok) return
@@ -31,7 +31,7 @@ export function ReferralCard() {
         setReferralLink(data.referralLink)
         setTotalReferrals(data.totalReferrals)
         setTotalEarnings(data.totalEarnings)
-      } catch {}
+      } catch { }
       finally { setLoading(false) }
     }
     fetchReferral()
@@ -52,10 +52,10 @@ export function ReferralCard() {
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Gift className="w-4 h-4 text-bata-primary" />
+          <Gift className="w-4 h-4 text-BATAMART-primary" />
           <h2 className="font-bold text-gray-900 text-sm lg:text-base">REFERRAL PROGRAMME</h2>
         </div>
-        <Link href="/referrals" className="text-bata-primary text-sm font-medium flex items-center gap-1">
+        <Link href="/referrals" className="text-BATAMART-primary text-sm font-medium flex items-center gap-1">
           View All <ChevronRight className="w-4 h-4" />
         </Link>
       </div>
@@ -79,10 +79,10 @@ export function ReferralCard() {
         <div>
           <p className="text-xs text-gray-400 mb-1.5">Your referral code</p>
           <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
-            <span className="font-extrabold text-bata-primary tracking-widest flex-1 text-sm">
+            <span className="font-extrabold text-BATAMART-primary tracking-widest flex-1 text-sm">
               {referralCode}
             </span>
-            <button onClick={copy} className="text-bata-primary hover:text-bata-dark transition-colors">
+            <button onClick={copy} className="text-BATAMART-primary hover:text-BATAMART-dark transition-colors">
               {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
             </button>
           </div>
@@ -90,7 +90,7 @@ export function ReferralCard() {
 
         <Link
           href="/referrals"
-          className="block w-full text-center py-2.5 rounded-xl bg-bata-primary text-white text-sm font-semibold hover:bg-bata-dark transition-colors"
+          className="block w-full text-center py-2.5 rounded-xl bg-BATAMART-primary text-white text-sm font-semibold hover:bg-BATAMART-dark transition-colors"
         >
           Invite Friends & Earn
         </Link>

@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { getUserFromRequest } from '@/lib/auth/auth'
 import { sendEmail } from '@/lib/email/sendEmail'
 
-const ADMIN_EMAIL = 'support@bata-mart.com'
+const ADMIN_EMAIL = 'support@BATAMART-mart.com'
 
 const CATEGORY_LABELS: Record<string, string> = {
   PAYMENT_ISSUE: 'Payment Issue',
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     // ── Email admin ───────────────────────────────────────────────────────────
     await sendEmail({
       to: ADMIN_EMAIL,
-      subject: `[BATA Support] New ticket: ${categoryLabel} — ${ticketRef}`,
+      subject: `[BATAMART Support] New ticket: ${categoryLabel} — ${ticketRef}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
               <table width="560" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center" style="padding-bottom:20px;">
-                    <span style="font-size:26px;font-weight:800;color:#111827;">BATA</span>
+                    <span style="font-size:26px;font-weight:800;color:#111827;">BATAMART</span>
                     <span style="font-size:11px;color:#6b7280;display:block;">Admin Notification</span>
                   </td>
                 </tr>
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
                       <p style="font-size:15px;color:#374151;margin:0;line-height:1.6;white-space:pre-wrap;">${message.trim()}</p>
                     </div>
 
-                    <a href="mailto:${email}?subject=Re: Your BATA Support Request [${ticketRef}]"
+                    <a href="mailto:${email}?subject=Re: Your BATAMART Support Request [${ticketRef}]"
                        style="display:inline-block;padding:12px 24px;background:#6366f1;color:#fff;font-size:14px;font-weight:600;border-radius:8px;text-decoration:none;">
                       Reply to ${name}
                     </a>
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
     // ── Auto-reply to user ────────────────────────────────────────────────────
     await sendEmail({
       to: email.trim().toLowerCase(),
-      subject: `We received your message — BATA Support [${ticketRef}]`,
+      subject: `We received your message — BATAMART Support [${ticketRef}]`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
               <table width="560" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center" style="padding-bottom:20px;">
-                    <span style="font-size:26px;font-weight:800;color:#111827;">BATA</span>
+                    <span style="font-size:26px;font-weight:800;color:#111827;">BATAMART</span>
                     <span style="font-size:11px;color:#6b7280;display:block;">UNIZIK Campus Marketplace</span>
                   </td>
                 </tr>
@@ -163,13 +163,13 @@ export async function POST(request: NextRequest) {
                     <hr style="border:none;border-top:1px solid #f3f4f6;margin:24px 0;" />
                     <p style="font-size:13px;color:#9ca3af;margin:0;">
                       If your issue is urgent, you can also reach us on WhatsApp.<br/>
-                      Please do not reply to this email — use <strong>support@bata-mart.com</strong> to follow up.
+                      Please do not reply to this email — use <strong>support@BATAMART-mart.com</strong> to follow up.
                     </p>
                   </td>
                 </tr>
                 <tr>
                   <td align="center" style="padding-top:20px;">
-                    <p style="font-size:12px;color:#9ca3af;margin:0;">BATA — UNIZIK Campus Marketplace, Awka, Anambra State.</p>
+                    <p style="font-size:12px;color:#9ca3af;margin:0;">BATAMART — UNIZIK Campus Marketplace, Awka, Anambra State.</p>
                   </td>
                 </tr>
               </table>

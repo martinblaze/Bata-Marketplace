@@ -87,14 +87,14 @@ export async function sendEmailOTP(email: string, code: string): Promise<boolean
           'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
         },
         body: JSON.stringify({
-          from: process.env.RESEND_FROM_EMAIL || 'BATA <onboarding@resend.dev>',
+          from: process.env.RESEND_FROM_EMAIL || 'BATAMART <onboarding@resend.dev>',
           to: [email],
-          subject: 'Your BATA Verification Code',
+          subject: 'Your BATAMART Verification Code',
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f9fafb; border-radius: 12px;">
               <div style="text-align: center; margin-bottom: 24px;">
                 <div style="display: inline-block; background: linear-gradient(135deg, #6366F1, #8B5CF6); border-radius: 12px; padding: 12px 20px;">
-                  <span style="font-size: 24px; font-weight: 800; color: white; letter-spacing: 2px;">BATA</span>
+                  <span style="font-size: 24px; font-weight: 800; color: white; letter-spacing: 2px;">BATAMART</span>
                 </div>
               </div>
               <div style="background: white; border-radius: 12px; padding: 32px; text-align: center;">
@@ -172,32 +172,32 @@ export async function checkSuspension(userId: string): Promise<{
 // return a 403 with context rather than a generic 401.
 export async function getUserFromRequest(request: Request): Promise<
   | ({
-      id: string
-      name: string | null
-      phone: string | null
-      email: string | null
-      matricNumber: string | null
-      profilePhoto: string | null
-      role: string
-      hostelName: string | null
-      roomNumber: string | null
-      landmark: string | null
-      trustLevel: string
-      avgRating: number
-      totalReviews: number
-      completedOrders: number
-      pendingBalance: number
-      availableBalance: number
-      penaltyPoints: number
-      isSuspended: boolean
-      suspendedUntil: Date | null
-      suspensionReason: string | null
-      isRiderVerified: boolean
-      isAvailable: boolean
-      faceDescriptor: import('@prisma/client').Prisma.JsonValue | null
-      createdAt: Date
-      updatedAt: Date
-    })
+    id: string
+    name: string | null
+    phone: string | null
+    email: string | null
+    matricNumber: string | null
+    profilePhoto: string | null
+    role: string
+    hostelName: string | null
+    roomNumber: string | null
+    landmark: string | null
+    trustLevel: string
+    avgRating: number
+    totalReviews: number
+    completedOrders: number
+    pendingBalance: number
+    availableBalance: number
+    penaltyPoints: number
+    isSuspended: boolean
+    suspendedUntil: Date | null
+    suspensionReason: string | null
+    isRiderVerified: boolean
+    isAvailable: boolean
+    faceDescriptor: import('@prisma/client').Prisma.JsonValue | null
+    createdAt: Date
+    updatedAt: Date
+  })
   | null
 > {
   const authHeader = request.headers.get('authorization')

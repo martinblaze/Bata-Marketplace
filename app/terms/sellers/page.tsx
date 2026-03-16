@@ -2,8 +2,8 @@
 import Link from 'next/link'
 
 export const metadata = {
-  title: 'Seller Terms & Conditions – BATA Marketplace',
-  description: 'Terms and conditions for sellers on BATA Campus Marketplace',
+  title: 'Seller Terms & Conditions – BATAMART Marketplace',
+  description: 'Terms and conditions for sellers on BATAMART Campus Marketplace',
 }
 
 const sections = [
@@ -12,10 +12,10 @@ const sections = [
     title: 'Eligibility',
     icon: '🎓',
     content: [
-      'You must be a currently enrolled student, staff member, or affiliated member of UNIZIK (Nnamdi Azikiwe University) to sell on BATA.',
+      'You must be a currently enrolled student, staff member, or affiliated member of UNIZIK (Nnamdi Azikiwe University) to sell on BATAMART.',
       'You must be at least 18 years of age or have the consent of a parent or guardian.',
       'You must complete identity verification, including face ID registration, before your seller account is activated.',
-      'BATA reserves the right to revoke seller status if any eligibility requirement is found to be unmet.',
+      'BATAMART reserves the right to revoke seller status if any eligibility requirement is found to be unmet.',
     ],
   },
   {
@@ -25,7 +25,7 @@ const sections = [
     content: [
       'You may sell physical goods, digital items, and campus-relevant services that comply with university policies and Nigerian law.',
       'Prohibited items include: weapons, alcohol, tobacco, counterfeit goods, stolen property, explicit/adult content, prescription medications, and any item banned by UNIZIK regulations.',
-      'BATA reserves the right to remove any listing without notice if it violates these terms or is deemed inappropriate for the campus marketplace.',
+      'BATAMART reserves the right to remove any listing without notice if it violates these terms or is deemed inappropriate for the campus marketplace.',
       'Selling items under false descriptions or misrepresenting condition (e.g. listing a used item as new) is strictly prohibited and may result in account suspension.',
     ],
   },
@@ -36,8 +36,8 @@ const sections = [
     content: [
       'All listings must include accurate photos, honest descriptions, and a fair market price.',
       'Prices must be in Nigerian Naira (₦). Price manipulation or price gouging is not permitted.',
-      'BATA reserves the right to flag or remove listings that appear to be fraudulent, spam, or artificially inflated.',
-      'Listing on BATA is completely free — no listing fees are charged.',
+      'BATAMART reserves the right to flag or remove listings that appear to be fraudulent, spam, or artificially inflated.',
+      'Listing on BATAMART is completely free — no listing fees are charged.',
     ],
   },
   {
@@ -45,10 +45,10 @@ const sections = [
     title: 'Payments & Escrow',
     icon: '💳',
     content: [
-      "All payments are processed through BATA's secure escrow system. Funds are held until the buyer confirms delivery.",
-      'You will receive payment into your BATA wallet after successful delivery confirmation by the buyer.',
-      "In the event of a dispute, funds remain in escrow until the dispute is resolved by BATA's support team.",
-      'BATA may charge a platform fee on transactions. Current fee rates are displayed in your seller dashboard.',
+      "All payments are processed through BATAMART's secure escrow system. Funds are held until the buyer confirms delivery.",
+      'You will receive payment into your BATAMART wallet after successful delivery confirmation by the buyer.',
+      "In the event of a dispute, funds remain in escrow until the dispute is resolved by BATAMART's support team.",
+      'BATAMART may charge a platform fee on transactions. Current fee rates are displayed in your seller dashboard.',
     ],
   },
   {
@@ -56,10 +56,10 @@ const sections = [
     title: 'Withdrawals & Face Verification',
     icon: '🔐',
     content: [
-      'All withdrawal requests from your BATA wallet require face verification to confirm your identity.',
+      'All withdrawal requests from your BATAMART wallet require face verification to confirm your identity.',
       'Your face descriptor is encrypted and stored securely. It is never shared with third parties.',
       'If face verification repeatedly fails, your withdrawal will be temporarily locked and you must contact support.',
-      'BATA is not liable for failed withdrawals caused by poor lighting, device malfunction, or changes in appearance. Contact support if you experience persistent issues.',
+      'BATAMART is not liable for failed withdrawals caused by poor lighting, device malfunction, or changes in appearance. Contact support if you experience persistent issues.',
     ],
   },
   {
@@ -69,7 +69,7 @@ const sections = [
     content: [
       'You are responsible for ensuring your product is ready for pickup when an order is placed.',
       'Orders must be made available for pickup or delivery within the timeframe stated on your listing.',
-      "BATA's rider network handles logistics. You must cooperate with riders and provide accurate pickup location details in your profile.",
+      "BATAMART's rider network handles logistics. You must cooperate with riders and provide accurate pickup location details in your profile.",
       'Repeated failures to fulfill orders may result in penalties, including temporary or permanent suspension of your seller account.',
     ],
   },
@@ -79,7 +79,7 @@ const sections = [
     icon: '⚖️',
     content: [
       'Buyers may raise a dispute within 24 hours of delivery if a product does not match its listing description.',
-      "BATA's support team will review all disputes fairly, considering evidence from both parties.",
+      "BATAMART's support team will review all disputes fairly, considering evidence from both parties.",
       "If a dispute is resolved in the buyer's favour, the funds will be refunded from escrow and the seller will bear the cost.",
       'Sellers found to have acted in bad faith (e.g. knowingly shipping wrong or damaged items) may face account suspension and forfeiture of escrow funds.',
     ],
@@ -91,7 +91,7 @@ const sections = [
     content: [
       'Buyers may leave honest ratings and reviews after each completed transaction.',
       'Attempting to manipulate your ratings — including creating fake buyer accounts or coercing buyers — is strictly prohibited.',
-      'BATA may remove reviews that are found to be fraudulent, abusive, or in violation of community guidelines.',
+      'BATAMART may remove reviews that are found to be fraudulent, abusive, or in violation of community guidelines.',
       'Consistently poor ratings may result in your listings being deprioritised or your seller account being reviewed.',
     ],
   },
@@ -100,10 +100,10 @@ const sections = [
     title: 'Account Suspension & Termination',
     icon: '🚫',
     content: [
-      'BATA may suspend or permanently terminate your seller account for violations of these terms, fraudulent activity, or behaviour deemed harmful to the community.',
+      'BATAMART may suspend or permanently terminate your seller account for violations of these terms, fraudulent activity, or behaviour deemed harmful to the community.',
       'Upon termination, any funds held in escrow for ongoing orders will be resolved per the dispute resolution process.',
-      'Funds in your BATA wallet at the time of termination for cause may be withheld pending investigation.',
-      'You may appeal a suspension by contacting BATA support within 7 days of receiving the notification.',
+      'Funds in your BATAMART wallet at the time of termination for cause may be withheld pending investigation.',
+      'You may appeal a suspension by contacting BATAMART support within 7 days of receiving the notification.',
     ],
   },
   {
@@ -111,7 +111,7 @@ const sections = [
     title: 'Changes to These Terms',
     icon: '📝',
     content: [
-      'BATA reserves the right to update these Seller Terms at any time. You will be notified via email or in-app notification.',
+      'BATAMART reserves the right to update these Seller Terms at any time. You will be notified via email or in-app notification.',
       'Continued use of your seller account after changes take effect constitutes acceptance of the updated terms.',
       'If you disagree with any changes, you may deactivate your seller account by contacting support.',
     ],
@@ -127,7 +127,7 @@ export default function SellerTermsPage() {
         <div className="max-w-4xl mx-auto px-4 py-8">
           <Link
             href="/become-seller"
-            className="inline-flex items-center text-sm text-gray-500 hover:text-bata-primary transition-colors mb-6"
+            className="inline-flex items-center text-sm text-gray-500 hover:text-BATAMART-primary transition-colors mb-6"
           >
             <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -142,14 +142,14 @@ export default function SellerTermsPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Seller Terms & Conditions</h1>
               <p className="text-gray-500 mt-1 text-sm">
-                BATA Campus Marketplace &nbsp;·&nbsp; Effective: January 2025 &nbsp;·&nbsp; Version 1.0
+                BATAMART Campus Marketplace &nbsp;·&nbsp; Effective: January 2025 &nbsp;·&nbsp; Version 1.0
               </p>
             </div>
           </div>
 
           <div className="mt-6 bg-blue-50 border border-blue-100 rounded-xl p-5">
             <p className="text-blue-900 text-sm leading-relaxed">
-              By registering as a seller on BATA, you agree to abide by these terms in addition to our general{' '}
+              By registering as a seller on BATAMART, you agree to abide by these terms in addition to our general{' '}
               <Link href="/terms" className="font-semibold underline underline-offset-2 hover:text-blue-700">
                 Terms & Conditions
               </Link>{' '}
@@ -173,7 +173,7 @@ export default function SellerTermsPage() {
               <a
                 key={s.id}
                 href={`#section-${s.id}`}
-                className="flex items-center gap-2.5 text-sm text-gray-600 hover:text-bata-primary py-1.5 px-3 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2.5 text-sm text-gray-600 hover:text-BATAMART-primary py-1.5 px-3 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <span>{s.icon}</span>
                 <span>{s.id}. {s.title}</span>
@@ -200,7 +200,7 @@ export default function SellerTermsPage() {
               <ul className="px-6 py-5 space-y-3">
                 {section.content.map((point, i) => (
                   <li key={i} className="flex items-start gap-3 text-sm text-gray-700 leading-relaxed">
-                    <span className="mt-2 w-1.5 h-1.5 rounded-full bg-bata-primary flex-shrink-0" />
+                    <span className="mt-2 w-1.5 h-1.5 rounded-full bg-BATAMART-primary flex-shrink-0" />
                     {point}
                   </li>
                 ))}
@@ -219,7 +219,7 @@ export default function SellerTermsPage() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               href="/become-seller"
-              className="inline-flex items-center justify-center gap-2 bg-bata-primary hover:bg-bata-dark text-white px-8 py-3 rounded-xl font-semibold text-sm transition-colors"
+              className="inline-flex items-center justify-center gap-2 bg-BATAMART-primary hover:bg-BATAMART-dark text-white px-8 py-3 rounded-xl font-semibold text-sm transition-colors"
             >
               ✅ I Agree — Become a Seller
             </Link>
@@ -234,8 +234,8 @@ export default function SellerTermsPage() {
 
         <p className="text-center text-xs text-gray-400 mt-6 pb-8">
           Questions? Contact us at{' '}
-          <a href="mailto:support@bata-mart.com" className="hover:text-bata-primary underline">
-            support@bata-mart.com
+          <a href="mailto:support@BATAMART-mart.com" className="hover:text-BATAMART-primary underline">
+            support@BATAMART-mart.com
           </a>
         </p>
 

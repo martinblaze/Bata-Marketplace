@@ -15,7 +15,7 @@ async function uploadIdToCloudinary(base64: string): Promise<string | null> {
     if (!cloudName || !apiKey || !apiSecret) return null
 
     const timestamp = Math.round(Date.now() / 1000)
-    const folder = 'bata-rider-ids'
+    const folder = 'BATAMART-rider-ids'
     const signatureString = `folder=${folder}&timestamp=${timestamp}${apiSecret}`
     const signature = crypto.createHash('sha1').update(signatureString).digest('hex')
 

@@ -98,15 +98,15 @@ export default function RiderSignupPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center space-x-2 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-bata-primary to-bata-secondary rounded-xl flex items-center justify-center shadow-lg">
+            <div className="w-12 h-12 bg-gradient-to-br from-BATAMART-primary to-BATAMART-secondary rounded-xl flex items-center justify-center shadow-lg">
               <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M3 3h18v4H3V3zm0 6h18v12H3V9zm2 2v8h14v-8H5zm2 2h10v4H7v-4z"/>
+                <path d="M3 3h18v4H3V3zm0 6h18v12H3V9zm2 2v8h14v-8H5zm2 2h10v4H7v-4z" />
               </svg>
             </div>
-            <span className="font-bold text-2xl bg-gradient-to-r from-bata-primary to-bata-secondary bg-clip-text text-transparent">BATA</span>
+            <span className="font-bold text-2xl bg-gradient-to-r from-BATAMART-primary to-BATAMART-secondary bg-clip-text text-transparent">BATAMART</span>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Become a Rider</h1>
-          <p className="text-gray-600">Earn <span className="font-bold text-bata-primary">₦560</span> per delivery!</p>
+          <p className="text-gray-600">Earn <span className="font-bold text-BATAMART-primary">₦560</span> per delivery!</p>
         </div>
 
         {/* Earnings info */}
@@ -124,7 +124,7 @@ export default function RiderSignupPage() {
 
           {step === 'uploading' ? (
             <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-bata-primary border-t-transparent mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-BATAMART-primary border-t-transparent mx-auto mb-4"></div>
               <p className="text-gray-700 font-semibold text-lg">Creating your account...</p>
               <p className="text-gray-500 text-sm mt-2">Uploading your ID document</p>
             </div>
@@ -141,7 +141,7 @@ export default function RiderSignupPage() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-BATAMART-primary focus:outline-none"
                   placeholder="Enter your full name"
                 />
               </div>
@@ -156,7 +156,7 @@ export default function RiderSignupPage() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-BATAMART-primary focus:outline-none"
                   placeholder="you@gmail.com"
                 />
                 <p className="text-xs text-gray-500 mt-1">You'll use this to log in</p>
@@ -172,7 +172,7 @@ export default function RiderSignupPage() {
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   required
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-BATAMART-primary focus:outline-none"
                   placeholder="08012345678"
                 />
                 <p className="text-xs text-gray-500 mt-1">📞 Buyers will call this number for delivery</p>
@@ -188,7 +188,7 @@ export default function RiderSignupPage() {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-BATAMART-primary focus:outline-none"
                   placeholder="Enter password"
                 />
                 <p className="text-xs text-gray-500 mt-1">Min 8 characters, must include a number</p>
@@ -204,7 +204,7 @@ export default function RiderSignupPage() {
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                   required
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-BATAMART-primary focus:outline-none"
                   placeholder="Confirm your password"
                 />
               </div>
@@ -241,7 +241,7 @@ export default function RiderSignupPage() {
                       onChange={handleImageUpload}
                       className="hidden"
                     />
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-bata-primary transition-colors">
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-BATAMART-primary transition-colors">
                       <svg className="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
@@ -260,14 +260,14 @@ export default function RiderSignupPage() {
                     type="checkbox"
                     checked={agreedToTerms}
                     onChange={(e) => setAgreedToTerms(e.target.checked)}
-                    className="mt-0.5 h-5 w-5 flex-shrink-0 text-bata-primary focus:ring-bata-primary border-gray-300 rounded cursor-pointer"
+                    className="mt-0.5 h-5 w-5 flex-shrink-0 text-BATAMART-primary focus:ring-BATAMART-primary border-gray-300 rounded cursor-pointer"
                   />
                   <label htmlFor="agreeTermsRider" className="text-sm text-gray-600 cursor-pointer leading-relaxed">
-                    I have read and agree to BATA's{' '}
+                    I have read and agree to BATAMART's{' '}
                     <Link
                       href="/terms"
                       target="_blank"
-                      className="text-bata-primary font-semibold hover:underline"
+                      className="text-BATAMART-primary font-semibold hover:underline"
                     >
                       Terms & Conditions
                     </Link>{' '}
@@ -275,7 +275,7 @@ export default function RiderSignupPage() {
                     <Link
                       href="/privacy"
                       target="_blank"
-                      className="text-bata-primary font-semibold hover:underline"
+                      className="text-BATAMART-primary font-semibold hover:underline"
                     >
                       Privacy Policy
                     </Link>
@@ -292,7 +292,7 @@ export default function RiderSignupPage() {
               <button
                 type="submit"
                 disabled={loading || !agreedToTerms}
-                className="w-full bg-bata-primary hover:bg-bata-dark text-white py-3.5 rounded-lg font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="w-full bg-BATAMART-primary hover:bg-BATAMART-dark text-white py-3.5 rounded-lg font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 {loading ? 'Creating Account...' : 'Register as Rider'}
               </button>
@@ -309,7 +309,7 @@ export default function RiderSignupPage() {
           <div className="mt-6 text-center">
             <p className="text-gray-600">
               Already a rider?{' '}
-              <Link href="/rider/login" className="text-bata-primary font-semibold hover:underline">
+              <Link href="/rider/login" className="text-BATAMART-primary font-semibold hover:underline">
                 Log in here
               </Link>
             </p>

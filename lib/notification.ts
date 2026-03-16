@@ -326,7 +326,7 @@ export async function notifyPenaltyIssued(userId: string, penaltyAction: string,
 export async function notifyAccountSuspended(userId: string, until: Date | null, reason: string) {
   const message = until
     ? `Your account has been suspended until ${until.toLocaleDateString()}. Reason: ${reason}`
-    : `Your account has been permanently suspended. Reason: ${reason}. Contact support@bata-mart.com to appeal.`
+    : `Your account has been permanently suspended. Reason: ${reason}. Contact support@BATAMART-mart.com to appeal.`
 
   await createNotification({
     userId,

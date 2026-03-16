@@ -22,16 +22,16 @@ interface Order {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; ring: string; dot: string }> = {
-  PENDING:        { label: 'Pending',         color: 'text-amber-700',   bg: 'bg-amber-50',   ring: 'ring-amber-200',   dot: 'bg-amber-400' },
-  PROCESSING:     { label: 'Processing',      color: 'text-orange-700',  bg: 'bg-orange-50',  ring: 'ring-orange-200',  dot: 'bg-orange-400' },
-  SHIPPED:        { label: 'Shipped',         color: 'text-blue-700',    bg: 'bg-blue-50',    ring: 'ring-blue-200',    dot: 'bg-blue-400' },
-  RIDER_ASSIGNED: { label: 'Rider Assigned',  color: 'text-indigo-700',  bg: 'bg-indigo-50',  ring: 'ring-indigo-200',  dot: 'bg-indigo-400' },
-  PICKED_UP:      { label: 'Picked Up',       color: 'text-violet-700',  bg: 'bg-violet-50',  ring: 'ring-violet-200',  dot: 'bg-violet-400' },
-  ON_THE_WAY:     { label: 'On The Way',      color: 'text-pink-700',    bg: 'bg-pink-50',    ring: 'ring-pink-200',    dot: 'bg-pink-400' },
-  DELIVERED:      { label: 'Delivered',       color: 'text-emerald-700', bg: 'bg-emerald-50', ring: 'ring-emerald-200', dot: 'bg-emerald-400' },
-  COMPLETED:      { label: 'Completed',       color: 'text-gray-700',    bg: 'bg-gray-100',   ring: 'ring-gray-200',    dot: 'bg-gray-400' },
-  CANCELLED:      { label: 'Cancelled',       color: 'text-red-700',     bg: 'bg-red-50',     ring: 'ring-red-200',     dot: 'bg-red-400' },
-  DISPUTED:       { label: 'Disputed',        color: 'text-red-700',     bg: 'bg-red-50',     ring: 'ring-red-200',     dot: 'bg-red-400' },
+  PENDING: { label: 'Pending', color: 'text-amber-700', bg: 'bg-amber-50', ring: 'ring-amber-200', dot: 'bg-amber-400' },
+  PROCESSING: { label: 'Processing', color: 'text-orange-700', bg: 'bg-orange-50', ring: 'ring-orange-200', dot: 'bg-orange-400' },
+  SHIPPED: { label: 'Shipped', color: 'text-blue-700', bg: 'bg-blue-50', ring: 'ring-blue-200', dot: 'bg-blue-400' },
+  RIDER_ASSIGNED: { label: 'Rider Assigned', color: 'text-indigo-700', bg: 'bg-indigo-50', ring: 'ring-indigo-200', dot: 'bg-indigo-400' },
+  PICKED_UP: { label: 'Picked Up', color: 'text-violet-700', bg: 'bg-violet-50', ring: 'ring-violet-200', dot: 'bg-violet-400' },
+  ON_THE_WAY: { label: 'On The Way', color: 'text-pink-700', bg: 'bg-pink-50', ring: 'ring-pink-200', dot: 'bg-pink-400' },
+  DELIVERED: { label: 'Delivered', color: 'text-emerald-700', bg: 'bg-emerald-50', ring: 'ring-emerald-200', dot: 'bg-emerald-400' },
+  COMPLETED: { label: 'Completed', color: 'text-gray-700', bg: 'bg-gray-100', ring: 'ring-gray-200', dot: 'bg-gray-400' },
+  CANCELLED: { label: 'Cancelled', color: 'text-red-700', bg: 'bg-red-50', ring: 'ring-red-200', dot: 'bg-red-400' },
+  DISPUTED: { label: 'Disputed', color: 'text-red-700', bg: 'bg-red-50', ring: 'ring-red-200', dot: 'bg-red-400' },
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -123,7 +123,7 @@ export default function OrdersPage() {
 
   if (checkingAuth) return (
     <div className="min-h-screen flex items-center justify-center bg-[#f7f8fa]">
-      <div className="animate-spin rounded-full h-10 w-10 border-4 border-bata-primary border-t-transparent" />
+      <div className="animate-spin rounded-full h-10 w-10 border-4 border-BATAMART-primary border-t-transparent" />
     </div>
   )
 
@@ -160,7 +160,7 @@ export default function OrdersPage() {
             </div>
             <Link
               href="/marketplace"
-              className="hidden sm:flex items-center gap-1.5 text-sm font-bold text-bata-primary hover:text-bata-dark transition-colors"
+              className="hidden sm:flex items-center gap-1.5 text-sm font-bold text-BATAMART-primary hover:text-BATAMART-dark transition-colors"
             >
               <ShoppingBag className="w-4 h-4" /> Shop More
             </Link>
@@ -173,7 +173,7 @@ export default function OrdersPage() {
         {/* Loading skeletons */}
         {loading ? (
           <div className="space-y-4">
-            {[1,2,3].map(i => (
+            {[1, 2, 3].map(i => (
               <div key={i} className="bg-white rounded-2xl p-5 animate-pulse">
                 <div className="flex gap-4">
                   <div className="w-20 h-20 bg-gray-200 rounded-xl flex-shrink-0" />
@@ -194,10 +194,10 @@ export default function OrdersPage() {
               <ShoppingBag className="w-9 h-9 text-gray-300" />
             </div>
             <h3 className="text-xl font-black text-gray-800 mb-1">No orders yet</h3>
-            <p className="text-gray-400 text-sm mb-6">Start shopping on BATA marketplace!</p>
+            <p className="text-gray-400 text-sm mb-6">Start shopping on BATAMART marketplace!</p>
             <Link
               href="/marketplace"
-              className="inline-flex items-center gap-2 bg-bata-primary hover:bg-bata-dark text-white px-6 py-3 rounded-xl font-bold text-sm shadow-md transition-all"
+              className="inline-flex items-center gap-2 bg-BATAMART-primary hover:bg-BATAMART-dark text-white px-6 py-3 rounded-xl font-bold text-sm shadow-md transition-all"
             >
               Browse Products <ArrowRight className="w-4 h-4" />
             </Link>
@@ -241,8 +241,8 @@ export default function OrdersPage() {
                         {order.product?.name || 'Product'}
                       </h3>
                       <div className="flex items-center gap-1.5 mt-1">
-                        <div className="w-5 h-5 rounded-full bg-bata-primary/10 flex items-center justify-center">
-                          <span className="text-bata-primary font-black text-[10px]">{(order.seller?.name || 'S')[0]}</span>
+                        <div className="w-5 h-5 rounded-full bg-BATAMART-primary/10 flex items-center justify-center">
+                          <span className="text-BATAMART-primary font-black text-[10px]">{(order.seller?.name || 'S')[0]}</span>
                         </div>
                         <p className="text-xs font-semibold text-gray-500">
                           {order.seller?.name || 'Seller'}
@@ -255,7 +255,7 @@ export default function OrdersPage() {
                         </p>
                       </div>
                       <div className="flex items-center gap-3 mt-2.5">
-                        <span className="text-bata-primary font-black text-lg">{formatPrice(order.totalAmount)}</span>
+                        <span className="text-BATAMART-primary font-black text-lg">{formatPrice(order.totalAmount)}</span>
                         <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full font-semibold">
                           Qty: {order.quantity || 1}
                         </span>
@@ -281,19 +281,17 @@ export default function OrdersPage() {
                   {/* ── Review status bar ── */}
                   {canReview(order) && (
                     <div className="mt-4 flex items-center gap-2 flex-wrap">
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full ring-1 ${
-                        hasReviewedProduct(order)
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full ring-1 ${hasReviewedProduct(order)
                           ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
                           : 'bg-amber-50 text-amber-700 ring-amber-200'
-                      }`}>
+                        }`}>
                         {hasReviewedProduct(order) ? <BadgeCheck className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
                         Product {hasReviewedProduct(order) ? 'Reviewed' : 'Not Reviewed'}
                       </span>
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full ring-1 ${
-                        hasReviewedSeller(order)
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full ring-1 ${hasReviewedSeller(order)
                           ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
                           : 'bg-amber-50 text-amber-700 ring-amber-200'
-                      }`}>
+                        }`}>
                         {hasReviewedSeller(order) ? <BadgeCheck className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
                         Seller {hasReviewedSeller(order) ? 'Reviewed' : 'Not Reviewed'}
                       </span>

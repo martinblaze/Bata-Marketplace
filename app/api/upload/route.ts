@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     // ── File type validation ───────────────────────────────────────────────
     // image is a base64 string like: "data:image/jpeg;base64,/9j/4AAQ..."
     const mimeMatch = image.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,/)
-    
+
     if (!mimeMatch) {
       return NextResponse.json(
         { error: 'Invalid image format. Must be a base64 encoded image.' },
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     // Build the signed upload request
     const timestamp = Math.round(Date.now() / 1000)
-    const folder = 'bata-products'
+    const folder = 'BATAMART-products'
 
     const crypto = require('crypto')
     const signatureString = `folder=${folder}&timestamp=${timestamp}${apiSecret}`

@@ -119,18 +119,18 @@ export async function POST(request: NextRequest) {
 
     // ── DEV MODE: skip Paystack, create orders directly ───────
     const useDevMode = false // ← Set to false for production
-    
+
     if (useDevMode && process.env.NODE_ENV === 'development') {
       console.log('🔧 DEV MODE: Creating orders without Paystack')
       const createdOrders = await createOrders(items, user, fees)
-      
+
       return NextResponse.json({
         success: true,
         devMode: true,
         message: 'Orders placed (Dev Mode)',
-        orders: createdOrders.map(o => ({ 
-          orderNumber: o.orderNumber, 
-          orderId: o.id 
+        orders: createdOrders.map(o => ({
+          orderNumber: o.orderNumber,
+          orderId: o.id
         })),
         orderId: createdOrders[0].id,
         orderNumber: createdOrders[0].orderNumber,
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
 
     // ── PRODUCTION: Initialize Paystack ───────────────────────
     console.log('💳 PROD MODE: Initializing Paystack payment')
-    const reference = `BATA-${Date.now()}-${user.id.substring(0, 8)}`
+    const reference = `BATAMART-${Date.now()}-${user.id.substring(0, 8)}`
 
     const paystackRes = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        email: user.email || `${user.id}@bata.app`,
+        email: user.email || `${user.id}@BATAMART.app`,
         amount: fees.totalAmount * 100, // kobo
         reference,
         callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/verify`,
@@ -202,12 +202,12 @@ export async function createOrders(
     sellerName: string
     orderNote?: string  // ← ADDED orderNote field to type
   }[],
-  user: { 
+  user: {
     id: string
     hostelName?: string | null
     roomNumber?: string | null
     phone?: string | null
-    landmark?: string | null 
+    landmark?: string | null
   },
   fees: ReturnType<typeof calculateFees>,
   paymentReference?: string
@@ -235,7 +235,7 @@ export async function createOrders(
     const proportion = fees.subtotal > 0 ? orderSubtotal / fees.subtotal : 1
     const orderFees = calculateFees(orderSubtotal, Math.round(fees.deliveryFee * proportion))
 
-    const orderNumber = `BATA-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`
+    const orderNumber = `BATAMART-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`
     const itemsList = sellerItems.map(i => `${i.name} (x${i.quantity})`).join(', ')
 
     console.log('🔨 Creating order:', orderNumber)
@@ -339,7 +339,7 @@ export async function createOrders(
       })
 
       createdOrders.push(order)
-      
+
       // Queue notification for later
       notificationQueue.push({
         orderId: order.id,
@@ -350,7 +350,7 @@ export async function createOrders(
       })
 
       console.log('✅ Order created:', orderNumber)
-      
+
     } catch (orderError) {
       console.error('❌ Failed to create order:', orderNumber, orderError)
       throw orderError
@@ -361,7 +361,7 @@ export async function createOrders(
   // ✅ SEND NOTIFICATIONS AFTER ALL ORDERS CREATED
   // ═══════════════════════════════════════════════════════
   console.log(`📧 Sending ${notificationQueue.length} notifications...`)
-  
+
   for (const notification of notificationQueue) {
     notifyOrderPlaced(
       notification.orderId,
@@ -370,8 +370,8 @@ export async function createOrders(
       notification.orderNumber,
       notification.itemsList
     )
-    .then(() => console.log(`✅ Notification sent for ${notification.orderNumber}`))
-    .catch(err => console.error(`⚠️ Notification failed:`, err))
+      .then(() => console.log(`✅ Notification sent for ${notification.orderNumber}`))
+      .catch(err => console.error(`⚠️ Notification failed:`, err))
   }
 
   console.log('🎉 All orders created successfully:', createdOrders.length)

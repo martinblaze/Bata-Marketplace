@@ -142,7 +142,7 @@ export default function MyShopPage() {
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-[#f7f8fa]">
-      <div className="animate-spin rounded-full h-10 w-10 border-4 border-bata-primary border-t-transparent" />
+      <div className="animate-spin rounded-full h-10 w-10 border-4 border-BATAMART-primary border-t-transparent" />
     </div>
   )
 
@@ -168,17 +168,15 @@ export default function MyShopPage() {
                 <div className="flex items-center bg-gray-100 rounded-xl p-1 border border-gray-200">
                   <button
                     onClick={() => !isSellerMode && toggleSellerMode()}
-                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                      isSellerMode ? 'bg-bata-primary text-white shadow-md' : 'text-gray-500 hover:text-gray-700'
-                    }`}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${isSellerMode ? 'bg-BATAMART-primary text-white shadow-md' : 'text-gray-500 hover:text-gray-700'
+                      }`}
                   >
                     <ShoppingBag className="w-3.5 h-3.5" /> Seller
                   </button>
                   <button
                     onClick={() => isSellerMode && toggleSellerMode()}
-                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                      !isSellerMode ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700'
-                    }`}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${!isSellerMode ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700'
+                      }`}
                   >
                     <Package className="w-3.5 h-3.5" /> Buyer
                   </button>
@@ -188,7 +186,7 @@ export default function MyShopPage() {
               {isSellerMode && (
                 <Link
                   href="/sell"
-                  className="flex items-center gap-2 bg-bata-primary hover:bg-bata-dark text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all active:scale-[0.97]"
+                  className="flex items-center gap-2 bg-BATAMART-primary hover:bg-BATAMART-dark text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all active:scale-[0.97]"
                 >
                   <Plus className="w-4 h-4" /> Add Product
                 </Link>
@@ -205,7 +203,7 @@ export default function MyShopPage() {
             {/* ── Stats cards ─────────────────────────────────────────── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
               {[
-                { icon: <ShoppingBag className="w-5 h-5 text-bata-primary" />, bg: 'bg-bata-primary/8', value: products.length, label: 'Listed', sub: 'Total products' },
+                { icon: <ShoppingBag className="w-5 h-5 text-BATAMART-primary" />, bg: 'bg-BATAMART-primary/8', value: products.length, label: 'Listed', sub: 'Total products' },
                 { icon: <CheckCircle className="w-5 h-5 text-emerald-600" />, bg: 'bg-emerald-50', value: activeCount, label: 'Active', sub: 'In stock & live', color: 'text-emerald-600' },
                 { icon: <XCircle className="w-5 h-5 text-red-500" />, bg: 'bg-red-50', value: outOfStockCount, label: 'Out of Stock', sub: 'Needs restocking', color: 'text-red-500' },
                 { icon: <TrendingUp className="w-5 h-5 text-blue-600" />, bg: 'bg-blue-50', value: totalOrders, label: 'Orders', sub: 'Total sales', color: 'text-blue-600' },
@@ -229,7 +227,7 @@ export default function MyShopPage() {
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   placeholder="Search products..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-white rounded-xl border border-gray-200 focus:border-bata-primary focus:outline-none focus:ring-2 focus:ring-bata-primary/15 text-sm"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white rounded-xl border border-gray-200 focus:border-BATAMART-primary focus:outline-none focus:ring-2 focus:ring-BATAMART-primary/15 text-sm"
                 />
                 {searchTerm && (
                   <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -241,16 +239,15 @@ export default function MyShopPage() {
               {/* filter tabs */}
               <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
                 {[
-                  { key: 'all', label: `All (${products.length})`, activeClass: 'bg-bata-primary text-white' },
+                  { key: 'all', label: `All (${products.length})`, activeClass: 'bg-BATAMART-primary text-white' },
                   { key: 'active', label: `Active (${activeCount})`, activeClass: 'bg-emerald-500 text-white' },
                   { key: 'outofstock', label: `Out of Stock (${outOfStockCount})`, activeClass: 'bg-red-500 text-white' },
                 ].map(({ key, label, activeClass }) => (
                   <button
                     key={key}
                     onClick={() => setFilter(key as any)}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                      filter === key ? `${activeClass} shadow-md` : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
-                    }`}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${filter === key ? `${activeClass} shadow-md` : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                      }`}
                   >
                     {label}
                   </button>
@@ -259,10 +256,10 @@ export default function MyShopPage() {
 
               {/* view toggle */}
               <div className="flex items-center gap-0.5 bg-gray-100 p-1 rounded-xl ml-auto flex-shrink-0">
-                <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white text-bata-primary shadow-sm' : 'text-gray-500'}`}>
+                <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white text-BATAMART-primary shadow-sm' : 'text-gray-500'}`}>
                   <Grid className="w-4 h-4" />
                 </button>
-                <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white text-bata-primary shadow-sm' : 'text-gray-500'}`}>
+                <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white text-BATAMART-primary shadow-sm' : 'text-gray-500'}`}>
                   <List className="w-4 h-4" />
                 </button>
               </div>
@@ -278,7 +275,7 @@ export default function MyShopPage() {
                 <p className="text-sm text-gray-400 mb-6 text-center max-w-xs">
                   {searchTerm ? 'Try different keywords.' : 'List your first product to start selling!'}
                 </p>
-                <Link href="/sell" className="inline-flex items-center gap-2 bg-bata-primary hover:bg-bata-dark text-white px-6 py-3 rounded-xl font-bold text-sm shadow-md transition-all">
+                <Link href="/sell" className="inline-flex items-center gap-2 bg-BATAMART-primary hover:bg-BATAMART-dark text-white px-6 py-3 rounded-xl font-bold text-sm shadow-md transition-all">
                   <Plus className="w-4 h-4" /> List First Product
                 </Link>
               </div>
@@ -305,7 +302,7 @@ export default function MyShopPage() {
                     <div className="p-4">
                       <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">{product.category}</p>
                       <h3 className="font-black text-gray-900 text-base line-clamp-1 mb-1">{product.name}</h3>
-                      <p className="text-bata-primary font-black text-lg mb-3">{formatPrice(product.price)}</p>
+                      <p className="text-BATAMART-primary font-black text-lg mb-3">{formatPrice(product.price)}</p>
 
                       <div className="grid grid-cols-2 gap-2 mb-4">
                         <div className="bg-gray-50 rounded-xl p-2.5 text-center">
@@ -331,9 +328,8 @@ export default function MyShopPage() {
                         </button>
                         <button
                           onClick={() => toggleActive(product.id, product.isActive)}
-                          className={`px-3 py-2 rounded-xl font-bold text-xs transition-all ${
-                            product.isActive ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                          }`}
+                          className={`px-3 py-2 rounded-xl font-bold text-xs transition-all ${product.isActive ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                            }`}
                         >
                           {product.isActive ? 'Pause' : 'Live'}
                         </button>
@@ -366,8 +362,8 @@ export default function MyShopPage() {
                           {product.quantity === 0
                             ? <span className="px-1.5 py-0.5 bg-red-500 text-white text-[9px] font-black rounded-md">OUT</span>
                             : product.quantity < 5
-                            ? <span className="px-1.5 py-0.5 bg-amber-500 text-white text-[9px] font-black rounded-md">LOW</span>
-                            : null
+                              ? <span className="px-1.5 py-0.5 bg-amber-500 text-white text-[9px] font-black rounded-md">LOW</span>
+                              : null
                           }
                         </div>
                       </div>
@@ -380,7 +376,7 @@ export default function MyShopPage() {
                               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">{product.category}</p>
                               <h3 className="font-black text-gray-900 text-base sm:text-lg leading-tight mt-0.5 line-clamp-1">{product.name}</h3>
                             </div>
-                            <p className="text-bata-primary font-black text-lg sm:text-xl whitespace-nowrap flex-shrink-0">{formatPrice(product.price)}</p>
+                            <p className="text-BATAMART-primary font-black text-lg sm:text-xl whitespace-nowrap flex-shrink-0">{formatPrice(product.price)}</p>
                           </div>
 
                           {/* badges */}
@@ -415,7 +411,7 @@ export default function MyShopPage() {
                                 <input
                                   type="number" min="1" value={restockAmount}
                                   onChange={e => setRestockAmount(parseInt(e.target.value) || 1)}
-                                  className="w-20 px-3 py-1.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-bata-primary text-sm font-bold bg-white"
+                                  className="w-20 px-3 py-1.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-BATAMART-primary text-sm font-bold bg-white"
                                 />
                                 <button onClick={() => handleRestock(product.id)} className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-sm transition-all">
                                   <CheckCircle className="w-4 h-4" />
@@ -436,11 +432,10 @@ export default function MyShopPage() {
 
                           <button
                             onClick={() => toggleActive(product.id, product.isActive)}
-                            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold text-xs transition-all ${
-                              product.isActive
+                            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold text-xs transition-all ${product.isActive
                                 ? 'bg-amber-100 hover:bg-amber-200 text-amber-800'
                                 : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-800'
-                            }`}
+                              }`}
                           >
                             {product.isActive ? '⏸ Deactivate' : '▶ Activate'}
                           </button>
@@ -476,7 +471,7 @@ export default function MyShopPage() {
               <h2 className="text-2xl font-black text-gray-900 mb-1">You're in Buyer Mode</h2>
               <p className="text-gray-400 text-sm mb-7 max-w-sm mx-auto">Switch to Seller Mode to manage your products and listings.</p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <Link href="/marketplace" className="inline-flex items-center gap-2 bg-bata-primary hover:bg-bata-dark text-white px-6 py-3 rounded-xl font-bold text-sm shadow-md transition-all">
+                <Link href="/marketplace" className="inline-flex items-center gap-2 bg-BATAMART-primary hover:bg-BATAMART-dark text-white px-6 py-3 rounded-xl font-bold text-sm shadow-md transition-all">
                   <ShoppingBag className="w-4 h-4" /> Browse Marketplace
                 </Link>
                 <Link href="/orders" className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-3 rounded-xl font-bold text-sm transition-all">
@@ -514,7 +509,7 @@ export default function MyShopPage() {
       {isSellerMode && (
         <Link
           href="/sell"
-          className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 flex items-center gap-2 bg-bata-primary hover:bg-bata-dark text-white px-5 py-3.5 rounded-2xl font-black text-sm shadow-2xl shadow-bata-primary/30 hover:scale-105 transition-all z-50"
+          className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 flex items-center gap-2 bg-BATAMART-primary hover:bg-BATAMART-dark text-white px-5 py-3.5 rounded-2xl font-black text-sm shadow-2xl shadow-BATAMART-primary/30 hover:scale-105 transition-all z-50"
         >
           <Plus className="w-5 h-5" />
           <span className="hidden sm:inline">Add Product</span>

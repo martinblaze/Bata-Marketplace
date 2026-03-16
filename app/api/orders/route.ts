@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
     const totalAmount = product.price * quantity + deliveryFee
 
     // Generate order number
-    const orderNumber = `BATA-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
+    const orderNumber = `BATAMART-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
 
     // Create order
     const order = await prisma.order.create({

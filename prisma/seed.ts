@@ -6,7 +6,7 @@ const prisma = new PrismaClient()
 
 function generateReferralCode(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-  let code = 'BATA-'
+  let code = 'BATAMART-'
   for (let i = 0; i < 6; i++) {
     code += chars.charAt(Math.floor(Math.random() * chars.length))
   }
@@ -15,15 +15,15 @@ function generateReferralCode(): string {
 
 async function main() {
   console.log('🌱 Starting database seeding...')
-  
+
   await createAdmin()
-  
+
   console.log('✅ Seeding completed successfully!')
 }
 
 async function createAdmin() {
   console.log('👤 Checking for existing admin...')
-  
+
   const existingAdmin = await prisma.user.findFirst({
     where: { role: 'ADMIN' }
   })
@@ -37,13 +37,13 @@ async function createAdmin() {
   }
 
   console.log('🔐 Creating new admin...')
-  
+
   const plainPassword = 'Admin@12345'
   const hashedPassword = await bcrypt.hash(plainPassword, 10)
-  
+
   const admin = await prisma.user.create({
     data: {
-      email: 'admin@bata.com',
+      email: 'admin@BATAMART.com',
       name: 'System Administrator',
       password: hashedPassword,
       role: 'ADMIN',
@@ -57,7 +57,7 @@ async function createAdmin() {
   console.log('🔑 Password:', plainPassword)
   console.log('👤 Role:', admin.role)
   console.log('🆔 ID:', admin.id)
-  
+
   const verifyHash = await bcrypt.compare(plainPassword, hashedPassword)
   console.log('🔒 Password hash valid:', verifyHash ? '✓ Yes' : '✗ No')
 }

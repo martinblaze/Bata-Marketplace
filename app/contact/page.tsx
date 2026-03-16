@@ -21,7 +21,7 @@ const CATEGORIES = [
 const faqs = [
   {
     question: 'How do I create an account?',
-    answer: "Click on \"Join BATA\" and fill in your UNIZIK student details. You'll receive a verification email to activate your account."
+    answer: "Click on \"Join BATAMART\" and fill in your UNIZIK student details. You'll receive a verification email to activate your account."
   },
   {
     question: 'Is my payment secure?',
@@ -37,7 +37,7 @@ const faqs = [
   },
   {
     question: 'How do I become a seller?',
-    answer: 'Any verified UNIZIK student can sell on BATA. Just toggle to seller mode in your account and start listing products!'
+    answer: 'Any verified UNIZIK student can sell on BATAMART. Just toggle to seller mode in your account and start listing products!'
   },
   {
     question: 'Can I become a rider?',
@@ -119,7 +119,7 @@ export default function ContactPage() {
     <div className="min-h-screen bg-gray-50">
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-bata-primary to-bata-dark text-white py-20 px-4">
+      <section className="bg-gradient-to-br from-BATAMART-primary to-BATAMART-dark text-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center space-x-2 bg-white/20 px-4 py-2 rounded-full mb-6">
             <HelpCircle className="w-5 h-5" />
@@ -127,7 +127,7 @@ export default function ContactPage() {
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">We're Here to Help</h1>
           <p className="text-xl text-white/90 max-w-2xl mx-auto">
-            Have questions? Need support? Get in touch with the BATA team.
+            Have questions? Need support? Get in touch with the BATAMART team.
             We're committed to helping you have the best experience.
           </p>
         </div>
@@ -141,7 +141,7 @@ export default function ContactPage() {
             <p className="text-gray-600">Choose your preferred way to reach us</p>
           </div>
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            <a href="mailto:support@bata-mart.com"
+            <a href="mailto:support@BATAMART-mart.com"
               className="bg-white p-8 rounded-2xl border border-gray-100 hover:shadow-xl transition-all duration-300 group">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                 <Mail className="w-8 h-8 text-white" />
@@ -149,8 +149,8 @@ export default function ContactPage() {
               <h3 className="text-2xl font-bold text-gray-900 mb-2">Email Support</h3>
               <p className="text-gray-600 mb-4">Get help via email</p>
               <div className="flex items-center justify-between">
-                <span className="text-bata-primary font-semibold text-lg">support@bata-mart.com</span>
-                <span className="text-bata-primary group-hover:translate-x-2 transition-transform duration-300">→</span>
+                <span className="text-BATAMART-primary font-semibold text-lg">support@BATAMART-mart.com</span>
+                <span className="text-BATAMART-primary group-hover:translate-x-2 transition-transform duration-300">→</span>
               </div>
             </a>
             <a href="https://wa.me/234XXXXXXXXXX" target="_blank" rel="noopener noreferrer"
@@ -161,8 +161,8 @@ export default function ContactPage() {
               <h3 className="text-2xl font-bold text-gray-900 mb-2">WhatsApp</h3>
               <p className="text-gray-600 mb-4">Chat with us on WhatsApp</p>
               <div className="flex items-center justify-between">
-                <span className="text-bata-primary font-semibold text-lg">+234 XXX XXX XXXX</span>
-                <span className="text-bata-primary group-hover:translate-x-2 transition-transform duration-300">→</span>
+                <span className="text-BATAMART-primary font-semibold text-lg">+234 XXX XXX XXXX</span>
+                <span className="text-BATAMART-primary group-hover:translate-x-2 transition-transform duration-300">→</span>
               </div>
             </a>
           </div>
@@ -187,7 +187,7 @@ export default function ContactPage() {
               </p>
               <div className="bg-white border border-green-200 rounded-xl p-4 inline-block mb-6">
                 <p className="text-sm text-gray-500 mb-1">Your ticket reference</p>
-                <p className="text-2xl font-black text-bata-primary tracking-widest">{ticketRef}</p>
+                <p className="text-2xl font-black text-BATAMART-primary tracking-widest">{ticketRef}</p>
               </div>
               <br />
               <button
@@ -195,7 +195,7 @@ export default function ContactPage() {
                   setStatus('idle')
                   setForm(f => ({ ...f, category: 'OTHER', message: '' }))
                 }}
-                className="text-bata-primary font-semibold hover:underline"
+                className="text-BATAMART-primary font-semibold hover:underline"
               >
                 Submit another message
               </button>
@@ -212,7 +212,7 @@ export default function ContactPage() {
                     value={form.name}
                     onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                     placeholder="Your name"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-bata-primary focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-BATAMART-primary focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -223,7 +223,7 @@ export default function ContactPage() {
                     value={form.email}
                     onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                     placeholder="your@email.com"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-bata-primary focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-BATAMART-primary focus:border-transparent"
                   />
                 </div>
               </div>
@@ -233,7 +233,7 @@ export default function ContactPage() {
                 <select
                   value={form.category}
                   onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-bata-primary bg-white"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-BATAMART-primary bg-white"
                 >
                   {CATEGORIES.map(c => (
                     <option key={c.value} value={c.value}>{c.label}</option>
@@ -249,7 +249,7 @@ export default function ContactPage() {
                   value={form.message}
                   onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
                   placeholder="Describe your issue or question in detail..."
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-bata-primary resize-none"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-BATAMART-primary resize-none"
                 />
                 <p className="text-xs text-gray-400 mt-1">{form.message.length} characters — minimum 10</p>
               </div>
@@ -263,7 +263,7 @@ export default function ContactPage() {
               <button
                 type="submit"
                 disabled={status === 'loading'}
-                className="w-full bg-bata-primary hover:bg-bata-dark disabled:opacity-60 text-white py-4 rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2"
+                className="w-full bg-BATAMART-primary hover:bg-BATAMART-dark disabled:opacity-60 text-white py-4 rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2"
               >
                 {status === 'loading' ? (
                   <><Loader2 className="w-5 h-5 animate-spin" /> Sending...</>
@@ -279,17 +279,17 @@ export default function ContactPage() {
       {/* Support Hours */}
       <section className="py-16 px-4 bg-gray-50">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-gradient-to-br from-bata-light to-white p-8 md:p-12 rounded-3xl border-2 border-bata-primary/20">
+          <div className="bg-gradient-to-br from-BATAMART-light to-white p-8 md:p-12 rounded-3xl border-2 border-BATAMART-primary/20">
             <div className="flex flex-col md:flex-row items-center gap-8">
-              <div className="w-20 h-20 bg-gradient-to-br from-bata-primary to-bata-dark rounded-full flex items-center justify-center flex-shrink-0">
+              <div className="w-20 h-20 bg-gradient-to-br from-BATAMART-primary to-BATAMART-dark rounded-full flex items-center justify-center flex-shrink-0">
                 <Clock className="w-10 h-10 text-white" />
               </div>
               <div className="text-center md:text-left flex-1">
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">Support Hours</h3>
                 <p className="text-gray-600 text-lg mb-4">Our team is available to help you during these hours:</p>
                 <div className="space-y-2 text-gray-700">
-                  <p className="font-semibold">📅 Monday – Friday: <span className="text-bata-primary">8:00 AM – 8:00 PM</span></p>
-                  <p className="font-semibold">📅 Saturday – Sunday: <span className="text-bata-primary">10:00 AM – 6:00 PM</span></p>
+                  <p className="font-semibold">📅 Monday – Friday: <span className="text-BATAMART-primary">8:00 AM – 8:00 PM</span></p>
+                  <p className="font-semibold">📅 Saturday – Sunday: <span className="text-BATAMART-primary">10:00 AM – 6:00 PM</span></p>
                 </div>
               </div>
             </div>
@@ -327,9 +327,9 @@ export default function ContactPage() {
               <details key={i} className="bg-white p-6 rounded-2xl border border-gray-100 hover:shadow-md transition-shadow group">
                 <summary className="font-bold text-lg text-gray-900 cursor-pointer list-none flex items-center justify-between">
                   <span className="pr-4">{faq.question}</span>
-                  <span className="text-bata-primary group-open:rotate-180 transition-transform duration-300">▼</span>
+                  <span className="text-BATAMART-primary group-open:rotate-180 transition-transform duration-300">▼</span>
                 </summary>
-                <p className="mt-4 text-gray-600 leading-relaxed pl-4 border-l-4 border-bata-primary/20">{faq.answer}</p>
+                <p className="mt-4 text-gray-600 leading-relaxed pl-4 border-l-4 border-BATAMART-primary/20">{faq.answer}</p>
               </details>
             ))}
           </div>
@@ -349,7 +349,7 @@ export default function ContactPage() {
               <Link key={l.href} href={l.href}
                 className="bg-gray-50 p-6 rounded-xl border border-gray-100 hover:shadow-lg transition-all text-center group">
                 <div className="text-4xl mb-3">{l.emoji}</div>
-                <h4 className="font-bold text-gray-900 mb-2 group-hover:text-bata-primary transition-colors">{l.title}</h4>
+                <h4 className="font-bold text-gray-900 mb-2 group-hover:text-BATAMART-primary transition-colors">{l.title}</h4>
                 <p className="text-sm text-gray-600">{l.desc}</p>
               </Link>
             ))}
@@ -358,13 +358,13 @@ export default function ContactPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-16 px-4 bg-gradient-to-br from-bata-primary to-bata-dark text-white">
+      <section className="py-16 px-4 bg-gradient-to-br from-BATAMART-primary to-BATAMART-dark text-white">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Still Have Questions?</h2>
           <p className="text-xl mb-8 text-white/90">Don't hesitate to reach out. We're always happy to help UNIZIK students!</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="mailto:support@bata-mart.com"
-              className="bg-white text-bata-primary hover:bg-gray-100 px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-lg inline-flex items-center justify-center gap-2">
+            <a href="mailto:support@BATAMART-mart.com"
+              className="bg-white text-BATAMART-primary hover:bg-gray-100 px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-lg inline-flex items-center justify-center gap-2">
               <Mail className="w-5 h-5" /> Email Us
             </a>
             <a href="https://wa.me/234XXXXXXXXXX" target="_blank" rel="noopener noreferrer"

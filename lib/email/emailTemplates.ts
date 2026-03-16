@@ -1,5 +1,5 @@
 // lib/email/emailTemplates.ts
-// All email templates for BATA notifications
+// All email templates for BATAMART notifications
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 
@@ -11,7 +11,7 @@ function baseTemplate(content: string) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BATA</title>
+  <title>BATAMART</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:'Segoe UI',Helvetica,Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:40px 0;">
@@ -22,7 +22,7 @@ function baseTemplate(content: string) {
           <!-- Header -->
           <tr>
             <td align="center" style="padding-bottom:24px;">
-              <span style="font-size:28px;font-weight:800;color:#111827;letter-spacing:-1px;">BATA</span>
+              <span style="font-size:28px;font-weight:800;color:#111827;letter-spacing:-1px;">BATAMART</span>
               <span style="font-size:12px;color:#6b7280;display:block;margin-top:2px;">UNIZIK Campus Marketplace</span>
             </td>
           </tr>
@@ -38,7 +38,7 @@ function baseTemplate(content: string) {
           <tr>
             <td align="center" style="padding-top:24px;">
               <p style="font-size:12px;color:#9ca3af;margin:0;">
-                You're receiving this because you have an account on BATA.<br/>
+                You're receiving this because you have an account on BATAMART.<br/>
                 UNIZIK Campus Marketplace &mdash; Awka, Anambra State.
               </p>
             </td>
@@ -69,7 +69,7 @@ const divider = `<hr style="border:none;border-top:1px solid #f3f4f6;margin:24px
 
 export function orderPlacedEmail(orderNumber: string) {
   return {
-    subject: '🛒 Your order has been placed — BATA',
+    subject: '🛒 Your order has been placed — BATAMART',
     html: baseTemplate(`
       <p style="font-size:28px;margin:0 0 8px;">🛒</p>
       <h2 style="font-size:22px;font-weight:700;color:#111827;margin:0 0 8px;">Order Confirmed!</h2>
@@ -86,7 +86,7 @@ export function orderPlacedEmail(orderNumber: string) {
 
 export function newOrderEmail(orderNumber: string) {
   return {
-    subject: '🎉 You have a new order! — BATA',
+    subject: '🎉 You have a new order! — BATAMART',
     html: baseTemplate(`
       <p style="font-size:28px;margin:0 0 8px;">🎉</p>
       <h2 style="font-size:22px;font-weight:700;color:#111827;margin:0 0 8px;">New Order Received!</h2>
@@ -103,7 +103,7 @@ export function newOrderEmail(orderNumber: string) {
 
 export function riderAssignedEmail(orderNumber: string) {
   return {
-    subject: '🚴 A rider has been assigned — BATA',
+    subject: '🚴 A rider has been assigned — BATAMART',
     html: baseTemplate(`
       <p style="font-size:28px;margin:0 0 8px;">🚴</p>
       <h2 style="font-size:22px;font-weight:700;color:#111827;margin:0 0 8px;">Rider Assigned</h2>
@@ -117,7 +117,7 @@ export function riderAssignedEmail(orderNumber: string) {
 
 export function orderOnTheWayEmail(orderNumber: string) {
   return {
-    subject: '🛵 Your order is on its way! — BATA',
+    subject: '🛵 Your order is on its way! — BATAMART',
     html: baseTemplate(`
       <p style="font-size:28px;margin:0 0 8px;">🛵</p>
       <h2 style="font-size:22px;font-weight:700;color:#111827;margin:0 0 8px;">Order On The Way!</h2>
@@ -132,7 +132,7 @@ export function orderOnTheWayEmail(orderNumber: string) {
 
 export function orderDeliveredEmail(orderNumber: string) {
   return {
-    subject: '✅ Your order has been delivered — BATA',
+    subject: '✅ Your order has been delivered — BATAMART',
     html: baseTemplate(`
       <p style="font-size:28px;margin:0 0 8px;">✅</p>
       <h2 style="font-size:22px;font-weight:700;color:#111827;margin:0 0 8px;">Order Delivered!</h2>
@@ -148,13 +148,13 @@ export function orderDeliveredEmail(orderNumber: string) {
 
 export function paymentReceivedEmail(amount: string) {
   return {
-    subject: '💰 Payment received — BATA',
+    subject: '💰 Payment received — BATAMART',
     html: baseTemplate(`
       <p style="font-size:28px;margin:0 0 8px;">💰</p>
       <h2 style="font-size:22px;font-weight:700;color:#111827;margin:0 0 8px;">Payment Received!</h2>
       <p style="font-size:15px;color:#6b7280;margin:0 0 20px;">
         You just received a payment of <strong style="color:#16a34a;font-size:18px;">${amount}</strong>. 
-        It has been added to your BATA wallet.
+        It has been added to your BATAMART wallet.
       </p>
       ${ctaButton('View Wallet', `${APP_URL}/wallet`, '#16a34a')}
     `)
@@ -163,7 +163,7 @@ export function paymentReceivedEmail(amount: string) {
 
 export function withdrawalProcessedEmail(amount: string) {
   return {
-    subject: '💸 Withdrawal processed — BATA',
+    subject: '💸 Withdrawal processed — BATAMART',
     html: baseTemplate(`
       <p style="font-size:28px;margin:0 0 8px;">💸</p>
       <h2 style="font-size:22px;font-weight:700;color:#111827;margin:0 0 8px;">Withdrawal Processed</h2>
@@ -178,7 +178,7 @@ export function withdrawalProcessedEmail(amount: string) {
 
 export function disputeOpenedEmail(orderNumber: string) {
   return {
-    subject: '⚠️ A dispute has been opened — BATA',
+    subject: '⚠️ A dispute has been opened — BATAMART',
     html: baseTemplate(`
       <p style="font-size:28px;margin:0 0 8px;">⚠️</p>
       <h2 style="font-size:22px;font-weight:700;color:#111827;margin:0 0 8px;">Dispute Opened</h2>
@@ -193,7 +193,7 @@ export function disputeOpenedEmail(orderNumber: string) {
 
 export function disputeResolvedEmail(orderNumber: string) {
   return {
-    subject: '✅ Dispute resolved — BATA',
+    subject: '✅ Dispute resolved — BATAMART',
     html: baseTemplate(`
       <p style="font-size:28px;margin:0 0 8px;">✅</p>
       <h2 style="font-size:22px;font-weight:700;color:#111827;margin:0 0 8px;">Dispute Resolved</h2>
@@ -208,7 +208,7 @@ export function disputeResolvedEmail(orderNumber: string) {
 
 export function newReviewEmail(productName: string) {
   return {
-    subject: '⭐ You have a new review — BATA',
+    subject: '⭐ You have a new review — BATAMART',
     html: baseTemplate(`
       <p style="font-size:28px;margin:0 0 8px;">⭐</p>
       <h2 style="font-size:22px;font-weight:700;color:#111827;margin:0 0 8px;">New Review!</h2>

@@ -8,12 +8,12 @@ export default function TermsPage() {
     {
       icon: CheckCircle,
       title: "Acceptance of Terms",
-      content: "By accessing or using BATA, you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using this platform."
+      content: "By accessing or using BATAMART, you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using this platform."
     },
     {
       icon: ShieldCheck,
       title: "Eligibility",
-      content: "BATA is exclusively for verified students of Nnamdi Azikiwe University (UNIZIK). You must be at least 18 years old to use this platform. You are responsible for providing accurate student verification information."
+      content: "BATAMART is exclusively for verified students of Nnamdi Azikiwe University (UNIZIK). You must be at least 18 years old to use this platform. You are responsible for providing accurate student verification information."
     }
   ]
 
@@ -34,7 +34,7 @@ export default function TermsPage() {
         "Posting false or misleading product information",
         "Harassing, threatening, or defrauding other users",
         "Attempting to manipulate ratings or reviews",
-        "Using BATA for any illegal purposes",
+        "Using BATAMART for any illegal purposes",
         "Creating multiple accounts to bypass restrictions"
       ]
     },
@@ -68,13 +68,13 @@ export default function TermsPage() {
         "Funds are held in escrow until delivery confirmation",
         "Sellers receive payment after successful delivery",
         "Refunds are processed according to our dispute resolution policy",
-        "BATA charges a 10% commission on completed sales"
+        "BATAMART charges a 10% commission on completed sales"
       ]
     },
     {
       title: "Delivery & Shipping",
       points: [
-        "Delivery is facilitated by verified BATA riders",
+        "Delivery is facilitated by verified BATAMART riders",
         "Standard delivery fee is ₦800 per order",
         "Most deliveries completed within 2-6 hours",
         "Sellers must package items securely",
@@ -96,7 +96,7 @@ export default function TermsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-bata-primary to-bata-dark text-white py-20 px-4">
+      <section className="bg-gradient-to-br from-BATAMART-primary to-BATAMART-dark text-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center space-x-2 bg-white/20 px-4 py-2 rounded-full mb-6">
             <FileText className="w-5 h-5" />
@@ -106,7 +106,7 @@ export default function TermsPage() {
             Terms & Conditions
           </h1>
           <p className="text-xl text-white/90 max-w-2xl mx-auto">
-            Please read these terms carefully before using BATA. They outline your rights and
+            Please read these terms carefully before using BATAMART. They outline your rights and
             responsibilities as a member of our community.
           </p>
           <p className="text-sm text-white/75 mt-6">
@@ -123,7 +123,7 @@ export default function TermsPage() {
               📋 Agreement to Terms
             </h2>
             <p className="text-gray-700 leading-relaxed">
-              These Terms of Service ("Terms") govern your use of BATA, the student-to-student
+              These Terms of Service ("Terms") govern your use of BATAMART, the student-to-student
               marketplace platform for Nnamdi Azikiwe University (UNIZIK) students. By creating
               an account or using our services, you enter into a legally binding agreement with us.
             </p>
@@ -136,9 +136,9 @@ export default function TermsPage() {
         <div className="max-w-4xl mx-auto space-y-8">
           {sections.map((section, index) => (
             <div key={index} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-bata-light to-white p-6 border-b border-gray-100">
+              <div className="bg-gradient-to-r from-BATAMART-light to-white p-6 border-b border-gray-100">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-bata-primary to-bata-dark rounded-xl flex items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 bg-gradient-to-br from-BATAMART-primary to-BATAMART-dark rounded-xl flex items-center justify-center flex-shrink-0">
                     <section.icon className="w-6 h-6 text-white" />
                   </div>
                   <h2 className="text-2xl font-bold text-gray-900">
@@ -164,7 +164,7 @@ export default function TermsPage() {
               Your Responsibilities
             </h2>
             <p className="text-gray-600">
-              As a BATA user, you agree to the following obligations
+              As a BATAMART user, you agree to the following obligations
             </p>
           </div>
 
@@ -172,7 +172,7 @@ export default function TermsPage() {
             {userResponsibilities.map((section, index) => (
               <div key={index} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md transition-shadow duration-300">
                 <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <Scale className="w-5 h-5 text-bata-primary" />
+                  <Scale className="w-5 h-5 text-BATAMART-primary" />
                   {section.title}
                 </h3>
                 <ul className="space-y-2">
@@ -197,7 +197,7 @@ export default function TermsPage() {
               Platform Policies
             </h2>
             <p className="text-gray-600">
-              Key policies governing how BATA operates
+              Key policies governing how BATAMART operates
             </p>
           </div>
 
@@ -210,7 +210,7 @@ export default function TermsPage() {
                 <ul className="space-y-2">
                   {policy.points.map((point, pointIndex) => (
                     <li key={pointIndex} className="flex items-start gap-2 text-gray-700">
-                      <span className="text-bata-primary font-bold mt-1">•</span>
+                      <span className="text-BATAMART-primary font-bold mt-1">•</span>
                       <span>{point}</span>
                     </li>
                   ))}
@@ -235,7 +235,7 @@ export default function TermsPage() {
             </div>
             <div className="space-y-4 text-gray-700">
               <p>
-                BATA reserves the right to suspend or terminate accounts that violate these Terms.
+                BATAMART reserves the right to suspend or terminate accounts that violate these Terms.
                 Violations include but are not limited to:
               </p>
               <ul className="space-y-2 pl-6">
@@ -277,12 +277,12 @@ export default function TermsPage() {
             </h3>
             <div className="text-gray-700 space-y-2">
               <p>
-                All content on BATA, including the logo, design, text, graphics, and software, is owned by
-                BATA or its licensors and protected by copyright and trademark laws.
+                All content on BATAMART, including the logo, design, text, graphics, and software, is owned by
+                BATAMART or its licensors and protected by copyright and trademark laws.
               </p>
               <p>
                 You retain ownership of content you upload (product listings, photos, descriptions) but
-                grant BATA a license to use this content to operate and promote the platform.
+                grant BATAMART a license to use this content to operate and promote the platform.
               </p>
             </div>
           </div>
@@ -298,7 +298,7 @@ export default function TermsPage() {
             </h3>
             <div className="text-gray-700 space-y-2">
               <p>
-                BATA provides a platform for students to trade but does not guarantee the quality, safety,
+                BATAMART provides a platform for students to trade but does not guarantee the quality, safety,
                 or legality of items listed. We are not responsible for:
               </p>
               <ul className="pl-6 space-y-1">
@@ -309,7 +309,7 @@ export default function TermsPage() {
                 <li>• Service interruptions or technical issues</li>
               </ul>
               <p className="font-semibold mt-4">
-                BATA's total liability is limited to the amount of fees paid to us in the past 12 months.
+                BATAMART's total liability is limited to the amount of fees paid to us in the past 12 months.
               </p>
             </div>
           </div>
@@ -325,7 +325,7 @@ export default function TermsPage() {
             </h2>
             <p className="text-gray-700 leading-relaxed">
               We may modify these Terms at any time. We will notify users of significant changes via
-              email or platform notification. Continued use of BATA after changes constitutes acceptance
+              email or platform notification. Continued use of BATAMART after changes constitutes acceptance
               of the revised Terms. If you do not agree to the changes, you must stop using the platform.
             </p>
           </div>
@@ -333,7 +333,7 @@ export default function TermsPage() {
       </section>
 
       {/* Contact Section */}
-      <section className="py-16 px-4 bg-gradient-to-br from-bata-primary to-bata-dark text-white">
+      <section className="py-16 px-4 bg-gradient-to-br from-BATAMART-primary to-BATAMART-dark text-white">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-4">
             Questions About These Terms?
@@ -343,20 +343,20 @@ export default function TermsPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="mailto:support@bata-mart.com"
-              className="bg-white text-bata-primary hover:bg-gray-100 px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl"
+              href="mailto:support@BATAMART-mart.com"
+              className="bg-white text-BATAMART-primary hover:bg-gray-100 px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl"
             >
-              Email: support@bata-mart.com
+              Email: support@BATAMART-mart.com
             </a>
             <Link
               href="/contact"
-              className="bg-bata-dark/50 hover:bg-bata-dark text-white border-2 border-white px-8 py-4 rounded-xl font-bold text-lg transition-all"
+              className="bg-BATAMART-dark/50 hover:bg-BATAMART-dark text-white border-2 border-white px-8 py-4 rounded-xl font-bold text-lg transition-all"
             >
               Contact Support
             </Link>
           </div>
           <p className="text-sm text-white/75 mt-8">
-            By using BATA, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.
+            By using BATAMART, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.
           </p>
         </div>
       </section>

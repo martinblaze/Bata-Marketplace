@@ -8,12 +8,12 @@ import ReviewModal from '@/components/reviews/ReviewModal';
 import ProductReviewModal from '@/components/reviews/ProductReviewModal';
 import RatingBadge from '@/components/reviews/RatingBadge';
 import ReviewList from '@/components/reviews/ReviewList';
-import { 
-  ArrowLeft, 
-  Package, 
-  Truck, 
-  CheckCircle, 
-  XCircle, 
+import {
+  ArrowLeft,
+  Package,
+  Truck,
+  CheckCircle,
+  XCircle,
   Clock,
   User,
   Star,
@@ -77,16 +77,16 @@ export default function OrderDetailPage() {
   const fetchOrder = async () => {
     try {
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         router.push('/login');
         return;
       }
-      
+
       const response = await fetch(`/api/orders/${params.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setOrder(data);
@@ -106,10 +106,10 @@ export default function OrderDetailPage() {
     setUpdating(true);
     try {
       const token = localStorage.getItem('token');
-      
+
       const response = await fetch(`/api/orders/${params.id}`, {
         method: 'PATCH',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
@@ -133,46 +133,46 @@ export default function OrderDetailPage() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'PENDING':        return <Clock className="w-5 h-5 text-yellow-500" />;
-      case 'PROCESSING':     return <Package className="w-5 h-5 text-blue-500" />;
-      case 'SHIPPED':        return <Truck className="w-5 h-5 text-purple-500" />;
+      case 'PENDING': return <Clock className="w-5 h-5 text-yellow-500" />;
+      case 'PROCESSING': return <Package className="w-5 h-5 text-blue-500" />;
+      case 'SHIPPED': return <Truck className="w-5 h-5 text-purple-500" />;
       case 'RIDER_ASSIGNED': return <Truck className="w-5 h-5 text-indigo-500" />;
-      case 'PICKED_UP':      return <Package className="w-5 h-5 text-orange-500" />;
-      case 'ON_THE_WAY':     return <Truck className="w-5 h-5 text-blue-500" />;
-      case 'DELIVERED':      return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case 'COMPLETED':      return <CheckCircle className="w-5 h-5 text-green-600" />;
-      case 'CANCELLED':      return <XCircle className="w-5 h-5 text-red-500" />;
-      case 'DISPUTED':       return <XCircle className="w-5 h-5 text-orange-500" />;
-      default:               return <Clock className="w-5 h-5 text-gray-500" />;
+      case 'PICKED_UP': return <Package className="w-5 h-5 text-orange-500" />;
+      case 'ON_THE_WAY': return <Truck className="w-5 h-5 text-blue-500" />;
+      case 'DELIVERED': return <CheckCircle className="w-5 h-5 text-green-500" />;
+      case 'COMPLETED': return <CheckCircle className="w-5 h-5 text-green-600" />;
+      case 'CANCELLED': return <XCircle className="w-5 h-5 text-red-500" />;
+      case 'DISPUTED': return <XCircle className="w-5 h-5 text-orange-500" />;
+      default: return <Clock className="w-5 h-5 text-gray-500" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'PENDING':        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'PROCESSING':     return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'SHIPPED':        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'PENDING': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'PROCESSING': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'SHIPPED': return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'RIDER_ASSIGNED': return 'bg-indigo-100 text-indigo-800 border-indigo-200';
-      case 'PICKED_UP':      return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'ON_THE_WAY':     return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'DELIVERED':      return 'bg-green-100 text-green-800 border-green-200';
-      case 'COMPLETED':      return 'bg-green-100 text-green-900 border-green-300';
-      case 'CANCELLED':      return 'bg-red-100 text-red-800 border-red-200';
-      case 'DISPUTED':       return 'bg-orange-100 text-orange-800 border-orange-200';
-      default:               return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'PICKED_UP': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'ON_THE_WAY': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'DELIVERED': return 'bg-green-100 text-green-800 border-green-200';
+      case 'COMPLETED': return 'bg-green-100 text-green-900 border-green-300';
+      case 'CANCELLED': return 'bg-red-100 text-red-800 border-red-200';
+      case 'DISPUTED': return 'bg-orange-100 text-orange-800 border-orange-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   const getStatusActions = () => {
     if (!order) return [];
-    
+
     const actions = [];
     const userRole = getCurrentUserRole();
 
     if (userRole === 'SELLER') {
       if (order.status === 'PENDING') {
-        actions.push({ label: 'Process Order',  status: 'PROCESSING', variant: 'primary' });
-        actions.push({ label: 'Cancel Order',   status: 'CANCELLED',  variant: 'danger'  });
+        actions.push({ label: 'Process Order', status: 'PROCESSING', variant: 'primary' });
+        actions.push({ label: 'Cancel Order', status: 'CANCELLED', variant: 'danger' });
       }
       if (order.status === 'PROCESSING') {
         actions.push({ label: 'Mark as Shipped', status: 'SHIPPED', variant: 'primary' });
@@ -197,9 +197,9 @@ export default function OrderDetailPage() {
   const getCurrentUserRole = () => {
     if (!order) return null;
     const currentUserId = localStorage.getItem('userId') || 'current-user-id';
-    if (currentUserId === order.buyerId)            return 'BUYER';
-    if (currentUserId === order.product?.sellerId)  return 'SELLER';
-    if (currentUserId === order.riderId)            return 'RIDER';
+    if (currentUserId === order.buyerId) return 'BUYER';
+    if (currentUserId === order.product?.sellerId) return 'SELLER';
+    if (currentUserId === order.riderId) return 'RIDER';
     return null;
   };
 
@@ -246,21 +246,21 @@ export default function OrderDetailPage() {
   // ── Dispute status label helper ────────────────────────────────────────────
   const getDisputeStatusLabel = (s: string) => {
     switch (s) {
-      case 'OPEN':                   return 'Open — Awaiting Review'
-      case 'UNDER_REVIEW':           return 'Under Review'
-      case 'RESOLVED_BUYER_FAVOR':   return 'Resolved — Refund Issued'
-      case 'RESOLVED_SELLER_FAVOR':  return 'Resolved — No Refund'
-      case 'RESOLVED_COMPROMISE':    return 'Partial Refund'
-      case 'DISMISSED':              return 'Dismissed'
-      default:                       return s
+      case 'OPEN': return 'Open — Awaiting Review'
+      case 'UNDER_REVIEW': return 'Under Review'
+      case 'RESOLVED_BUYER_FAVOR': return 'Resolved — Refund Issued'
+      case 'RESOLVED_SELLER_FAVOR': return 'Resolved — No Refund'
+      case 'RESOLVED_COMPROMISE': return 'Partial Refund'
+      case 'DISMISSED': return 'Dismissed'
+      default: return s
     }
   }
 
   const getDisputeStatusBadge = (s: string) => {
-    if (s === 'OPEN')           return 'bg-blue-100 text-blue-700'
-    if (s === 'UNDER_REVIEW')   return 'bg-amber-100 text-amber-700'
+    if (s === 'OPEN') return 'bg-blue-100 text-blue-700'
+    if (s === 'UNDER_REVIEW') return 'bg-amber-100 text-amber-700'
     if (s.startsWith('RESOLVED')) return 'bg-emerald-100 text-emerald-700'
-    if (s === 'DISMISSED')      return 'bg-gray-100 text-gray-600'
+    if (s === 'DISMISSED') return 'bg-gray-100 text-gray-600'
     return 'bg-gray-100 text-gray-600'
   }
 
@@ -322,39 +322,37 @@ export default function OrderDetailPage() {
           <div className="flex items-center justify-between relative">
             <div className="absolute left-0 right-0 top-4 h-0.5 bg-gray-200 z-0" />
             <div
-              className="absolute left-0 top-4 h-0.5 bg-bata-primary z-0 transition-all duration-500"
+              className="absolute left-0 top-4 h-0.5 bg-BATAMART-primary z-0 transition-all duration-500"
               style={{
-                width: `${
-                  order.status === 'PENDING'        ? 0   :
-                  order.status === 'PROCESSING'     ? 20  :
-                  order.status === 'SHIPPED'        ? 40  :
-                  order.status === 'RIDER_ASSIGNED' ? 55  :
-                  order.status === 'PICKED_UP'      ? 70  :
-                  order.status === 'ON_THE_WAY'     ? 85  : 100
-                }%`
+                width: `${order.status === 'PENDING' ? 0 :
+                    order.status === 'PROCESSING' ? 20 :
+                      order.status === 'SHIPPED' ? 40 :
+                        order.status === 'RIDER_ASSIGNED' ? 55 :
+                          order.status === 'PICKED_UP' ? 70 :
+                            order.status === 'ON_THE_WAY' ? 85 : 100
+                  }%`
               }}
             />
             {[
-              { key: 'PENDING',    label: 'Placed',    icon: '🛒' },
+              { key: 'PENDING', label: 'Placed', icon: '🛒' },
               { key: 'PROCESSING', label: 'Confirmed', icon: '✅' },
-              { key: 'PICKED_UP',  label: 'Picked Up', icon: '📦' },
-              { key: 'ON_THE_WAY', label: 'On Way',    icon: '🛵' },
-              { key: 'DELIVERED',  label: 'Delivered', icon: '🎉' },
+              { key: 'PICKED_UP', label: 'Picked Up', icon: '📦' },
+              { key: 'ON_THE_WAY', label: 'On Way', icon: '🛵' },
+              { key: 'DELIVERED', label: 'Delivered', icon: '🎉' },
             ].map((step) => {
-              const statusOrder = ['PENDING','PROCESSING','SHIPPED','RIDER_ASSIGNED','PICKED_UP','ON_THE_WAY','DELIVERED']
-              const currentIdx  = statusOrder.indexOf(order.status)
-              const stepIdx     = statusOrder.indexOf(step.key)
-              const isDone      = currentIdx >= stepIdx
+              const statusOrder = ['PENDING', 'PROCESSING', 'SHIPPED', 'RIDER_ASSIGNED', 'PICKED_UP', 'ON_THE_WAY', 'DELIVERED']
+              const currentIdx = statusOrder.indexOf(order.status)
+              const stepIdx = statusOrder.indexOf(step.key)
+              const isDone = currentIdx >= stepIdx
               return (
                 <div key={step.key} className="flex flex-col items-center z-10 flex-1">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm border-2 transition-all ${
-                    isDone
-                      ? 'bg-bata-primary border-bata-primary text-white'
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm border-2 transition-all ${isDone
+                      ? 'bg-BATAMART-primary border-BATAMART-primary text-white'
                       : 'bg-white border-gray-300 text-gray-400'
-                  }`}>
+                    }`}>
                     {step.icon}
                   </div>
-                  <p className={`text-[10px] font-semibold mt-1.5 text-center ${isDone ? 'text-bata-primary' : 'text-gray-400'}`}>
+                  <p className={`text-[10px] font-semibold mt-1.5 text-center ${isDone ? 'text-BATAMART-primary' : 'text-gray-400'}`}>
                     {step.label}
                   </p>
                 </div>
@@ -790,7 +788,7 @@ export default function OrderDetailPage() {
           revieweeName={
             reviewModal.type === 'SELLER'
               ? order.seller?.name || 'Seller'
-              : order.rider?.name  || 'Rider'
+              : order.rider?.name || 'Rider'
           }
           onReviewSubmitted={() => { fetchOrder(); setReviewModal({ isOpen: false, type: null }) }}
         />

@@ -139,7 +139,7 @@ export default function MyProfilePage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-bata-primary border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-BATAMART-primary border-t-transparent rounded-full animate-spin" />
           <p className="text-sm text-gray-400">Loading profile...</p>
         </div>
       </div>
@@ -187,7 +187,7 @@ export default function MyProfilePage() {
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-bata-primary rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 bg-BATAMART-primary rounded-full flex items-center justify-center">
                     <User className="w-5 h-5 text-white" />
                   </div>
                   <div>
@@ -236,7 +236,7 @@ export default function MyProfilePage() {
       <div className="hidden lg:block bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3">
           <div className="flex items-center gap-2 text-sm text-gray-500">
-            <Link href="/marketplace" className="hover:text-bata-primary transition">Home</Link>
+            <Link href="/marketplace" className="hover:text-BATAMART-primary transition">Home</Link>
             <ChevronRight className="w-4 h-4" />
             <span className="text-gray-900 font-medium">My Account</span>
           </div>
@@ -251,11 +251,11 @@ export default function MyProfilePage() {
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden sticky top-20">
               <div className="px-4 py-4 bg-gray-100 border-b border-gray-200">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-bata-primary rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 bg-BATAMART-primary rounded-full flex items-center justify-center">
                     <User className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-bold text-gray-900">My BATA Account</p>
+                    <p className="font-bold text-gray-900">My BATAMART Account</p>
                     <p className="text-xs text-gray-500 capitalize">{user.role.toLowerCase()}</p>
                   </div>
                 </div>
@@ -265,7 +265,7 @@ export default function MyProfilePage() {
                   <Link
                     key={index}
                     href={item.href}
-                    className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-bata-primary transition-colors"
+                    className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-BATAMART-primary transition-colors"
                   >
                     <span className="text-gray-400">{item.icon}</span>
                     <span className="font-medium text-sm">{item.label}</span>
@@ -292,7 +292,7 @@ export default function MyProfilePage() {
               {!isEditing ? (
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-2 text-bata-primary hover:text-bata-dark font-medium text-sm px-3 lg:px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors"
+                  className="flex items-center gap-2 text-BATAMART-primary hover:text-BATAMART-dark font-medium text-sm px-3 lg:px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors"
                 >
                   <Edit2 className="w-4 h-4" />
                   <span className="hidden sm:inline">Edit Profile</span>
@@ -310,7 +310,7 @@ export default function MyProfilePage() {
                   <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="flex items-center gap-2 bg-bata-primary hover:bg-bata-dark text-white font-medium text-sm px-3 lg:px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 bg-BATAMART-primary hover:bg-BATAMART-dark text-white font-medium text-sm px-3 lg:px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
                   >
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                     <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save'}</span>
@@ -339,13 +339,13 @@ export default function MyProfilePage() {
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-gray-100 flex items-center justify-between">
                   <h2 className="font-bold text-gray-900 text-sm lg:text-base">ACCOUNT DETAILS</h2>
-                  {isEditing && <span className="text-xs text-bata-primary font-medium">Editing...</span>}
+                  {isEditing && <span className="text-xs text-BATAMART-primary font-medium">Editing...</span>}
                 </div>
                 <div className="p-4 lg:p-5 space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Full Name</label>
                     {isEditing ? (
-                      <input type="text" value={editedUser.name || ''} onChange={(e) => setEditedUser({ ...editedUser, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-bata-primary focus:border-transparent" />
+                      <input type="text" value={editedUser.name || ''} onChange={(e) => setEditedUser({ ...editedUser, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-BATAMART-primary focus:border-transparent" />
                     ) : (
                       <p className="text-gray-900 font-medium">{user.name}</p>
                     )}
@@ -363,7 +363,7 @@ export default function MyProfilePage() {
                     {isEditing ? (
                       <div className="flex">
                         <span className="inline-flex items-center px-3 border border-r-0 border-gray-300 rounded-l-lg bg-gray-50 text-gray-500 text-sm">+234</span>
-                        <input type="tel" value={(editedUser.phone || '').replace(/^\+?234/, '')} onChange={(e) => { const digits = e.target.value.replace(/\D/g, ''); setEditedUser({ ...editedUser, phone: digits }) }} maxLength={11} className="flex-1 px-3 py-2 border border-gray-300 rounded-r-lg text-sm focus:outline-none focus:ring-2 focus:ring-bata-primary focus:border-transparent" />
+                        <input type="tel" value={(editedUser.phone || '').replace(/^\+?234/, '')} onChange={(e) => { const digits = e.target.value.replace(/\D/g, ''); setEditedUser({ ...editedUser, phone: digits }) }} maxLength={11} className="flex-1 px-3 py-2 border border-gray-300 rounded-r-lg text-sm focus:outline-none focus:ring-2 focus:ring-BATAMART-primary focus:border-transparent" />
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
@@ -380,7 +380,7 @@ export default function MyProfilePage() {
                 <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-gray-100 flex items-center justify-between">
                   <h2 className="font-bold text-gray-900 text-sm lg:text-base">ADDRESS BOOK</h2>
                   {isEditing && (
-                    <button onClick={handleSave} disabled={saving} className="text-bata-primary hover:text-bata-dark text-sm font-medium">
+                    <button onClick={handleSave} disabled={saving} className="text-BATAMART-primary hover:text-BATAMART-dark text-sm font-medium">
                       {saving ? 'Saving...' : 'Save'}
                     </button>
                   )}
@@ -390,7 +390,7 @@ export default function MyProfilePage() {
                   <div>
                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Hostel/Location</label>
                     {isEditing ? (
-                      <input type="text" value={editedUser.hostelName || ''} onChange={(e) => setEditedUser({ ...editedUser, hostelName: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-bata-primary focus:border-transparent" placeholder="e.g. Boys Hostel, Block A" />
+                      <input type="text" value={editedUser.hostelName || ''} onChange={(e) => setEditedUser({ ...editedUser, hostelName: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-BATAMART-primary focus:border-transparent" placeholder="e.g. Boys Hostel, Block A" />
                     ) : (
                       <div className="flex items-start gap-2">
                         <Home className="w-4 h-4 text-gray-400 mt-0.5" />
@@ -401,7 +401,7 @@ export default function MyProfilePage() {
                   <div>
                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Room Number</label>
                     {isEditing ? (
-                      <input type="text" value={editedUser.roomNumber || ''} onChange={(e) => setEditedUser({ ...editedUser, roomNumber: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-bata-primary focus:border-transparent" placeholder="e.g. 205" />
+                      <input type="text" value={editedUser.roomNumber || ''} onChange={(e) => setEditedUser({ ...editedUser, roomNumber: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-BATAMART-primary focus:border-transparent" placeholder="e.g. 205" />
                     ) : (
                       <p className="text-gray-900 font-medium">{user.roomNumber || 'Not set'}</p>
                     )}
@@ -409,7 +409,7 @@ export default function MyProfilePage() {
                   <div>
                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Landmark</label>
                     {isEditing ? (
-                      <input type="text" value={editedUser.landmark || ''} onChange={(e) => setEditedUser({ ...editedUser, landmark: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-bata-primary focus:border-transparent" placeholder="e.g. Near the cafeteria" />
+                      <input type="text" value={editedUser.landmark || ''} onChange={(e) => setEditedUser({ ...editedUser, landmark: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-BATAMART-primary focus:border-transparent" placeholder="e.g. Near the cafeteria" />
                     ) : (
                       <div className="flex items-start gap-2">
                         <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
@@ -421,14 +421,14 @@ export default function MyProfilePage() {
               </div>
             </div>
 
-            {/* BATA Balance */}
+            {/* BATAMART Balance */}
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
               <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-gray-100">
-                <h2 className="font-bold text-gray-900 text-sm lg:text-base">BATA BALANCE</h2>
+                <h2 className="font-bold text-gray-900 text-sm lg:text-base">BATAMART BALANCE</h2>
               </div>
               <div className="p-4 lg:p-5">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-bata-primary to-bata-secondary rounded-xl flex items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 bg-gradient-to-br from-BATAMART-primary to-BATAMART-secondary rounded-xl flex items-center justify-center flex-shrink-0">
                     <Wallet className="w-6 h-6 text-white" />
                   </div>
                   <div className="min-w-0">
@@ -437,7 +437,7 @@ export default function MyProfilePage() {
                       ₦{wallet?.availableBalance?.toLocaleString('en-NG', { minimumFractionDigits: 2 }) || '0.00'}
                     </p>
                   </div>
-                  <Link href={isApp ? '/wallet?app=true' : '/wallet'} className="ml-auto text-bata-primary hover:text-bata-dark font-medium text-sm flex items-center gap-1 flex-shrink-0">
+                  <Link href={isApp ? '/wallet?app=true' : '/wallet'} className="ml-auto text-BATAMART-primary hover:text-BATAMART-dark font-medium text-sm flex items-center gap-1 flex-shrink-0">
                     View <ChevronRight className="w-4 h-4" />
                   </Link>
                 </div>
@@ -461,8 +461,8 @@ export default function MyProfilePage() {
                         <p className="text-xs text-gray-500 mt-0.5">
                           {!isSupported ? 'Not supported in this browser'
                             : permission === 'denied' ? 'Blocked — enable in browser settings'
-                            : isSubscribed ? "You'll get updates even when browser is closed"
-                            : 'Enable to get order and payment alerts'}
+                              : isSubscribed ? "You'll get updates even when browser is closed"
+                                : 'Enable to get order and payment alerts'}
                         </p>
                       </div>
                     </div>
@@ -488,7 +488,7 @@ export default function MyProfilePage() {
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
               <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-gray-100 flex items-center justify-between">
                 <h2 className="font-bold text-gray-900 text-sm lg:text-base">Recommended For You</h2>
-                <Link href={isApp ? '/marketplace?app=true' : '/marketplace'} className="text-bata-primary hover:text-bata-dark text-sm font-medium flex items-center gap-1">
+                <Link href={isApp ? '/marketplace?app=true' : '/marketplace'} className="text-BATAMART-primary hover:text-BATAMART-dark text-sm font-medium flex items-center gap-1">
                   See All <ChevronRight className="w-4 h-4" />
                 </Link>
               </div>
@@ -502,7 +502,7 @@ export default function MyProfilePage() {
               <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-gray-100 flex items-center justify-between">
                 <h2 className="font-bold text-gray-900 text-sm lg:text-base">Your Search History</h2>
                 <button
-                  onClick={() => { localStorage.removeItem('bata-recent-searches'); window.location.reload() }}
+                  onClick={() => { localStorage.removeItem('BATAMART-recent-searches'); window.location.reload() }}
                   className="text-gray-500 hover:text-red-600 text-sm font-medium"
                 >
                   Clear
@@ -529,7 +529,7 @@ function RecommendedProducts() {
 
   const fetchRecommended = async () => {
     try {
-      const interests = JSON.parse(localStorage.getItem('bata-interests') || '[]')
+      const interests = JSON.parse(localStorage.getItem('BATAMART-interests') || '[]')
       const res = await fetch('/api/products?limit=6')
       const data = await res.json()
       if (data.products) {
@@ -573,7 +573,7 @@ function RecommendedProducts() {
             <img src={product.images?.[0] || '/placeholder.png'} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
           </div>
           <p className="text-sm font-medium text-gray-900 line-clamp-2 mb-1">{product.name}</p>
-          <p className="text-sm font-bold text-bata-primary">{fmt(product.price)}</p>
+          <p className="text-sm font-bold text-BATAMART-primary">{fmt(product.price)}</p>
         </div>
       ))}
     </div>
@@ -585,7 +585,7 @@ function SearchHistory() {
   const router = useRouter()
 
   useEffect(() => {
-    const recent = JSON.parse(localStorage.getItem('bata-recent-searches') || '[]')
+    const recent = JSON.parse(localStorage.getItem('BATAMART-recent-searches') || '[]')
     setSearches(recent.slice(0, 10))
   }, [])
 
@@ -599,7 +599,7 @@ function SearchHistory() {
         <button
           key={index}
           onClick={() => router.push(`/search?q=${encodeURIComponent(search)}`)}
-          className="px-4 py-2 bg-gray-100 hover:bg-bata-primary hover:text-white text-gray-700 rounded-full text-sm font-medium transition-colors"
+          className="px-4 py-2 bg-gray-100 hover:bg-BATAMART-primary hover:text-white text-gray-700 rounded-full text-sm font-medium transition-colors"
         >
           {search}
         </button>

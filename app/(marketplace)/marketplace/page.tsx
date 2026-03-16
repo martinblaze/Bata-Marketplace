@@ -113,8 +113,8 @@ const CATEGORIES = [
 ]
 
 const TRENDING_SEARCHES = ['iPhone', 'Sneakers', 'Laptop', 'Jollof Rice', 'Textbooks', 'Earbuds', 'Braids', 'Power Bank']
-const RECENT_SEARCHES_KEY = 'bata-recent-searches'
-const RECENTLY_VIEWED_KEY = 'bata-recently-viewed'
+const RECENT_SEARCHES_KEY = 'BATAMART-recent-searches'
+const RECENTLY_VIEWED_KEY = 'BATAMART-recently-viewed'
 
 function parseTags(description: string): string[] {
   if (!description) return []
@@ -126,8 +126,8 @@ function TrustPill({ level }: { level: string }) {
   const tone = level === 'GOLD'
     ? { bg: 'bg-amber-50', text: 'text-amber-700', ring: 'ring-amber-200', dot: 'bg-amber-400' }
     : level === 'SILVER'
-    ? { bg: 'bg-slate-50', text: 'text-slate-600', ring: 'ring-slate-200', dot: 'bg-slate-400' }
-    : { bg: 'bg-orange-50', text: 'text-orange-700', ring: 'ring-orange-200', dot: 'bg-orange-400' }
+      ? { bg: 'bg-slate-50', text: 'text-slate-600', ring: 'ring-slate-200', dot: 'bg-slate-400' }
+      : { bg: 'bg-orange-50', text: 'text-orange-700', ring: 'ring-orange-200', dot: 'bg-orange-400' }
   return (
     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold ring-1 ${tone.bg} ${tone.text} ${tone.ring}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${tone.dot}`} /> {level}
@@ -183,11 +183,11 @@ function ProductCard({ product, onClick, delay = 0 }: { product: any; onClick: (
           </div>
         )}
         <div className="mt-3 space-y-2">
-          <span className="text-bata-primary font-black text-base tracking-tight block">{fmt(product.price)}</span>
+          <span className="text-BATAMART-primary font-black text-base tracking-tight block">{fmt(product.price)}</span>
           <StarRating rating={product.seller?.avgRating || 0} />
           <div className="flex items-center justify-between pt-2 border-t border-gray-50">
             <div className="min-w-0">
-              <Link href={`/seller/${product.seller?.id}`} className="text-xs font-semibold text-gray-600 hover:text-bata-primary truncate block transition-colors" onClick={e => e.stopPropagation()}>
+              <Link href={`/seller/${product.seller?.id}`} className="text-xs font-semibold text-gray-600 hover:text-BATAMART-primary truncate block transition-colors" onClick={e => e.stopPropagation()}>
                 {product.seller?.name}
               </Link>
               <div className="mt-1"><TrustPill level={product.seller?.trustLevel || 'BRONZE'} /></div>
@@ -221,7 +221,7 @@ function SectionHeader({ title, icon, onSeeAll, delay = 0 }: { title: string; ic
         <h2 className="text-lg font-black text-gray-900">{title}</h2>
       </div>
       {onSeeAll && (
-        <button onClick={onSeeAll} className="btn-press flex items-center gap-1 text-xs font-bold text-bata-primary hover:text-bata-dark transition-colors">
+        <button onClick={onSeeAll} className="btn-press flex items-center gap-1 text-xs font-bold text-BATAMART-primary hover:text-BATAMART-dark transition-colors">
           See all <ChevronRight className="w-3.5 h-3.5" />
         </button>
       )}
@@ -248,9 +248,9 @@ export default function MarketplacePage() {
   const isClickingSuggestionRef = useRef(false)
 
   useEffect(() => {
-    if (document.getElementById('bata-anim')) return
+    if (document.getElementById('BATAMART-anim')) return
     const s = document.createElement('style')
-    s.id = 'bata-anim'
+    s.id = 'BATAMART-anim'
     s.textContent = ANIM_CSS
     document.head.appendChild(s)
   }, [])
@@ -398,8 +398,8 @@ export default function MarketplacePage() {
             {s.type === 'product' && s.image
               ? <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100"><img src={s.image} alt="" className="w-full h-full object-cover" /></div>
               : s.type === 'recent'
-              ? <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0"><Clock className="w-4 h-4 text-gray-400" /></div>
-              : <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0"><TrendingUp className="w-4 h-4 text-orange-500" /></div>
+                ? <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0"><Clock className="w-4 h-4 text-gray-400" /></div>
+                : <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0"><TrendingUp className="w-4 h-4 text-orange-500" /></div>
             }
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-800 truncate">{s.label}</p>
@@ -413,13 +413,13 @@ export default function MarketplacePage() {
             // ✅ FIX: same pattern for the "Search for X" button
             onMouseDown={e => { e.preventDefault(); isClickingSuggestionRef.current = true }}
             onClick={() => { isClickingSuggestionRef.current = false; handleSearch() }}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-bata-primary/5 hover:bg-bata-primary/10 transition-colors border-t border-gray-50"
+            className="w-full flex items-center gap-3 px-4 py-3 bg-BATAMART-primary/5 hover:bg-BATAMART-primary/10 transition-colors border-t border-gray-50"
           >
-            <div className="w-9 h-9 rounded-xl bg-bata-primary/15 flex items-center justify-center flex-shrink-0">
-              <Search className="w-4 h-4 text-bata-primary" />
+            <div className="w-9 h-9 rounded-xl bg-BATAMART-primary/15 flex items-center justify-center flex-shrink-0">
+              <Search className="w-4 h-4 text-BATAMART-primary" />
             </div>
-            <p className="text-sm font-bold text-bata-primary">Search for "<span>{searchInput}</span>"</p>
-            <ArrowRight className="w-3.5 h-3.5 text-bata-primary ml-auto" />
+            <p className="text-sm font-bold text-BATAMART-primary">Search for "<span>{searchInput}</span>"</p>
+            <ArrowRight className="w-3.5 h-3.5 text-BATAMART-primary ml-auto" />
           </button>
         )}
       </div>,
@@ -431,7 +431,7 @@ export default function MarketplacePage() {
       {SuggestionsDropdown}
 
       {/* ── HERO ── */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-bata-primary via-bata-primary to-bata-dark">
+      <div className="relative overflow-hidden bg-gradient-to-br from-BATAMART-primary via-BATAMART-primary to-BATAMART-dark">
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute -top-24 -right-24 w-[500px] h-[500px] rounded-full bg-white/[0.06] blur-3xl" />
           <div className="absolute top-1/2 -left-32 w-[400px] h-[400px] rounded-full bg-white/[0.04] blur-3xl" />
@@ -468,7 +468,7 @@ export default function MarketplacePage() {
               </div>
             </div>
             <div className="hidden sm:flex flex-col gap-2 mt-1 section-enter flex-shrink-0" style={{ animationDelay: '80ms' }}>
-              <Link href="/sell" className="btn-press flex items-center gap-2 bg-white text-bata-primary px-4 md:px-5 py-2 md:py-2.5 rounded-xl font-bold text-xs md:text-sm shadow-lg">
+              <Link href="/sell" className="btn-press flex items-center gap-2 bg-white text-BATAMART-primary px-4 md:px-5 py-2 md:py-2.5 rounded-xl font-bold text-xs md:text-sm shadow-lg">
                 <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4" /> Sell a Product
               </Link>
               <Link href="/report" className="btn-press flex items-center gap-2 bg-white/10 hover:bg-white/15 text-white px-4 md:px-5 py-2 md:py-2.5 rounded-xl font-semibold text-xs md:text-sm ring-1 ring-white/15 transition-colors">
@@ -501,10 +501,10 @@ export default function MarketplacePage() {
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => handleSearch()} className="btn-press flex-1 sm:flex-none px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-3.5 bg-bata-primary hover:bg-bata-dark text-white rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm shadow-md transition-colors">
+                  <button onClick={() => handleSearch()} className="btn-press flex-1 sm:flex-none px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-3.5 bg-BATAMART-primary hover:bg-BATAMART-dark text-white rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm shadow-md transition-colors">
                     Search
                   </button>
-                  <Link href="/sell" className="sm:hidden btn-press px-4 py-2.5 bg-bata-primary text-white rounded-lg flex items-center justify-center shadow-md">
+                  <Link href="/sell" className="sm:hidden btn-press px-4 py-2.5 bg-BATAMART-primary text-white rounded-lg flex items-center justify-center shadow-md">
                     <Sparkles className="w-4 h-4" />
                   </Link>
                 </div>
@@ -516,7 +516,7 @@ export default function MarketplacePage() {
                 <div className="flex gap-1.5 sm:gap-2">
                   {['iPhone', 'Sneakers', 'Laptop', 'Books', 'Jollof', 'Earbuds'].map(tag => (
                     <button key={tag} onClick={() => router.push(`/search?q=${encodeURIComponent(tag)}`)}
-                      className="hot-tag flex items-center gap-1 px-2.5 sm:px-3 py-1.5 bg-gray-100 hover:bg-bata-primary/10 hover:text-bata-primary text-gray-600 rounded-full text-[10px] sm:text-xs font-semibold whitespace-nowrap flex-shrink-0">
+                      className="hot-tag flex items-center gap-1 px-2.5 sm:px-3 py-1.5 bg-gray-100 hover:bg-BATAMART-primary/10 hover:text-BATAMART-primary text-gray-600 rounded-full text-[10px] sm:text-xs font-semibold whitespace-nowrap flex-shrink-0">
                       <Tag className="w-2.5 h-2.5 sm:w-3 sm:h-3" />{tag}
                     </button>
                   ))}
@@ -534,11 +534,10 @@ export default function MarketplacePage() {
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 flex-1">
               {CATEGORIES.map(cat => (
                 <button key={cat.name} onClick={() => setSelectedCategory(cat.name)}
-                  className={`cat-btn flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-semibold whitespace-nowrap text-xs ${
-                    selectedCategory === cat.name
-                      ? 'cat-active bg-bata-primary text-white shadow-md shadow-bata-primary/25'
+                  className={`cat-btn flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-semibold whitespace-nowrap text-xs ${selectedCategory === cat.name
+                      ? 'cat-active bg-BATAMART-primary text-white shadow-md shadow-BATAMART-primary/25'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                  }`}>
+                    }`}>
                   <span className="text-sm">{cat.icon}</span>
                   <span>{cat.name}</span>
                 </button>
@@ -568,7 +567,7 @@ export default function MarketplacePage() {
         ) : selectedCategory !== 'All' ? (
           <div>
             <div className="flex items-center gap-2 mb-5 section-enter">
-              <button onClick={() => setSelectedCategory('All')} className="text-xs font-bold text-gray-400 hover:text-bata-primary transition-colors">← All</button>
+              <button onClick={() => setSelectedCategory('All')} className="text-xs font-bold text-gray-400 hover:text-BATAMART-primary transition-colors">← All</button>
               <span className="text-gray-300">/</span>
               <span className="text-xs font-bold text-gray-700">{selectedCategory}</span>
               <span className="text-xs text-gray-400">({filteredByCategory.length})</span>
@@ -577,7 +576,7 @@ export default function MarketplacePage() {
               <div className="section-enter flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-dashed border-gray-200">
                 <ShoppingBag className="w-10 h-10 text-gray-300 mb-3" />
                 <h3 className="text-lg font-black text-gray-800 mb-1">Nothing here yet</h3>
-                <Link href="/sell" className="btn-press mt-4 inline-flex items-center gap-2 bg-bata-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md">
+                <Link href="/sell" className="btn-press mt-4 inline-flex items-center gap-2 bg-BATAMART-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md">
                   List a Product <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
@@ -631,7 +630,7 @@ export default function MarketplacePage() {
                       </div>
                       <div className="p-2.5">
                         <p className="text-xs font-bold text-gray-800 line-clamp-2 leading-snug">{p.name}</p>
-                        <p className="text-xs font-black text-bata-primary mt-1">{fmt(p.price)}</p>
+                        <p className="text-xs font-black text-BATAMART-primary mt-1">{fmt(p.price)}</p>
                       </div>
                     </div>
                   ))}
@@ -653,7 +652,7 @@ export default function MarketplacePage() {
 
             {newListings.length > 0 && (
               <div>
-                <SectionHeader title="New on BATA" delay={100}
+                <SectionHeader title="New on BATAMART" delay={100}
                   icon={<div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center"><Sparkles className="w-4 h-4 text-green-600" /></div>}
                 />
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
@@ -681,7 +680,7 @@ export default function MarketplacePage() {
                 <div className="section-enter flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-dashed border-gray-200">
                   <ShoppingBag className="w-10 h-10 text-gray-300 mb-3" />
                   <h3 className="text-lg font-black text-gray-800 mb-1">No products yet</h3>
-                  <Link href="/sell" className="btn-press mt-4 inline-flex items-center gap-2 bg-bata-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md">
+                  <Link href="/sell" className="btn-press mt-4 inline-flex items-center gap-2 bg-BATAMART-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md">
                     Be the first to list <ArrowRight className="w-4 h-4" />
                   </Link>
                 </div>
@@ -698,7 +697,7 @@ export default function MarketplacePage() {
 
       {/* Floating Sell Button for Mobile */}
       <div className="fixed bottom-4 right-4 z-50 sm:hidden">
-        <Link href="/sell" className="btn-press flex items-center gap-2 bg-bata-primary text-white px-4 py-3 rounded-xl font-bold text-sm shadow-lg">
+        <Link href="/sell" className="btn-press flex items-center gap-2 bg-BATAMART-primary text-white px-4 py-3 rounded-xl font-bold text-sm shadow-lg">
           <Sparkles className="w-4 h-4" /> Sell
         </Link>
       </div>

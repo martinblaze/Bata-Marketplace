@@ -28,11 +28,11 @@ export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
-      
+
       addItem: (item) => {
         const { items } = get();
         const existingItem = items.find((i) => i.productId === item.productId);
-        
+
         if (existingItem) {
           // Update quantity if item already exists
           const newQuantity = existingItem.quantity + (item.quantity || 1);
@@ -59,17 +59,17 @@ export const useCartStore = create<CartState>()(
           });
         }
       },
-      
+
       removeItem: (productId) => {
         set({
           items: get().items.filter((i) => i.productId !== productId),
         });
       },
-      
+
       updateQuantity: (productId, quantity) => {
         const { items } = get();
         const item = items.find((i) => i.productId === productId);
-        
+
         if (item && quantity > 0 && quantity <= item.maxQuantity) {
           set({
             items: items.map((i) =>
@@ -80,13 +80,13 @@ export const useCartStore = create<CartState>()(
           get().removeItem(productId);
         }
       },
-      
+
       clearCart: () => set({ items: [] }),
-      
+
       getTotalItems: () => {
         return get().items.reduce((total, item) => total + item.quantity, 0);
       },
-      
+
       getTotalPrice: () => {
         return get().items.reduce(
           (total, item) => total + item.price * item.quantity,
@@ -95,7 +95,7 @@ export const useCartStore = create<CartState>()(
       },
     }),
     {
-      name: 'bata-cart-storage',
+      name: 'BATAMART-cart-storage',
     }
   )
 );

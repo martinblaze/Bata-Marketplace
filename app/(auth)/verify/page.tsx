@@ -14,7 +14,7 @@ export default function VerifyPage() {
   useEffect(() => {
     const signupData = sessionStorage.getItem('signup_data')
     const loginData = sessionStorage.getItem('login_data')
-    
+
     if (signupData) {
       const data = JSON.parse(signupData)
       setContact(data.phone || data.email)
@@ -28,7 +28,7 @@ export default function VerifyPage() {
 
   const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) return
-    
+
     const newOtp = [...otp]
     newOtp[index] = value
     setOtp(newOtp)
@@ -50,7 +50,7 @@ export default function VerifyPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const otpCode = otp.join('')
-    
+
     if (otpCode.length !== 6) {
       setError('Please enter complete OTP')
       return
@@ -82,7 +82,7 @@ export default function VerifyPage() {
         localStorage.setItem('userName', result.user.name)
         sessionStorage.removeItem('signup_data')
         sessionStorage.removeItem('login_data')
-        
+
         // Redirect based on whether profile is complete
         if (result.user.hostelName) {
           router.push('/marketplace')
@@ -105,13 +105,13 @@ export default function VerifyPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center space-x-2 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-bata-primary to-bata-secondary rounded-xl flex items-center justify-center shadow-lg">
+            <div className="w-12 h-12 bg-gradient-to-br from-BATAMART-primary to-BATAMART-secondary rounded-xl flex items-center justify-center shadow-lg">
               <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M3 3h18v4H3V3zm0 6h18v12H3V9zm2 2v8h14v-8H5zm2 2h10v4H7v-4z"/>
+                <path d="M3 3h18v4H3V3zm0 6h18v12H3V9zm2 2v8h14v-8H5zm2 2h10v4H7v-4z" />
               </svg>
             </div>
-            <span className="font-bold text-2xl bg-gradient-to-r from-bata-primary to-bata-secondary bg-clip-text text-transparent">
-              BATA
+            <span className="font-bold text-2xl bg-gradient-to-r from-BATAMART-primary to-BATAMART-secondary bg-clip-text text-transparent">
+              BATAMART
             </span>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Verify Your Account</h1>
@@ -139,7 +139,7 @@ export default function VerifyPage() {
                     value={digit}
                     onChange={(e) => handleOtpChange(index, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(index, e)}
-                    className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none transition-colors"
+                    className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-lg focus:border-BATAMART-primary focus:outline-none transition-colors"
                   />
                 ))}
               </div>
@@ -156,7 +156,7 @@ export default function VerifyPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-bata-primary hover:bg-bata-dark text-white py-3.5 rounded-lg font-bold text-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50"
+              className="w-full bg-BATAMART-primary hover:bg-BATAMART-dark text-white py-3.5 rounded-lg font-bold text-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50"
             >
               {loading ? 'Verifying...' : 'Verify & Continue'}
             </button>
@@ -166,7 +166,7 @@ export default function VerifyPage() {
           <div className="mt-6 text-center">
             <p className="text-gray-600 text-sm">
               Didn't receive code?{' '}
-              <button className="text-bata-primary font-semibold hover:underline">
+              <button className="text-BATAMART-primary font-semibold hover:underline">
                 Resend
               </button>
             </p>

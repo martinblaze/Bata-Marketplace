@@ -29,10 +29,10 @@ export default function AdminLoginPage() {
       if (response.ok) {
         // Save token as secure cookie (works with middleware) instead of localStorage
         document.cookie = `adminToken=${data.token}; path=/; max-age=86400; SameSite=Strict`
-        
+
         // Also keep in localStorage as fallback for API calls
         localStorage.setItem('adminToken', data.token)
-        
+
         // Full page reload so cookie is set before middleware checks it
         window.location.href = '/admin'
       } else {
@@ -54,7 +54,7 @@ export default function AdminLoginPage() {
             <Shield className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Admin Portal</h1>
-          <p className="text-gray-400">BATA Marketplace Management</p>
+          <p className="text-gray-400">BATAMART Marketplace Management</p>
         </div>
 
         {/* Login Form */}
@@ -79,7 +79,7 @@ export default function AdminLoginPage() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full pl-12 pr-4 py-3 bg-gray-900/50 border border-gray-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="admin@bata.com"
+                  placeholder="admin@BATAMART.com"
                   required
                 />
               </div>

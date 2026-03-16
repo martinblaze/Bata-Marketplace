@@ -31,7 +31,7 @@ export default function CartPage() {
         <div className="h-8 w-40 bg-gray-200 rounded-xl animate-pulse mb-8" />
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-3">
-            {[1,2].map(i => <div key={i} className="h-36 bg-gray-200 rounded-2xl animate-pulse" />)}
+            {[1, 2].map(i => <div key={i} className="h-36 bg-gray-200 rounded-2xl animate-pulse" />)}
           </div>
           <div className="h-64 bg-gray-200 rounded-2xl animate-pulse" />
         </div>
@@ -49,7 +49,7 @@ export default function CartPage() {
         <p className="text-gray-400 text-sm mb-7">Browse our marketplace and add items to your cart!</p>
         <button
           onClick={() => router.push('/marketplace')}
-          className="inline-flex items-center gap-2 bg-bata-primary hover:bg-bata-dark text-white px-7 py-3 rounded-xl font-bold shadow-md transition-all"
+          className="inline-flex items-center gap-2 bg-BATAMART-primary hover:bg-BATAMART-dark text-white px-7 py-3 rounded-xl font-bold shadow-md transition-all"
         >
           Start Shopping <ArrowRight className="w-4 h-4" />
         </button>
@@ -72,7 +72,7 @@ export default function CartPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push('/marketplace')}
-              className="flex items-center gap-1.5 text-sm font-bold text-gray-500 hover:text-bata-primary transition-colors group"
+              className="flex items-center gap-1.5 text-sm font-bold text-gray-500 hover:text-BATAMART-primary transition-colors group"
             >
               <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
               <span className="hidden sm:inline">Marketplace</span>
@@ -105,7 +105,7 @@ export default function CartPage() {
                     <div className="flex gap-3 sm:gap-4">
                       {/* image */}
                       <Link href={`/product/${item.productId}`} className="flex-shrink-0">
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border border-gray-100 hover:border-bata-primary transition-colors">
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border border-gray-100 hover:border-BATAMART-primary transition-colors">
                           <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                         </div>
                       </Link>
@@ -116,12 +116,12 @@ export default function CartPage() {
                           <div className="min-w-0">
                             <Link
                               href={`/product/${item.productId}`}
-                              className="font-bold text-gray-900 hover:text-bata-primary transition-colors text-sm sm:text-base line-clamp-2"
+                              className="font-bold text-gray-900 hover:text-BATAMART-primary transition-colors text-sm sm:text-base line-clamp-2"
                             >
                               {item.name}
                             </Link>
                             <p className="text-xs text-gray-400 mt-0.5">
-                              by <Link href={`/seller/${item.sellerId}`} className="text-bata-primary font-semibold hover:underline">{item.sellerName}</Link>
+                              by <Link href={`/seller/${item.sellerId}`} className="text-BATAMART-primary font-semibold hover:underline">{item.sellerName}</Link>
                             </p>
                           </div>
                           <button
@@ -153,7 +153,7 @@ export default function CartPage() {
                           </div>
 
                           <div className="text-right">
-                            <p className="font-black text-bata-primary text-base sm:text-lg">{formatPrice(item.price * item.quantity)}</p>
+                            <p className="font-black text-BATAMART-primary text-base sm:text-lg">{formatPrice(item.price * item.quantity)}</p>
                             <p className="text-[11px] text-gray-400">{formatPrice(item.price)} each</p>
                           </div>
                         </div>
@@ -172,7 +172,7 @@ export default function CartPage() {
 
             {/* Trust strip */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Why shop with BATA?</p>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Why shop with BATAMART?</p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {[
                   { icon: <Shield className="w-5 h-5 text-emerald-600" />, bg: 'bg-emerald-50', title: 'Secure Payments', sub: 'Money held until delivery confirmed' },
@@ -212,12 +212,12 @@ export default function CartPage() {
 
               <div className="flex justify-between mt-4 mb-5">
                 <span className="font-black text-gray-900">Total</span>
-                <span className="font-black text-bata-primary text-xl">{formatPrice(total)}</span>
+                <span className="font-black text-BATAMART-primary text-xl">{formatPrice(total)}</span>
               </div>
 
               <button
                 onClick={handleCheckout}
-                className="w-full flex items-center justify-center gap-2.5 bg-bata-primary hover:bg-bata-dark text-white py-4 rounded-xl font-black text-base shadow-lg shadow-bata-primary/20 hover:shadow-xl transition-all active:scale-[0.98]"
+                className="w-full flex items-center justify-center gap-2.5 bg-BATAMART-primary hover:bg-BATAMART-dark text-white py-4 rounded-xl font-black text-base shadow-lg shadow-BATAMART-primary/20 hover:shadow-xl transition-all active:scale-[0.98]"
               >
                 <Lock className="w-4 h-4" /> Checkout · {formatPrice(total)}
               </button>

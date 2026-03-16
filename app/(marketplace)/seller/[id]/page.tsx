@@ -33,10 +33,10 @@ async function refreshSellerStats(sellerId: string) {
 }
 
 const TRUST_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  VERIFIED: { label: 'Verified',  color: 'text-emerald-700', bg: 'bg-emerald-50',  border: 'border-emerald-200' },
-  GOLD:     { label: 'Gold',      color: 'text-amber-700',   bg: 'bg-amber-50',    border: 'border-amber-200'   },
-  SILVER:   { label: 'Silver',    color: 'text-slate-600',   bg: 'bg-slate-50',    border: 'border-slate-200'   },
-  BRONZE:   { label: 'Bronze',    color: 'text-orange-700',  bg: 'bg-orange-50',   border: 'border-orange-200'  },
+  VERIFIED: { label: 'Verified', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+  GOLD: { label: 'Gold', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200' },
+  SILVER: { label: 'Silver', color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' },
+  BRONZE: { label: 'Bronze', color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200' },
 }
 
 export default async function SellerProfilePage({ params }: { params: Promise<{ id: string }> }) {
@@ -94,9 +94,9 @@ export default async function SellerProfilePage({ params }: { params: Promise<{ 
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center gap-2 text-sm text-gray-400">
-            <Link href="/marketplace" className="hover:text-bata-primary transition">Marketplace</Link>
+            <Link href="/marketplace" className="hover:text-BATAMART-primary transition">Marketplace</Link>
             <ChevronRight className="w-3.5 h-3.5" />
-            <Link href="/sellers" className="hover:text-bata-primary transition">Sellers</Link>
+            <Link href="/sellers" className="hover:text-BATAMART-primary transition">Sellers</Link>
             <ChevronRight className="w-3.5 h-3.5" />
             <span className="text-gray-700 font-medium">{seller.name}</span>
           </div>
@@ -174,11 +174,10 @@ export default async function SellerProfilePage({ params }: { params: Promise<{ 
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
                     key={star}
-                    className={`w-3.5 h-3.5 ${
-                      star <= Math.floor(seller.avgRating || 0)
+                    className={`w-3.5 h-3.5 ${star <= Math.floor(seller.avgRating || 0)
                         ? 'fill-amber-400 text-amber-400'
                         : 'text-gray-200 fill-gray-200'
-                    }`}
+                      }`}
                   />
                 ))}
               </div>
@@ -191,9 +190,9 @@ export default async function SellerProfilePage({ params }: { params: Promise<{ 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: 'Average Rating', value: `${(Math.round((seller.avgRating || 0) * 100) / 100).toFixed(2)} / 5`, sub: 'out of 5 stars' },
-            { label: 'Total Reviews',  value: String(seller.totalReviews || 0), sub: 'customer reviews' },
-            { label: 'Items Sold',     value: String(totalSales), sub: 'completed orders' },
-            { label: 'Satisfaction',   value: `${satisfactionRate}%`, sub: 'customer satisfaction' },
+            { label: 'Total Reviews', value: String(seller.totalReviews || 0), sub: 'customer reviews' },
+            { label: 'Items Sold', value: String(totalSales), sub: 'completed orders' },
+            { label: 'Satisfaction', value: `${satisfactionRate}%`, sub: 'customer satisfaction' },
           ].map(({ label, value, sub }) => (
             <div key={label} className="bg-white rounded-xl border border-gray-200 px-5 py-4">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">{label}</p>
@@ -217,7 +216,7 @@ export default async function SellerProfilePage({ params }: { params: Promise<{ 
                 {totalProducts > 8 && (
                   <Link
                     href={`/seller/${id}/products`}
-                    className="text-sm text-bata-primary font-semibold hover:underline flex items-center gap-1"
+                    className="text-sm text-BATAMART-primary font-semibold hover:underline flex items-center gap-1"
                   >
                     View all <ChevronRight className="w-4 h-4" />
                   </Link>
@@ -241,7 +240,7 @@ export default async function SellerProfilePage({ params }: { params: Promise<{ 
                           />
                         </div>
                       )}
-                      <h3 className="text-sm font-semibold text-gray-900 group-hover:text-bata-primary transition-colors line-clamp-1">
+                      <h3 className="text-sm font-semibold text-gray-900 group-hover:text-BATAMART-primary transition-colors line-clamp-1">
                         {product.name}
                       </h3>
                       <p className="text-xs text-gray-400 mt-0.5 line-clamp-2 leading-relaxed">
@@ -251,13 +250,12 @@ export default async function SellerProfilePage({ params }: { params: Promise<{ 
                         <span className="text-sm font-bold text-gray-900">
                           ₦{product.price.toLocaleString()}
                         </span>
-                        <span className={`text-xs px-2 py-0.5 rounded font-medium ${
-                          product.quantity > 10
+                        <span className={`text-xs px-2 py-0.5 rounded font-medium ${product.quantity > 10
                             ? 'bg-emerald-50 text-emerald-700'
                             : product.quantity > 0
-                            ? 'bg-amber-50 text-amber-700'
-                            : 'bg-red-50 text-red-600'
-                        }`}>
+                              ? 'bg-amber-50 text-amber-700'
+                              : 'bg-red-50 text-red-600'
+                          }`}>
                           {product.quantity > 0 ? `${product.quantity} left` : 'Out of stock'}
                         </span>
                       </div>
@@ -293,11 +291,10 @@ export default async function SellerProfilePage({ params }: { params: Promise<{ 
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star
                           key={star}
-                          className={`w-3 h-3 ${
-                            star <= Math.floor(seller.avgRating || 0)
+                          className={`w-3 h-3 ${star <= Math.floor(seller.avgRating || 0)
                               ? 'fill-amber-400 text-amber-400'
                               : 'text-gray-200 fill-gray-200'
-                          }`}
+                            }`}
                         />
                       ))}
                     </div>

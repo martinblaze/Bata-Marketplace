@@ -201,7 +201,7 @@ export default function NotificationBell() {
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllAsRead}
-                    className="text-sm text-bata-primary hover:text-bata-dark font-medium"
+                    className="text-sm text-BATAMART-primary hover:text-BATAMART-dark font-medium"
                   >
                     Mark all read
                   </button>
@@ -227,9 +227,8 @@ export default function NotificationBell() {
                   {notifications.map((notification) => (
                     <div
                       key={notification.id}
-                      className={`p-4 hover:bg-gray-50 transition-colors ${
-                        !notification.isRead ? 'bg-blue-50' : ''
-                      }`}
+                      className={`p-4 hover:bg-gray-50 transition-colors ${!notification.isRead ? 'bg-blue-50' : ''
+                        }`}
                     >
                       <div className="flex items-start gap-3">
                         <span className="text-2xl flex-shrink-0">
@@ -269,7 +268,7 @@ export default function NotificationBell() {
               <div className="p-3 border-t border-gray-200 text-center">
                 <Link
                   href="/notifications"
-                  className="text-sm text-bata-primary hover:text-bata-dark font-medium"
+                  className="text-sm text-BATAMART-primary hover:text-BATAMART-dark font-medium"
                   onClick={() => setIsOpen(false)}
                 >
                   View All Notifications

@@ -11,7 +11,7 @@ export default function PrivacyPage() {
       content: [
         {
           subtitle: "Account Information",
-          text: "When you create a BATA account, we collect your name, email phone number, and location address like your hostel information for verification purposes."
+          text: "When you create a BATAMART account, we collect your name, email phone number, and location address like your hostel information for verification purposes."
         },
         {
           subtitle: "Transaction Data",
@@ -19,7 +19,7 @@ export default function PrivacyPage() {
         },
         {
           subtitle: "Usage Information",
-          text: "We collect data about how you use BATA, including pages visited, products viewed, and interactions with other users."
+          text: "We collect data about how you use BATAMART, including pages visited, products viewed, and interactions with other users."
         }
       ]
     },
@@ -59,11 +59,11 @@ export default function PrivacyPage() {
         },
         {
           subtitle: "Service Providers",
-          text: "We work with trusted third-party services (payment processors, SMS providers) who help us operate BATA. They only access data necessary for their services."
+          text: "We work with trusted third-party services (payment processors, SMS providers) who help us operate BATAMART. They only access data necessary for their services."
         },
         {
           subtitle: "Legal Requirements",
-          text: "We may disclose information if required by law or to protect the rights, property, or safety of BATA, our users, or others."
+          text: "We may disclose information if required by law or to protect the rights, property, or safety of BATAMART, our users, or others."
         }
       ]
     },
@@ -95,7 +95,7 @@ export default function PrivacyPage() {
         },
         {
           subtitle: "Data Deletion",
-          text: "You can request deletion of your account and personal data by contacting us at support@bata-mart.com. Some data may be retained for legal obligations."
+          text: "You can request deletion of your account and personal data by contacting us at support@BATAMART-mart.com. Some data may be retained for legal obligations."
         },
         {
           subtitle: "Opt-Out",
@@ -112,7 +112,7 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-bata-primary to-bata-dark text-white py-20 px-4">
+      <section className="bg-gradient-to-br from-BATAMART-primary to-BATAMART-dark text-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center space-x-2 bg-white/20 px-4 py-2 rounded-full mb-6">
             <Shield className="w-5 h-5" />
@@ -136,9 +136,9 @@ export default function PrivacyPage() {
         <div className="max-w-4xl mx-auto">
           <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-xl">
             <p className="text-gray-700 leading-relaxed">
-              <strong className="text-blue-900">Welcome to BATA's Privacy Policy.</strong> This policy explains how
-              BATA ("we," "us," or "our") collects, uses, shares, and protects your personal information when you
-              use our student marketplace platform. By using BATA, you agree to the practices described in this policy.
+              <strong className="text-blue-900">Welcome to BATAMART's Privacy Policy.</strong> This policy explains how
+              BATAMART ("we," "us," or "our") collects, uses, shares, and protects your personal information when you
+              use our student marketplace platform. By using BATAMART, you agree to the practices described in this policy.
             </p>
           </div>
         </div>
@@ -149,9 +149,9 @@ export default function PrivacyPage() {
         <div className="max-w-4xl mx-auto space-y-12">
           {sections.map((section, index) => (
             <div key={index} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden">
-              <div className="bg-gradient-to-r from-bata-light to-white p-6 border-b border-gray-100">
+              <div className="bg-gradient-to-r from-BATAMART-light to-white p-6 border-b border-gray-100">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-bata-primary to-bata-dark rounded-xl flex items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 bg-gradient-to-br from-BATAMART-primary to-BATAMART-dark rounded-xl flex items-center justify-center flex-shrink-0">
                     <section.icon className="w-6 h-6 text-white" />
                   </div>
                   <h2 className="text-2xl font-bold text-gray-900">
@@ -165,7 +165,7 @@ export default function PrivacyPage() {
                     <h3 className="text-lg font-bold text-gray-900">
                       {item.subtitle}
                     </h3>
-                    <p className="text-gray-600 leading-relaxed pl-4 border-l-2 border-bata-primary/20">
+                    <p className="text-gray-600 leading-relaxed pl-4 border-l-2 border-BATAMART-primary/20">
                       {item.text}
                     </p>
                   </div>
@@ -217,7 +217,7 @@ export default function PrivacyPage() {
               🍪 Cookies & Tracking
             </h2>
             <p className="text-gray-700 leading-relaxed mb-4">
-              BATA uses cookies and similar technologies to improve your experience, analyze usage, and personalize content.
+              BATAMART uses cookies and similar technologies to improve your experience, analyze usage, and personalize content.
             </p>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-gray-50 p-4 rounded-xl">
@@ -226,7 +226,7 @@ export default function PrivacyPage() {
               </div>
               <div className="bg-gray-50 p-4 rounded-xl">
                 <h4 className="font-bold text-gray-900 mb-2">Analytics Cookies</h4>
-                <p className="text-sm text-gray-600">Help us understand how users interact with BATA</p>
+                <p className="text-sm text-gray-600">Help us understand how users interact with BATAMART</p>
               </div>
             </div>
             <p className="text-sm text-gray-600 mt-4">
@@ -244,7 +244,7 @@ export default function PrivacyPage() {
               ⚠️ Third-Party Links
             </h3>
             <p className="text-gray-700">
-              BATA may contain links to external websites. We are not responsible for the privacy practices
+              BATAMART may contain links to external websites. We are not responsible for the privacy practices
               of these third-party sites. We encourage you to read their privacy policies.
             </p>
           </div>
@@ -259,7 +259,7 @@ export default function PrivacyPage() {
               👶 Children's Privacy
             </h2>
             <p className="text-gray-700 leading-relaxed">
-              BATA is intended for UNIZIK students aged 18 and above. We do not knowingly collect
+              BATAMART is intended for UNIZIK students aged 18 and above. We do not knowingly collect
               information from individuals under 18. If we discover we have collected data from someone
               under 18, we will delete it promptly.
             </p>
@@ -276,7 +276,7 @@ export default function PrivacyPage() {
             </h3>
             <p className="text-gray-700">
               We may update this Privacy Policy from time to time. When we make significant changes,
-              we'll notify you via email or through a notice on the platform. Continued use of BATA
+              we'll notify you via email or through a notice on the platform. Continued use of BATAMART
               after changes constitutes acceptance of the updated policy.
             </p>
           </div>
@@ -284,7 +284,7 @@ export default function PrivacyPage() {
       </section>
 
       {/* Contact Section */}
-      <section className="py-16 px-4 bg-gradient-to-br from-bata-primary to-bata-dark text-white">
+      <section className="py-16 px-4 bg-gradient-to-br from-BATAMART-primary to-BATAMART-dark text-white">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-4">
             Questions About Your Privacy?
@@ -295,14 +295,14 @@ export default function PrivacyPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="mailto:support@bata-mart.com"
-              className="bg-white text-bata-primary hover:bg-gray-100 px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl"
+              href="mailto:support@BATAMART-mart.com"
+              className="bg-white text-BATAMART-primary hover:bg-gray-100 px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl"
             >
-              Email: support@bata-mart.com
+              Email: support@BATAMART-mart.com
             </a>
             <Link
               href="/contact"
-              className="bg-bata-dark/50 hover:bg-bata-dark text-white border-2 border-white px-8 py-4 rounded-xl font-bold text-lg transition-all"
+              className="bg-BATAMART-dark/50 hover:bg-BATAMART-dark text-white border-2 border-white px-8 py-4 rounded-xl font-bold text-lg transition-all"
             >
               Contact Support
             </Link>

@@ -8,8 +8,8 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // BATA Brand Colors
-        bata: {
+        // BATAMART Brand Colors
+        BATAMART: {
           primary: '#6366F1',      // Purple
           secondary: '#8B5CF6',    // Lighter purple
           accent: '#A78BFA',       // Light purple
@@ -117,7 +117,7 @@ module.exports = {
   },
   plugins: [
     // Add custom utilities
-    function({ addUtilities }) {
+    function ({ addUtilities }) {
       const newUtilities = {
         '.safe-top': {
           paddingTop: 'env(safe-area-inset-top)',

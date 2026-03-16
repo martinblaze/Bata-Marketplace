@@ -121,7 +121,7 @@ export default function CheckoutPage() {
 
   if (cartItems.length === 0 || !user) return (
     <div className="min-h-screen flex items-center justify-center bg-[#f7f8fa]">
-      <div className="animate-spin rounded-full h-10 w-10 border-4 border-bata-primary border-t-transparent" />
+      <div className="animate-spin rounded-full h-10 w-10 border-4 border-BATAMART-primary border-t-transparent" />
     </div>
   )
 
@@ -141,7 +141,7 @@ export default function CheckoutPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <button
             onClick={() => router.push('/cart')}
-            className="flex items-center gap-1.5 text-sm font-bold text-gray-500 hover:text-bata-primary transition-colors group"
+            className="flex items-center gap-1.5 text-sm font-bold text-gray-500 hover:text-BATAMART-primary transition-colors group"
           >
             <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
             Back to Cart
@@ -166,12 +166,12 @@ export default function CheckoutPage() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 bg-bata-primary/10 rounded-lg flex items-center justify-center">
-                    <MapPin className="w-4 h-4 text-bata-primary" />
+                  <div className="w-8 h-8 bg-BATAMART-primary/10 rounded-lg flex items-center justify-center">
+                    <MapPin className="w-4 h-4 text-BATAMART-primary" />
                   </div>
                   <h2 className="font-black text-gray-900">Delivery Address</h2>
                 </div>
-                <Link href="/profile/setup" className="text-xs font-bold text-bata-primary hover:text-bata-dark transition-colors flex items-center gap-1">
+                <Link href="/profile/setup" className="text-xs font-bold text-BATAMART-primary hover:text-BATAMART-dark transition-colors flex items-center gap-1">
                   Edit <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
@@ -218,7 +218,7 @@ export default function CheckoutPage() {
                         <h3 className="font-black text-gray-900 text-sm sm:text-base line-clamp-2">{item.name}</h3>
                         <p className="text-xs text-gray-400 mt-0.5">by <span className="font-semibold text-gray-600">{item.sellerName}</span></p>
                         <div className="flex items-center gap-3 mt-2">
-                          <span className="text-bata-primary font-black text-base">{formatPrice(item.price * item.quantity)}</span>
+                          <span className="text-BATAMART-primary font-black text-base">{formatPrice(item.price * item.quantity)}</span>
                           <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full font-semibold">
                             Qty: {item.quantity}
                           </span>
@@ -317,7 +317,7 @@ export default function CheckoutPage() {
 
               <div className="flex justify-between mt-4 mb-5">
                 <span className="font-black text-gray-900">Total</span>
-                <span className="font-black text-bata-primary text-xl">{formatPrice(totalAmount)}</span>
+                <span className="font-black text-BATAMART-primary text-xl">{formatPrice(totalAmount)}</span>
               </div>
 
               {/* Note indicator */}
@@ -332,7 +332,7 @@ export default function CheckoutPage() {
               <button
                 onClick={handlePayment}
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2.5 bg-bata-primary hover:bg-bata-dark disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 rounded-xl font-black text-base shadow-lg shadow-bata-primary/25 hover:shadow-xl transition-all active:scale-[0.98]"
+                className="w-full flex items-center justify-center gap-2.5 bg-BATAMART-primary hover:bg-BATAMART-dark disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 rounded-xl font-black text-base shadow-lg shadow-BATAMART-primary/25 hover:shadow-xl transition-all active:scale-[0.98]"
               >
                 {loading ? (
                   <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</>
@@ -342,7 +342,7 @@ export default function CheckoutPage() {
               </button>
 
               <p className="text-[11px] text-center text-gray-400 mt-3 leading-relaxed">
-                By paying, you agree to BATA's Terms of Service. Payment secured by Paystack.
+                By paying, you agree to BATAMART's Terms of Service. Payment secured by Paystack.
               </p>
 
               {/* Breakdown */}

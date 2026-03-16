@@ -95,7 +95,7 @@ export default function AdminLayout({
             <span className="text-white font-bold text-lg">B</span>
           </div>
           <div>
-            <h1 className="text-lg font-bold text-white">BATA Admin</h1>
+            <h1 className="text-lg font-bold text-white">BATAMART Admin</h1>
           </div>
         </Link>
         <button
@@ -130,7 +130,7 @@ export default function AdminLayout({
                 <span className="text-white font-bold text-xl">B</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white">BATA</h1>
+                <h1 className="text-xl font-bold text-white">BATAMART</h1>
                 <p className="text-xs text-gray-400">Admin Panel</p>
               </div>
             </Link>

@@ -232,13 +232,13 @@ function MagneticCard({ children, className = '', href }: {
 export default function HomePage() {
   const categories = [
     { name: 'Fashion & Clothing', icon: '👔', count: '3.1K items', accent: '#7c3aed', bg: 'bg-purple-100', text: 'text-purple-600' },
-    { name: 'Food Services',      icon: '🍔', count: '1.2K items', accent: '#d97706', bg: 'bg-orange-100', text: 'text-orange-600' },
-    { name: 'Room Essentials',    icon: '🏠', count: '950 items',  accent: '#059669', bg: 'bg-green-100',  text: 'text-green-600' },
-    { name: 'School Supplies',    icon: '🎒', count: '740 items',  accent: '#2563eb', bg: 'bg-blue-100',   text: 'text-blue-600' },
-    { name: 'Tech Gadgets',       icon: '🎧', count: '680 items',  accent: '#4f46e5', bg: 'bg-indigo-100', text: 'text-indigo-600' },
-    { name: 'Cosmetics',          icon: '💄', count: '520 items',  accent: '#db2777', bg: 'bg-pink-100',   text: 'text-pink-600' },
-    { name: 'Snacks',             icon: '🍿', count: '890 items',  accent: '#ca8a04', bg: 'bg-yellow-100', text: 'text-yellow-600' },
-    { name: 'Books',              icon: '📚', count: '650 items',  accent: '#0d9488', bg: 'bg-teal-100',   text: 'text-teal-600' },
+    { name: 'Food Services', icon: '🍔', count: '1.2K items', accent: '#d97706', bg: 'bg-orange-100', text: 'text-orange-600' },
+    { name: 'Room Essentials', icon: '🏠', count: '950 items', accent: '#059669', bg: 'bg-green-100', text: 'text-green-600' },
+    { name: 'School Supplies', icon: '🎒', count: '740 items', accent: '#2563eb', bg: 'bg-blue-100', text: 'text-blue-600' },
+    { name: 'Tech Gadgets', icon: '🎧', count: '680 items', accent: '#4f46e5', bg: 'bg-indigo-100', text: 'text-indigo-600' },
+    { name: 'Cosmetics', icon: '💄', count: '520 items', accent: '#db2777', bg: 'bg-pink-100', text: 'text-pink-600' },
+    { name: 'Snacks', icon: '🍿', count: '890 items', accent: '#ca8a04', bg: 'bg-yellow-100', text: 'text-yellow-600' },
+    { name: 'Books', icon: '📚', count: '650 items', accent: '#0d9488', bg: 'bg-teal-100', text: 'text-teal-600' },
   ]
 
   const locations = ['Aroma', 'Tempsite', 'Express Gate', 'Ifite', 'Amansea', 'Bus Stand', 'School Hostel']
@@ -251,8 +251,8 @@ export default function HomePage() {
         href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"
       />
       <style suppressHydrationWarning>{`
-        .bata-page { font-family: 'DM Sans', sans-serif; }
-        .bata-display { font-family: 'Syne', sans-serif; }
+        .BATAMART-page { font-family: 'DM Sans', sans-serif; }
+        .BATAMART-display { font-family: 'Syne', sans-serif; }
 
         .hero-text-gradient {
           background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 40%, #4f46e5 70%, #7c3aed 100%);
@@ -365,7 +365,7 @@ export default function HomePage() {
         }
 
         /* Sections sit above canvas but let it show through via transparent backgrounds */
-        .bata-page section, .bata-page footer {
+        .BATAMART-page section, .BATAMART-page footer {
           position: relative;
           z-index: 1;
         }
@@ -385,7 +385,7 @@ export default function HomePage() {
         .section-purple-soft { background: linear-gradient(135deg, rgba(245,243,255,0.80), rgba(237,233,254,0.80)); }
       `}</style>
 
-      <div className="bata-page min-h-screen text-gray-900 relative overflow-x-hidden" style={{background: '#f0eeff'}}>
+      <div className="BATAMART-page min-h-screen text-gray-900 relative overflow-x-hidden" style={{ background: '#f0eeff' }}>
         <ParticleCanvas />
 
         {/* ── HERO ── */}
@@ -400,15 +400,15 @@ export default function HomePage() {
             <Reveal>
               <div className="inline-flex items-center gap-2.5 bg-white/80 border border-purple-200 backdrop-blur-sm px-5 py-2 rounded-full mb-8 glow-ring shadow-sm">
                 <div className="pulse-ring w-2 h-2 bg-purple-600 rounded-full" />
-                <span className="text-sm font-medium text-purple-700 tracking-wide bata-display">
-                  BATA — UNIZIK's Campus Marketplace
+                <span className="text-sm font-medium text-purple-700 tracking-wide BATAMART-display">
+                  BATAMART — UNIZIK's Campus Marketplace
                 </span>
               </div>
             </Reveal>
 
             {/* Headline */}
             <Reveal delay={100}>
-              <h1 className="bata-display text-5xl md:text-7xl lg:text-8xl font-800 leading-[0.95] tracking-tight mb-6">
+              <h1 className="BATAMART-display text-5xl md:text-7xl lg:text-8xl font-800 leading-[0.95] tracking-tight mb-6">
                 <span className="hero-text-gradient">Buy. Sell.</span>
                 <br />
                 <span className="text-gray-900">Deliver.</span>
@@ -427,13 +427,13 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                 <Link
                   href="/signup"
-                  className="cta-btn group relative w-full sm:w-auto bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-10 py-4 rounded-xl font-semibold text-base bata-display tracking-wide transition-all duration-300 shadow-[0_0_30px_rgba(91,33,182,0.4)] hover:shadow-[0_0_50px_rgba(91,33,182,0.6)]"
+                  className="cta-btn group relative w-full sm:w-auto bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-10 py-4 rounded-xl font-semibold text-base BATAMART-display tracking-wide transition-all duration-300 shadow-[0_0_30px_rgba(91,33,182,0.4)] hover:shadow-[0_0_50px_rgba(91,33,182,0.6)]"
                 >
-                  Join BATA — It's Free
+                  Join BATAMART — It's Free
                 </Link>
                 <Link
                   href="/marketplace"
-                  className="cta-btn group w-full sm:w-auto bg-white hover:bg-purple-50 border-2 border-purple-600 text-purple-700 hover:text-purple-800 px-10 py-4 rounded-xl font-semibold text-base bata-display tracking-wide transition-all duration-300 shadow-sm"
+                  className="cta-btn group w-full sm:w-auto bg-white hover:bg-purple-50 border-2 border-purple-600 text-purple-700 hover:text-purple-800 px-10 py-4 rounded-xl font-semibold text-base BATAMART-display tracking-wide transition-all duration-300 shadow-sm"
                 >
                   Explore Marketplace →
                 </Link>
@@ -473,8 +473,8 @@ export default function HomePage() {
 
             <Reveal>
               <div className="text-center mb-16">
-                <p className="text-purple-600 text-xs tracking-[0.3em] uppercase font-semibold mb-3 bata-display">The Process</p>
-                <h2 className="bata-display text-4xl md:text-5xl font-bold text-gray-900 mb-4">How BATA Works</h2>
+                <p className="text-purple-600 text-xs tracking-[0.3em] uppercase font-semibold mb-3 BATAMART-display">The Process</p>
+                <h2 className="BATAMART-display text-4xl md:text-5xl font-bold text-gray-900 mb-4">How BATAMART Works</h2>
                 <p className="text-gray-500 max-w-lg mx-auto">Built for student commerce — secure, fast, and campus-native</p>
               </div>
             </Reveal>
@@ -515,8 +515,8 @@ export default function HomePage() {
                     className={`relative h-full p-8 rounded-2xl bg-gradient-to-br ${color} border ${border} shadow-sm hover:shadow-md ${featured ? 'animated-border' : ''} group transition-shadow duration-300`}
                   >
                     <div className="text-4xl mb-6 group-hover:scale-110 transition-transform duration-300">{icon}</div>
-                    <div className={`text-xs ${numColor} font-mono tracking-widest mb-2 bata-display`}>{num}</div>
-                    <h3 className="bata-display text-xl font-bold text-gray-900 mb-3">{title}</h3>
+                    <div className={`text-xs ${numColor} font-mono tracking-widest mb-2 BATAMART-display`}>{num}</div>
+                    <h3 className="BATAMART-display text-xl font-bold text-gray-900 mb-3">{title}</h3>
                     <p className="text-gray-500 text-sm leading-relaxed">{desc}</p>
 
                     <div className="absolute top-4 right-4 w-8 h-8 border-t border-r border-purple-200/60 rounded-tr-lg" />
@@ -535,8 +535,8 @@ export default function HomePage() {
           <div className="max-w-6xl mx-auto">
             <Reveal>
               <div className="text-center mb-16">
-                <p className="text-purple-600 text-xs tracking-[0.3em] uppercase font-semibold mb-3 bata-display">Products</p>
-                <h2 className="bata-display text-4xl md:text-5xl font-bold text-gray-900 mb-4">Shop by Category</h2>
+                <p className="text-purple-600 text-xs tracking-[0.3em] uppercase font-semibold mb-3 BATAMART-display">Products</p>
+                <h2 className="BATAMART-display text-4xl md:text-5xl font-bold text-gray-900 mb-4">Shop by Category</h2>
                 <p className="text-gray-500">Everything a UNIZIK student needs — in one place</p>
               </div>
             </Reveal>
@@ -560,7 +560,7 @@ export default function HomePage() {
                       />
 
                       <div className={`category-icon w-14 h-14 ${bg} rounded-2xl flex items-center justify-center text-3xl mb-3`}>{icon}</div>
-                      <h3 className="bata-display font-semibold text-gray-900 text-sm leading-snug mb-1">{name}</h3>
+                      <h3 className="BATAMART-display font-semibold text-gray-900 text-sm leading-snug mb-1">{name}</h3>
                       <p className="text-xs text-gray-400">{count}</p>
                     </div>
                   </MagneticCard>
@@ -575,8 +575,8 @@ export default function HomePage() {
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-200/60 to-transparent" />
           <div className="max-w-4xl mx-auto text-center">
             <Reveal>
-              <p className="text-purple-600 text-xs tracking-[0.3em] uppercase font-semibold mb-3 bata-display">Coverage</p>
-              <h2 className="bata-display text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+              <p className="text-purple-600 text-xs tracking-[0.3em] uppercase font-semibold mb-3 BATAMART-display">Coverage</p>
+              <h2 className="BATAMART-display text-4xl md:text-5xl font-bold text-gray-900 mb-4">
                 Delivering Across UNIZIK
               </h2>
               <p className="text-gray-500 mb-12 max-w-md mx-auto">
@@ -616,8 +616,8 @@ export default function HomePage() {
           <div className="relative max-w-5xl mx-auto">
             <Reveal>
               <div className="text-center mb-16">
-                <p className="text-purple-600 text-xs tracking-[0.3em] uppercase font-semibold mb-3 bata-display">By The Numbers</p>
-                <h2 className="bata-display text-4xl md:text-5xl font-bold text-gray-900">Growing Every Day</h2>
+                <p className="text-purple-600 text-xs tracking-[0.3em] uppercase font-semibold mb-3 BATAMART-display">By The Numbers</p>
+                <h2 className="BATAMART-display text-4xl md:text-5xl font-bold text-gray-900">Growing Every Day</h2>
               </div>
             </Reveal>
 
@@ -625,16 +625,16 @@ export default function HomePage() {
               {[
                 { value: 2000, suffix: '+', label: 'Active Users', sub: 'students trading daily', icon: '👥' },
                 { value: 5000, suffix: '+', label: 'Products Listed', sub: 'across all categories', icon: '📦' },
-                { value: 98,   suffix: '%', label: 'Satisfaction Rate', sub: 'verified buyer reviews', icon: '⭐' },
+                { value: 98, suffix: '%', label: 'Satisfaction Rate', sub: 'verified buyer reviews', icon: '⭐' },
               ].map(({ value, suffix, label, sub, icon }, i) => (
                 <Reveal key={label} delay={i * 100}>
                   <MagneticCard>
                     <div className="stat-card relative p-8 rounded-2xl bg-white border border-purple-100 text-center shadow-sm">
                       <div className="text-3xl mb-4">{icon}</div>
-                      <div className="bata-display text-5xl font-bold bg-gradient-to-br from-purple-700 to-indigo-600 bg-clip-text text-transparent tabular-nums mb-2">
+                      <div className="BATAMART-display text-5xl font-bold bg-gradient-to-br from-purple-700 to-indigo-600 bg-clip-text text-transparent tabular-nums mb-2">
                         <AnimatedCounter target={value} suffix={suffix} />
                       </div>
-                      <p className="text-gray-900 font-semibold mb-1 bata-display">{label}</p>
+                      <p className="text-gray-900 font-semibold mb-1 BATAMART-display">{label}</p>
                       <p className="text-gray-400 text-xs">{sub}</p>
                     </div>
                   </MagneticCard>
@@ -650,19 +650,19 @@ export default function HomePage() {
 
           {/* Giant watermark */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-            <span className="bata-display text-[20vw] font-bold text-purple-100 tracking-tighter">BATA</span>
+            <span className="BATAMART-display text-[20vw] font-bold text-purple-100 tracking-tighter">BATAMART</span>
           </div>
 
           <div className="relative max-w-3xl mx-auto text-center">
             <Reveal>
-              <p className="text-purple-600 text-xs tracking-[0.3em] uppercase font-semibold mb-4 bata-display">Get Started</p>
-              <h2 className="bata-display text-5xl md:text-6xl font-bold text-gray-900 leading-tight mb-6">
+              <p className="text-purple-600 text-xs tracking-[0.3em] uppercase font-semibold mb-4 BATAMART-display">Get Started</p>
+              <h2 className="BATAMART-display text-5xl md:text-6xl font-bold text-gray-900 leading-tight mb-6">
                 Ready to Start
                 <br />
                 <span className="hero-text-gradient">Trading?</span>
               </h2>
               <p className="text-gray-500 text-lg max-w-md mx-auto mb-10">
-                Join thousands of UNIZIK students using BATA for campus commerce. Free to join, easy to use.
+                Join thousands of UNIZIK students using BATAMART for campus commerce. Free to join, easy to use.
               </p>
             </Reveal>
 
@@ -670,7 +670,7 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
                   href="/signup"
-                  className="cta-btn inline-block bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-12 py-4 rounded-xl font-bold text-lg bata-display tracking-wide transition-all duration-300 shadow-[0_0_40px_rgba(91,33,182,0.3)] hover:shadow-[0_0_60px_rgba(91,33,182,0.5)] hover:-translate-y-1"
+                  className="cta-btn inline-block bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-12 py-4 rounded-xl font-bold text-lg BATAMART-display tracking-wide transition-all duration-300 shadow-[0_0_40px_rgba(91,33,182,0.3)] hover:shadow-[0_0_60px_rgba(91,33,182,0.5)] hover:-translate-y-1"
                 >
                   Create Free Account
                 </Link>
@@ -694,7 +694,7 @@ export default function HomePage() {
               className="inline-flex items-center gap-3 text-purple-700 hover:text-purple-900 transition-colors group"
             >
               <span className="text-xl">🛵</span>
-              <span className="bata-display font-semibold tracking-wide">Become a Rider</span>
+              <span className="BATAMART-display font-semibold tracking-wide">Become a Rider</span>
               <span className="text-gray-400 text-sm">— Earn ₦560 per delivery</span>
               <span className="text-purple-400 group-hover:translate-x-1 transition-transform">→</span>
             </Link>
@@ -707,11 +707,11 @@ export default function HomePage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
               <div className="col-span-2 md:col-span-1">
                 <div className="flex items-center mb-4">
-                  <Image 
-                    src="/BATAMART - logo.png" 
-                    alt="BATA Logo" 
-                    width={400} 
-                    height={400} 
+                  <Image
+                    src="/BATAMARTMART - logo.png"
+                    alt="BATAMART Logo"
+                    width={400}
+                    height={400}
                     className="w-32 h-32 object-contain mb-0.5"
                   />
                 </div>
@@ -724,7 +724,7 @@ export default function HomePage() {
                   label: 'Product',
                   links: [
                     { name: 'Marketplace', href: '/marketplace' },
-                    { name: 'Sell on BATA', href: '/sell' },
+                    { name: 'Sell on BATAMART', href: '/sell' },
                     { name: 'Become a Rider', href: '/rider-signup' },
                   ],
                 },
@@ -744,7 +744,7 @@ export default function HomePage() {
                 },
               ].map(({ label, links }) => (
                 <div key={label}>
-                  <h4 className="bata-display text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">{label}</h4>
+                  <h4 className="BATAMART-display text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">{label}</h4>
                   <ul className="space-y-2.5">
                     {links.map(({ name, href }) => (
                       <li key={name}>
@@ -764,7 +764,7 @@ export default function HomePage() {
             <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-8" />
 
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-              <p className="text-gray-400 text-xs">© 2026 BATA. Built with ❤️ for UNIZIK Students.</p>
+              <p className="text-gray-400 text-xs">© 2026 BATAMART. Built with ❤️ for UNIZIK Students.</p>
               <div className="flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                 <span className="text-xs text-gray-400">All systems operational</span>

@@ -294,7 +294,7 @@ function buildSellerOrderEmail(orderNumber: string, buyerName: string, orderNote
     : ''
 
   return {
-    subject: `🎉 New Order #${orderNumber} — BATA`,
+    subject: `🎉 New Order #${orderNumber} — BATAMART`,
     html: `
 <!DOCTYPE html>
 <html lang="en">
@@ -305,7 +305,7 @@ function buildSellerOrderEmail(orderNumber: string, buyerName: string, orderNote
       <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
         <tr>
           <td align="center" style="padding-bottom:24px;">
-            <span style="font-size:28px;font-weight:800;color:#111827;letter-spacing:-1px;">BATA</span>
+            <span style="font-size:28px;font-weight:800;color:#111827;letter-spacing:-1px;">BATAMART</span>
             <span style="font-size:12px;color:#6b7280;display:block;margin-top:2px;">UNIZIK Campus Marketplace</span>
           </td>
         </tr>
@@ -334,7 +334,7 @@ function buildSellerOrderEmail(orderNumber: string, buyerName: string, orderNote
         <tr>
           <td align="center" style="padding-top:24px;">
             <p style="font-size:12px;color:#9ca3af;margin:0;">
-              BATA — UNIZIK Campus Marketplace · Awka, Anambra State
+              BATAMART — UNIZIK Campus Marketplace · Awka, Anambra State
             </p>
           </td>
         </tr>

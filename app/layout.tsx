@@ -9,7 +9,7 @@ import { SuspensionGuard } from '@/components/layout/SuspensionGuard'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'BATA - UNIZIK Campus Marketplace',
+  title: 'BATAMART - UNIZIK Campus Marketplace',
   description: 'Student-to-student commerce at UNIZIK. Buy, sell, and deliver within campus.',
 }
 

@@ -94,7 +94,7 @@ export default function BecomeSellerPage() {
   if (checkingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-bata-primary border-t-transparent"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-BATAMART-primary border-t-transparent"></div>
       </div>
     )
   }
@@ -113,7 +113,7 @@ export default function BecomeSellerPage() {
           <div className="space-y-3">
             <button
               onClick={() => router.push('/sell')}
-              className="w-full bg-gradient-to-r from-bata-primary to-bata-secondary text-white py-3.5 rounded-xl font-bold text-lg shadow-lg"
+              className="w-full bg-gradient-to-r from-BATAMART-primary to-BATAMART-secondary text-white py-3.5 rounded-xl font-bold text-lg shadow-lg"
             >
               🛍️ List My First Product
             </button>
@@ -134,7 +134,7 @@ export default function BecomeSellerPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
-          <div className="w-16 h-16 border-4 border-bata-primary border-t-transparent rounded-full animate-spin mx-auto mb-6" />
+          <div className="w-16 h-16 border-4 border-BATAMART-primary border-t-transparent rounded-full animate-spin mx-auto mb-6" />
           <h2 className="text-xl font-bold text-gray-900 mb-2">Setting up your seller account...</h2>
           <p className="text-gray-500 text-sm">Saving face ID and upgrading your account.</p>
         </div>
@@ -145,7 +145,7 @@ export default function BecomeSellerPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-3xl mx-auto">
-        <Link href="/" className="text-bata-primary hover:underline mb-6 inline-block">
+        <Link href="/" className="text-BATAMART-primary hover:underline mb-6 inline-block">
           ← Back to Home
         </Link>
 
@@ -190,7 +190,7 @@ export default function BecomeSellerPage() {
             <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-6">
               <h3 className="font-bold text-indigo-900 text-lg mb-3">🔐 Face ID Security</h3>
               <p className="text-indigo-800 text-sm mb-3">
-                To protect your earnings, BATA requires a one-time face scan when you become a seller.
+                To protect your earnings, BATAMART requires a one-time face scan when you become a seller.
                 Your face will then be used to verify <strong>every withdrawal request</strong> — so only you can access your money.
               </p>
               <ul className="text-xs text-indigo-700 space-y-1">
@@ -235,14 +235,14 @@ export default function BecomeSellerPage() {
               <button
                 onClick={handleBecomeSeller}
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-bata-primary to-bata-secondary hover:from-bata-dark hover:to-bata-dark text-white py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
+                className="w-full bg-gradient-to-r from-BATAMART-primary to-BATAMART-secondary hover:from-BATAMART-dark hover:to-BATAMART-dark text-white py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
               >
                 {loading ? 'Processing...' : '🔐 Scan Face & Become a Seller'}
               </button>
 
               <p className="text-center text-gray-500 text-sm mt-4">
                 By becoming a seller, you agree to our{' '}
-                <Link href="/terms/sellers" className="text-bata-primary hover:underline">
+                <Link href="/terms/sellers" className="text-BATAMART-primary hover:underline">
                   Seller Terms & Conditions
                 </Link>
               </p>

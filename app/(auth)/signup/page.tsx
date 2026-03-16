@@ -28,7 +28,7 @@ function SignupForm() {
   const [faceLoading, setFaceLoading] = useState(false)
   const [createdToken, setCreatedToken] = useState<string | null>(null)
 
-  // ── Read referral code from URL (?ref=BATA-XXXXXX) ──────────
+  // ── Read referral code from URL (?ref=BATAMART-XXXXXX) ──────────
   const [referralCode, setReferralCode] = useState('')
   useEffect(() => {
     const ref = searchParams.get('ref')
@@ -217,15 +217,15 @@ function SignupForm() {
 
   const totalSteps = wantToSell ? 4 : 3
 
-  const BataLogo = () => (
+  const BATAMARTLogo = () => (
     <div className="text-center mb-8">
       <div className="inline-flex items-center space-x-2 mb-4">
-        <div className="w-12 h-12 bg-gradient-to-br from-bata-primary to-bata-secondary rounded-xl flex items-center justify-center shadow-lg">
+        <div className="w-12 h-12 bg-gradient-to-br from-BATAMART-primary to-BATAMART-secondary rounded-xl flex items-center justify-center shadow-lg">
           <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M3 3h18v4H3V3zm0 6h18v12H3V9zm2 2v8h14v-8H5zm2 2h10v4H7v-4z"/>
+            <path d="M3 3h18v4H3V3zm0 6h18v12H3V9zm2 2v8h14v-8H5zm2 2h10v4H7v-4z" />
           </svg>
         </div>
-        <span className="font-bold text-2xl bg-gradient-to-r from-bata-primary to-bata-secondary bg-clip-text text-transparent">BATA</span>
+        <span className="font-bold text-2xl bg-gradient-to-r from-BATAMART-primary to-BATAMART-secondary bg-clip-text text-transparent">BATAMART</span>
       </div>
       <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
       <p className="text-gray-500">Step {step} of {totalSteps}</p>
@@ -235,7 +235,7 @@ function SignupForm() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full">
-        <BataLogo />
+        <BATAMARTLogo />
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
 
@@ -249,7 +249,7 @@ function SignupForm() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-BATAMART-primary focus:outline-none"
                   placeholder="Enter your full name"
                 />
               </div>
@@ -269,7 +269,7 @@ function SignupForm() {
                     }}
                     required
                     maxLength={11}
-                    className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-r-lg focus:border-bata-primary focus:outline-none"
+                    className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-r-lg focus:border-BATAMART-primary focus:outline-none"
                     placeholder="08012345678"
                   />
                 </div>
@@ -282,7 +282,7 @@ function SignupForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-BATAMART-primary focus:outline-none"
                   placeholder="you@example.com"
                 />
                 <p className="text-xs text-gray-500 mt-1">A verification code will be sent to this email</p>
@@ -297,8 +297,8 @@ function SignupForm() {
                   type="text"
                   value={referralCode}
                   onChange={(e) => setReferralCode(e.target.value.trim().toUpperCase())}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none font-mono tracking-widest uppercase"
-                  placeholder="BATA-XXXXXX"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-BATAMART-primary focus:outline-none font-mono tracking-widest uppercase"
+                  placeholder="BATAMART-XXXXXX"
                   maxLength={11}
                 />
                 {referralCode && (
@@ -315,10 +315,10 @@ function SignupForm() {
                     type="checkbox"
                     checked={wantToSell}
                     onChange={(e) => setWantToSell(e.target.checked)}
-                    className="h-5 w-5 text-bata-primary focus:ring-bata-primary border-gray-300 rounded"
+                    className="h-5 w-5 text-BATAMART-primary focus:ring-BATAMART-primary border-gray-300 rounded"
                   />
                   <label htmlFor="wantToSell" className="ml-3 text-sm font-medium text-gray-700">
-                    I want to sell products on BATA
+                    I want to sell products on BATAMART
                   </label>
                 </div>
                 {wantToSell && (
@@ -339,7 +339,7 @@ function SignupForm() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-bata-primary hover:bg-bata-dark text-white py-3.5 rounded-lg font-bold text-lg disabled:opacity-50"
+                className="w-full bg-BATAMART-primary hover:bg-BATAMART-dark text-white py-3.5 rounded-lg font-bold text-lg disabled:opacity-50"
               >
                 {loading ? 'Sending...' : 'Send Verification Code'}
               </button>
@@ -368,7 +368,7 @@ function SignupForm() {
                       value={digit}
                       onChange={(e) => handleOtpChange(i, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(i, e)}
-                      className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none transition-colors"
+                      className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-lg focus:border-BATAMART-primary focus:outline-none transition-colors"
                     />
                   ))}
                 </div>
@@ -379,7 +379,7 @@ function SignupForm() {
               <button
                 onClick={handleVerifyOTP}
                 disabled={loading || otp.join('').length !== 6}
-                className="w-full bg-bata-primary hover:bg-bata-dark text-white py-3.5 rounded-lg font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="w-full bg-BATAMART-primary hover:bg-BATAMART-dark text-white py-3.5 rounded-lg font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -391,8 +391,8 @@ function SignupForm() {
 
               <div className="text-center space-y-2">
                 <button
-                  onClick={() => { setStep(1); setOtp(['','','','','','']); setError('') }}
-                  className="text-sm text-gray-500 hover:text-bata-primary transition-colors"
+                  onClick={() => { setStep(1); setOtp(['', '', '', '', '', '']); setError('') }}
+                  className="text-sm text-gray-500 hover:text-BATAMART-primary transition-colors"
                 >
                   ← Change email
                 </button>
@@ -400,7 +400,7 @@ function SignupForm() {
                   <button
                     onClick={handleSendOTP as unknown as React.MouseEventHandler}
                     disabled={loading}
-                    className="text-sm text-bata-primary hover:underline disabled:opacity-50"
+                    className="text-sm text-BATAMART-primary hover:underline disabled:opacity-50"
                   >
                     Resend code
                   </button>
@@ -419,7 +419,7 @@ function SignupForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-BATAMART-primary focus:outline-none"
                   placeholder="Min 8 characters, include a number"
                 />
               </div>
@@ -430,7 +430,7 @@ function SignupForm() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-BATAMART-primary focus:outline-none"
                   placeholder="Repeat your password"
                 />
               </div>
@@ -449,15 +449,15 @@ function SignupForm() {
                     type="checkbox"
                     checked={agreedToTerms}
                     onChange={(e) => setAgreedToTerms(e.target.checked)}
-                    className="mt-0.5 h-5 w-5 flex-shrink-0 text-bata-primary focus:ring-bata-primary border-gray-300 rounded cursor-pointer"
+                    className="mt-0.5 h-5 w-5 flex-shrink-0 text-BATAMART-primary focus:ring-BATAMART-primary border-gray-300 rounded cursor-pointer"
                   />
                   <label htmlFor="agreeTerms" className="text-sm text-gray-600 cursor-pointer leading-relaxed">
-                    I have read and agree to BATA's{' '}
-                    <Link href="/terms" target="_blank" className="text-bata-primary font-semibold hover:underline">
+                    I have read and agree to BATAMART's{' '}
+                    <Link href="/terms" target="_blank" className="text-BATAMART-primary font-semibold hover:underline">
                       Terms & Conditions
                     </Link>{' '}
                     and{' '}
-                    <Link href="/privacy" target="_blank" className="text-bata-primary font-semibold hover:underline">
+                    <Link href="/privacy" target="_blank" className="text-BATAMART-primary font-semibold hover:underline">
                       Privacy Policy
                     </Link>
                   </label>
@@ -469,13 +469,13 @@ function SignupForm() {
               <button
                 type="submit"
                 disabled={loading || !agreedToTerms}
-                className="w-full bg-bata-primary hover:bg-bata-dark text-white py-3.5 rounded-lg font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="w-full bg-BATAMART-primary hover:bg-BATAMART-dark text-white py-3.5 rounded-lg font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 {loading
                   ? 'Creating account...'
                   : wantToSell
-                  ? '🎉 Create Seller Account'
-                  : 'Complete Signup'}
+                    ? '🎉 Create Seller Account'
+                    : 'Complete Signup'}
               </button>
 
               {!agreedToTerms && (
@@ -529,7 +529,7 @@ function SignupForm() {
 
               {faceLoading && (
                 <div className="text-center py-2">
-                  <div className="inline-block w-6 h-6 border-2 border-bata-primary border-t-transparent rounded-full animate-spin" />
+                  <div className="inline-block w-6 h-6 border-2 border-BATAMART-primary border-t-transparent rounded-full animate-spin" />
                   <p className="text-sm text-gray-500 mt-2">Saving face data...</p>
                 </div>
               )}
@@ -546,7 +546,7 @@ function SignupForm() {
                   <button
                     onClick={() => setShowFaceScan(true)}
                     disabled={faceLoading}
-                    className="w-full bg-bata-primary hover:bg-bata-dark text-white py-3.5 rounded-lg font-bold text-lg disabled:opacity-50 transition"
+                    className="w-full bg-BATAMART-primary hover:bg-BATAMART-dark text-white py-3.5 rounded-lg font-bold text-lg disabled:opacity-50 transition"
                   >
                     {faceLoading ? 'Saving...' : '📸 Start Face Scan'}
                   </button>
@@ -564,7 +564,7 @@ function SignupForm() {
           <div className="mt-6 text-center">
             <p className="text-gray-600 text-sm">
               Already have an account?{' '}
-              <Link href="/login" className="text-bata-primary font-semibold hover:underline">Login</Link>
+              <Link href="/login" className="text-BATAMART-primary font-semibold hover:underline">Login</Link>
             </p>
           </div>
         </div>
@@ -588,7 +588,7 @@ export default function SignupPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-8 h-8 border-2 border-bata-primary border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-BATAMART-primary border-t-transparent rounded-full animate-spin" />
       </div>
     }>
       <SignupForm />

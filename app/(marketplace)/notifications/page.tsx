@@ -181,8 +181,8 @@ export default function NotificationsPage() {
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-bata-primary/10 rounded-full flex items-center justify-center">
-                <Bell className="w-6 h-6 text-bata-primary" />
+              <div className="w-12 h-12 bg-BATAMART-primary/10 rounded-full flex items-center justify-center">
+                <Bell className="w-6 h-6 text-BATAMART-primary" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
@@ -197,7 +197,7 @@ export default function NotificationsPage() {
               {unreadCount > 0 && (
                 <button
                   onClick={markAllAsRead}
-                  className="px-4 py-2 text-sm font-medium text-bata-primary hover:bg-bata-primary/10 rounded-lg transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-BATAMART-primary hover:bg-BATAMART-primary/10 rounded-lg transition-colors"
                 >
                   Mark all read
                 </button>
@@ -218,31 +218,28 @@ export default function NotificationsPage() {
           <div className="flex gap-2 border-t pt-4">
             <button
               onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                filter === 'all'
-                  ? 'bg-bata-primary text-white'
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'all'
+                  ? 'bg-BATAMART-primary text-white'
                   : 'text-gray-600 hover:bg-gray-100'
-              }`}
+                }`}
             >
               All ({notifications.length})
             </button>
             <button
               onClick={() => setFilter('unread')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                filter === 'unread'
-                  ? 'bg-bata-primary text-white'
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'unread'
+                  ? 'bg-BATAMART-primary text-white'
                   : 'text-gray-600 hover:bg-gray-100'
-              }`}
+                }`}
             >
               Unread ({unreadCount})
             </button>
             <button
               onClick={() => setFilter('read')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                filter === 'read'
-                  ? 'bg-bata-primary text-white'
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'read'
+                  ? 'bg-BATAMART-primary text-white'
                   : 'text-gray-600 hover:bg-gray-100'
-              }`}
+                }`}
             >
               Read ({notifications.length - unreadCount})
             </button>
@@ -253,7 +250,7 @@ export default function NotificationsPage() {
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           {loading ? (
             <div className="p-12 text-center">
-              <div className="inline-block w-8 h-8 border-4 border-bata-primary border-t-transparent rounded-full animate-spin"></div>
+              <div className="inline-block w-8 h-8 border-4 border-BATAMART-primary border-t-transparent rounded-full animate-spin"></div>
               <p className="mt-4 text-gray-500">Loading notifications...</p>
             </div>
           ) : filteredNotifications.length === 0 ? (
@@ -273,9 +270,8 @@ export default function NotificationsPage() {
               {filteredNotifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-6 hover:bg-gray-50 transition-colors ${
-                    !notification.isRead ? 'bg-blue-50/50' : ''
-                  }`}
+                  className={`p-6 hover:bg-gray-50 transition-colors ${!notification.isRead ? 'bg-blue-50/50' : ''
+                    }`}
                 >
                   <div className="flex items-start gap-4">
                     {/* Icon */}
@@ -299,7 +295,7 @@ export default function NotificationsPage() {
                             {notification.title}
                           </h3>
                           {!notification.isRead && (
-                            <span className="flex-shrink-0 w-2 h-2 bg-bata-primary rounded-full mt-2"></span>
+                            <span className="flex-shrink-0 w-2 h-2 bg-BATAMART-primary rounded-full mt-2"></span>
                           )}
                         </div>
                         <p className="text-sm text-gray-600 mb-2 line-clamp-2">

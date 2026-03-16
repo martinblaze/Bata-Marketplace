@@ -58,12 +58,12 @@ export default function RiderLoginPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center space-x-2 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-bata-primary to-bata-secondary rounded-xl flex items-center justify-center shadow-lg">
+            <div className="w-12 h-12 bg-gradient-to-br from-BATAMART-primary to-BATAMART-secondary rounded-xl flex items-center justify-center shadow-lg">
               <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M3 3h18v4H3V3zm0 6h18v12H3V9zm2 2v8h14v-8H5zm2 2h10v4H7v-4z" />
               </svg>
             </div>
-            <span className="font-bold text-2xl bg-gradient-to-r from-bata-primary to-bata-secondary bg-clip-text text-transparent">BATA</span>
+            <span className="font-bold text-2xl bg-gradient-to-r from-BATAMART-primary to-BATAMART-secondary bg-clip-text text-transparent">BATAMART</span>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Rider Login</h1>
           <p className="text-gray-600">Log in to see available deliveries</p>
@@ -90,7 +90,7 @@ export default function RiderLoginPage() {
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
                 autoComplete="email"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none transition-colors"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-BATAMART-primary focus:outline-none transition-colors"
                 placeholder="you@gmail.com"
               />
             </div>
@@ -106,7 +106,7 @@ export default function RiderLoginPage() {
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
                 autoComplete="current-password"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-bata-primary focus:outline-none transition-colors"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-BATAMART-primary focus:outline-none transition-colors"
                 placeholder="Enter your password"
               />
             </div>
@@ -120,7 +120,7 @@ export default function RiderLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-bata-primary hover:bg-bata-dark text-white py-3.5 rounded-lg font-bold text-lg disabled:opacity-50 transition-all shadow-md"
+              className="w-full bg-BATAMART-primary hover:bg-BATAMART-dark text-white py-3.5 rounded-lg font-bold text-lg disabled:opacity-50 transition-all shadow-md"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -137,7 +137,7 @@ export default function RiderLoginPage() {
           <div className="mt-6 space-y-3 text-center">
             <p className="text-gray-600">
               New rider?{' '}
-              <Link href="/rider/signup" className="text-bata-primary font-semibold hover:underline">
+              <Link href="/rider/signup" className="text-BATAMART-primary font-semibold hover:underline">
                 Register here
               </Link>
             </p>

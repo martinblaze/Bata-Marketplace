@@ -42,22 +42,22 @@ export default function ReviewProductPage() {
   const fetchOrder = async () => {
     try {
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         router.push('/login');
         return;
       }
-      
+
       const response = await fetch(`/api/orders/${params.id}`, {
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${token}`
         },
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setOrder(data);
-        
+
         // Check if product already reviewed
         const hasProductReview = data.productReviews && data.productReviews.length > 0;
         if (hasProductReview) {
@@ -85,13 +85,13 @@ export default function ReviewProductPage() {
 
     setSubmitting(true);
     setError('');
-    
+
     try {
       const token = localStorage.getItem('token');
-      
+
       const response = await fetch('/api/reviews/product', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
@@ -126,7 +126,7 @@ export default function ReviewProductPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-bata-primary border-t-transparent"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-BATAMART-primary border-t-transparent"></div>
       </div>
     );
   }
@@ -192,7 +192,7 @@ export default function ReviewProductPage() {
                 <p className="text-gray-600 text-sm mt-1">
                   Order #{order.id.slice(-8)}
                 </p>
-                <p className="text-bata-primary font-bold text-lg mt-1">
+                <p className="text-BATAMART-primary font-bold text-lg mt-1">
                   ₦{order.totalAmount?.toLocaleString()}
                 </p>
               </div>
@@ -214,11 +214,10 @@ export default function ReviewProductPage() {
                   className="p-2 hover:scale-110 transition-transform"
                 >
                   <Star
-                    className={`w-12 h-12 ${
-                      star <= (hoverRating || rating)
+                    className={`w-12 h-12 ${star <= (hoverRating || rating)
                         ? 'fill-yellow-400 text-yellow-400'
                         : 'text-gray-300'
-                    }`}
+                      }`}
                   />
                 </button>
               ))}

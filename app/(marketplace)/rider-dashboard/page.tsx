@@ -30,8 +30,8 @@ export default function RiderDashboardPage() {
         fetch('/api/riders/my-deliveries', { headers: { 'Authorization': `Bearer ${token}` } }),
       ])
 
-      const profileData  = await profileRes.json()
-      const ordersData   = await ordersRes.json()
+      const profileData = await profileRes.json()
+      const ordersData = await ordersRes.json()
       const deliveriesData = await deliveriesRes.json()
 
       setRider(profileData.user)
@@ -126,7 +126,7 @@ export default function RiderDashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-bata-primary border-t-transparent" />
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-BATAMART-primary border-t-transparent" />
       </div>
     )
   }
@@ -145,9 +145,8 @@ export default function RiderDashboardPage() {
             <button
               onClick={toggleAvailability}
               disabled={actionLoading['toggle-availability']}
-              className={`px-6 py-3 rounded-lg font-bold transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                isAvailable ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
-              }`}
+              className={`px-6 py-3 rounded-lg font-bold transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${isAvailable ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+                }`}
             >
               {actionLoading['toggle-availability']
                 ? <><Loader2 className="w-5 h-5 animate-spin" /> Updating...</>
@@ -311,7 +310,7 @@ export default function RiderDashboardPage() {
                   <button
                     onClick={() => acceptOrder(order.id)}
                     disabled={actionLoading[`accept-${order.id}`] || hasDisputePickupPending}
-                    className="w-full mt-4 bg-bata-primary hover:bg-bata-dark text-white py-2 rounded-lg font-bold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="w-full mt-4 bg-BATAMART-primary hover:bg-BATAMART-dark text-white py-2 rounded-lg font-bold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     {actionLoading[`accept-${order.id}`]
                       ? <><Loader2 className="w-4 h-4 animate-spin" /> Accepting...</>

@@ -121,9 +121,9 @@ const RESOLUTION_LABELS: Record<string, { label: string; icon: React.ElementType
 }
 
 const STEPS = [
-  { key: 'OPEN',         label: 'Filed',        icon: Shield },
-  { key: 'UNDER_REVIEW', label: 'In Review',     icon: Clock },
-  { key: 'RESOLVED',     label: 'Resolved',      icon: CheckCircle2 },
+  { key: 'OPEN', label: 'Filed', icon: Shield },
+  { key: 'UNDER_REVIEW', label: 'In Review', icon: Clock },
+  { key: 'RESOLVED', label: 'Resolved', icon: CheckCircle2 },
 ]
 
 function formatTime(dateString: string) {
@@ -163,19 +163,19 @@ function groupByDate(messages: DisputeMessage[]) {
 }
 
 export default function DisputeDetailsPage() {
-  const params   = useParams()
-  const router   = useRouter()
+  const params = useParams()
+  const router = useRouter()
   const disputeId = params.id as string
 
-  const [dispute,    setDispute]    = useState<Dispute | null>(null)
-  const [loading,    setLoading]    = useState(true)
-  const [sending,    setSending]    = useState(false)
+  const [dispute, setDispute] = useState<Dispute | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [sending, setSending] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  const [error,      setError]      = useState('')
+  const [error, setError] = useState('')
   const [newMessage, setNewMessage] = useState('')
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const inputRef       = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { fetchDispute() }, [disputeId])
 
@@ -287,7 +287,7 @@ export default function DisputeDetailsPage() {
     : null
   const currentStep = statusInfo.step
   const messageGroups = groupByDate(dispute.messages)
-  const ticketId = `BATA-${dispute.id.slice(-8).toUpperCase()}`
+  const ticketId = `BATAMART-${dispute.id.slice(-8).toUpperCase()}`
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -350,29 +350,26 @@ export default function DisputeDetailsPage() {
             <div className="flex items-center">
               {STEPS.map((step, idx) => {
                 const StepIcon = step.icon
-                const done    = currentStep > idx + 1
-                const active  = currentStep === idx + 1
-                const last    = idx === STEPS.length - 1
+                const done = currentStep > idx + 1
+                const active = currentStep === idx + 1
+                const last = idx === STEPS.length - 1
                 return (
                   <div key={step.key} className="flex items-center flex-1 last:flex-none">
                     <div className="flex flex-col items-center">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${
-                        done   ? 'bg-gray-900 border-gray-900'
-                        : active ? 'bg-orange-500 border-orange-500'
-                        : 'bg-white border-gray-200'
-                      }`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${done ? 'bg-gray-900 border-gray-900'
+                          : active ? 'bg-orange-500 border-orange-500'
+                            : 'bg-white border-gray-200'
+                        }`}>
                         <StepIcon className={`w-4 h-4 ${(done || active) ? 'text-white' : 'text-gray-300'}`} />
                       </div>
-                      <p className={`text-xs font-semibold mt-1.5 whitespace-nowrap ${
-                        active ? 'text-orange-600' : done ? 'text-gray-900' : 'text-gray-400'
-                      }`}>
+                      <p className={`text-xs font-semibold mt-1.5 whitespace-nowrap ${active ? 'text-orange-600' : done ? 'text-gray-900' : 'text-gray-400'
+                        }`}>
                         {step.label}
                       </p>
                     </div>
                     {!last && (
-                      <div className={`flex-1 h-0.5 mx-3 mb-4 rounded-full transition-colors ${
-                        done ? 'bg-gray-900' : 'bg-gray-200'
-                      }`} />
+                      <div className={`flex-1 h-0.5 mx-3 mb-4 rounded-full transition-colors ${done ? 'bg-gray-900' : 'bg-gray-200'
+                        }`} />
                     )}
                   </div>
                 )
@@ -447,7 +444,7 @@ export default function DisputeDetailsPage() {
               <Shield className="w-4 h-4 text-white" />
             </div>
             <div>
-              <p className="text-sm font-bold text-gray-900">BataMart Support</p>
+              <p className="text-sm font-bold text-gray-900">BATAMARTMart Support</p>
               <p className="text-xs text-gray-400">Dispute Resolution Team · Replies within 24h</p>
             </div>
             <div className="ml-auto flex items-center gap-1.5">
@@ -489,8 +486,8 @@ export default function DisputeDetailsPage() {
                   </div>
 
                   {group.messages.map((msg) => {
-                    const isAdmin  = msg.senderType === 'ADMIN'
-                    const isBuyer  = msg.senderType === 'BUYER'
+                    const isAdmin = msg.senderType === 'ADMIN'
+                    const isBuyer = msg.senderType === 'BUYER'
 
                     return (
                       <div key={msg.id} className={`flex ${isBuyer ? 'justify-end' : 'justify-start'}`}>
@@ -505,11 +502,10 @@ export default function DisputeDetailsPage() {
                           {isAdmin && (
                             <p className="text-xs font-semibold text-gray-500 ml-1">Support Team</p>
                           )}
-                          <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-                            isBuyer
+                          <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${isBuyer
                               ? 'bg-orange-500 text-white rounded-br-md'
                               : 'bg-gray-100 text-gray-900 rounded-bl-md'
-                          }`}>
+                            }`}>
                             {msg.message}
                           </div>
                           <p className={`text-[11px] px-1 ${isBuyer ? 'text-gray-400 text-right' : 'text-gray-400'}`}>
@@ -573,9 +569,9 @@ export default function DisputeDetailsPage() {
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">What happens next</p>
             <div className="space-y-3">
               {[
-                { icon: Shield,       text: 'Your case is being reviewed by our admin team.' },
-                { icon: MessageSquare,text: 'We\'ll send you a message here if we need more information.' },
-                { icon: Clock,        text: 'Expect a final decision within 3–5 business days.' },
+                { icon: Shield, text: 'Your case is being reviewed by our admin team.' },
+                { icon: MessageSquare, text: 'We\'ll send you a message here if we need more information.' },
+                { icon: Clock, text: 'Expect a final decision within 3–5 business days.' },
                 ...(dispute.resolutionPreference === 'REFUND_WITH_PICKUP'
                   ? [{ icon: Truck, text: 'If approved, a rider will collect the item before your refund is processed.' }]
                   : []),

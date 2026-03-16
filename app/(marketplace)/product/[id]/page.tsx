@@ -139,8 +139,8 @@ export default function ProductPage() {
     ? product.quantity > 10
       ? { label: 'In Stock', color: 'text-emerald-600', bg: 'bg-emerald-50', ring: 'ring-emerald-200', dot: 'bg-emerald-500' }
       : product.quantity > 0
-      ? { label: `Only ${product.quantity} left`, color: 'text-amber-600', bg: 'bg-amber-50', ring: 'ring-amber-200', dot: 'bg-amber-500' }
-      : { label: 'Out of Stock', color: 'text-red-600', bg: 'bg-red-50', ring: 'ring-red-200', dot: 'bg-red-500' }
+        ? { label: `Only ${product.quantity} left`, color: 'text-amber-600', bg: 'bg-amber-50', ring: 'ring-amber-200', dot: 'bg-amber-500' }
+        : { label: 'Out of Stock', color: 'text-red-600', bg: 'bg-red-50', ring: 'ring-red-200', dot: 'bg-red-500' }
     : null;
 
   // ── Loading skeleton ──────────────────────────────────────────────────────
@@ -153,7 +153,7 @@ export default function ProductPage() {
             <div className="space-y-4">
               <div className="aspect-square bg-gray-200 rounded-2xl animate-pulse" />
               <div className="flex gap-3">
-                {[1,2,3,4].map(i => <div key={i} className="w-20 h-20 bg-gray-200 rounded-xl animate-pulse flex-shrink-0" />)}
+                {[1, 2, 3, 4].map(i => <div key={i} className="w-20 h-20 bg-gray-200 rounded-xl animate-pulse flex-shrink-0" />)}
               </div>
             </div>
             <div className="space-y-5">
@@ -179,7 +179,7 @@ export default function ProductPage() {
           <p className="text-gray-500 mb-6">The product you're looking for doesn't exist or has been removed.</p>
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2 bg-bata-primary hover:bg-bata-dark text-white px-6 py-3 rounded-xl font-bold transition-all shadow-md"
+            className="inline-flex items-center gap-2 bg-BATAMART-primary hover:bg-BATAMART-dark text-white px-6 py-3 rounded-xl font-bold transition-all shadow-md"
           >
             <ChevronLeft className="w-4 h-4" /> Go Back
           </button>
@@ -217,7 +217,7 @@ export default function ProductPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-bata-primary transition-colors group"
+            className="flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-BATAMART-primary transition-colors group"
           >
             <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
             Back
@@ -229,7 +229,7 @@ export default function ProductPage() {
           </div>
           <button
             onClick={handleShare}
-            className="flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-bata-primary transition-colors"
+            className="flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-BATAMART-primary transition-colors"
           >
             <Share2 className="w-4 h-4" />
             <span className="hidden sm:inline">Share</span>
@@ -274,7 +274,7 @@ export default function ProductPage() {
                     <button
                       key={i}
                       onClick={() => setCurrentImageIndex(i)}
-                      className={`rounded-full transition-all duration-200 ${i === currentImageIndex ? 'w-5 h-1.5 bg-bata-primary' : 'w-1.5 h-1.5 bg-gray-300 hover:bg-gray-400'}`}
+                      className={`rounded-full transition-all duration-200 ${i === currentImageIndex ? 'w-5 h-1.5 bg-BATAMART-primary' : 'w-1.5 h-1.5 bg-gray-300 hover:bg-gray-400'}`}
                     />
                   ))}
                 </div>
@@ -288,11 +288,10 @@ export default function ProductPage() {
                   <button
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
-                    className={`flex-shrink-0 w-16 sm:w-20 h-16 sm:h-20 rounded-xl overflow-hidden border-2 transition-all duration-200 ${
-                      currentImageIndex === index
-                        ? 'border-bata-primary shadow-md shadow-bata-primary/20'
+                    className={`flex-shrink-0 w-16 sm:w-20 h-16 sm:h-20 rounded-xl overflow-hidden border-2 transition-all duration-200 ${currentImageIndex === index
+                        ? 'border-BATAMART-primary shadow-md shadow-BATAMART-primary/20'
                         : 'border-gray-200 hover:border-gray-300 opacity-70 hover:opacity-100'
-                    }`}
+                      }`}
                   >
                     <img src={img} alt={`${product.name} ${index + 1}`} className="w-full h-full object-cover" />
                   </button>
@@ -303,7 +302,7 @@ export default function ProductPage() {
             {/* Trust badges */}
             <div className="grid grid-cols-3 gap-2">
               {[
-                { icon: <Shield className="w-4 h-4 text-bata-primary" />, label: 'Verified Seller' },
+                { icon: <Shield className="w-4 h-4 text-BATAMART-primary" />, label: 'Verified Seller' },
                 { icon: <Zap className="w-4 h-4 text-amber-500" />, label: 'Fast Delivery' },
                 { icon: <BadgeCheck className="w-4 h-4 text-emerald-500" />, label: 'Campus Safe' },
               ].map(({ icon, label }) => (
@@ -320,7 +319,7 @@ export default function ProductPage() {
 
             {/* Category + stock badges */}
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] font-bold text-bata-primary uppercase tracking-widest bg-bata-primary/8 px-3 py-1 rounded-full">
+              <span className="text-[11px] font-bold text-BATAMART-primary uppercase tracking-widest bg-BATAMART-primary/8 px-3 py-1 rounded-full">
                 {product.category}
               </span>
               {stockStatus && (
@@ -339,7 +338,7 @@ export default function ProductPage() {
               {product.avgRating > 0 && (
                 <div className="flex items-center gap-2 mt-2">
                   <div className="flex">
-                    {[1,2,3,4,5].map(s => (
+                    {[1, 2, 3, 4, 5].map(s => (
                       <Star key={s} className={`w-4 h-4 ${s <= Math.round(product.avgRating) ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-200'}`} />
                     ))}
                   </div>
@@ -351,7 +350,7 @@ export default function ProductPage() {
 
             {/* Price block */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 shadow-sm">
-              <p className="text-3xl sm:text-4xl font-black text-bata-primary tracking-tight">
+              <p className="text-3xl sm:text-4xl font-black text-BATAMART-primary tracking-tight">
                 {formatPrice(product.price)}
               </p>
               <p className="text-xs text-gray-400 mt-1 font-medium">Price per unit · Campus delivery available</p>
@@ -367,7 +366,7 @@ export default function ProductPage() {
                     {descriptionTags.map((tag: string) => (
                       <span
                         key={tag}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-bata-primary/8 text-bata-primary text-sm font-semibold rounded-full ring-1 ring-bata-primary/15"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-BATAMART-primary/8 text-BATAMART-primary text-sm font-semibold rounded-full ring-1 ring-BATAMART-primary/15"
                       >
                         <Tag className="w-3 h-3" /> {tag}
                       </span>
@@ -410,7 +409,7 @@ export default function ProductPage() {
               <button
                 onClick={addToCart}
                 disabled={product.quantity === 0}
-                className="w-full flex items-center justify-center gap-2.5 bg-bata-primary hover:bg-bata-dark disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 rounded-xl font-black text-base shadow-lg shadow-bata-primary/25 hover:shadow-xl hover:shadow-bata-primary/30 transition-all duration-200 active:scale-[0.98]"
+                className="w-full flex items-center justify-center gap-2.5 bg-BATAMART-primary hover:bg-BATAMART-dark disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 rounded-xl font-black text-base shadow-lg shadow-BATAMART-primary/25 hover:shadow-xl hover:shadow-BATAMART-primary/30 transition-all duration-200 active:scale-[0.98]"
               >
                 <ShoppingCart className="w-5 h-5" />
                 Add to Cart · {formatPrice(product.price * quantity)}
@@ -418,7 +417,7 @@ export default function ProductPage() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => router.push('/cart')}
-                  className="flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-gray-200 hover:border-bata-primary hover:bg-bata-primary/5 text-gray-700 hover:text-bata-primary font-bold text-sm transition-all"
+                  className="flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-gray-200 hover:border-BATAMART-primary hover:bg-BATAMART-primary/5 text-gray-700 hover:text-BATAMART-primary font-bold text-sm transition-all"
                 >
                   <ShoppingCart className="w-4 h-4" /> View Cart
                 </button>
@@ -442,8 +441,8 @@ export default function ProductPage() {
                       className="w-14 h-14 rounded-full object-cover ring-2 ring-gray-100"
                     />
                   ) : (
-                    <div className="w-14 h-14 rounded-full bg-bata-primary/10 flex items-center justify-center ring-2 ring-bata-primary/20">
-                      <span className="text-bata-primary font-black text-xl">
+                    <div className="w-14 h-14 rounded-full bg-BATAMART-primary/10 flex items-center justify-center ring-2 ring-BATAMART-primary/20">
+                      <span className="text-BATAMART-primary font-black text-xl">
                         {(product.seller?.name || 'S')[0]}
                       </span>
                     </div>
@@ -456,7 +455,7 @@ export default function ProductPage() {
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">Sold by</p>
                   <Link
                     href={`/seller/${product.sellerId}`}
-                    className="text-lg font-black text-gray-900 hover:text-bata-primary transition-colors truncate block"
+                    className="text-lg font-black text-gray-900 hover:text-BATAMART-primary transition-colors truncate block"
                   >
                     {product.seller?.name || 'Seller'}
                   </Link>
@@ -471,7 +470,7 @@ export default function ProductPage() {
               {/* Seller stats */}
               <div className="grid grid-cols-3 border-t border-gray-50">
                 {[
-                  { icon: <TrendingUp className="w-4 h-4 text-bata-primary" />, value: product.seller?.completedOrders || 0, label: 'Orders' },
+                  { icon: <TrendingUp className="w-4 h-4 text-BATAMART-primary" />, value: product.seller?.completedOrders || 0, label: 'Orders' },
                   { icon: <Star className="w-4 h-4 text-amber-400 fill-amber-400" />, value: product.seller?.avgRating?.toFixed(1) || '0.0', label: 'Rating' },
                   { icon: <Shield className="w-4 h-4 text-purple-500" />, value: product.seller?.trustLevel || 'Bronze', label: 'Level' },
                 ].map(({ icon, value, label }, i) => (
@@ -495,7 +494,7 @@ export default function ProductPage() {
                   <ReviewList reviews={sellerReviews.slice(0, 2)} />
                   <button
                     onClick={() => router.push(`/seller/${product.sellerId}`)}
-                    className="w-full mt-3 flex items-center justify-center gap-1.5 text-sm font-bold text-bata-primary hover:text-bata-dark transition-colors py-2 hover:bg-bata-primary/5 rounded-xl"
+                    className="w-full mt-3 flex items-center justify-center gap-1.5 text-sm font-bold text-BATAMART-primary hover:text-BATAMART-dark transition-colors py-2 hover:bg-BATAMART-primary/5 rounded-xl"
                   >
                     View All Reviews <ArrowRight className="w-3.5 h-3.5" />
                   </button>
@@ -506,8 +505,8 @@ export default function ProductPage() {
             {/* Product details card */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-8 h-8 bg-bata-primary/10 rounded-lg flex items-center justify-center">
-                  <Package className="w-4 h-4 text-bata-primary" />
+                <div className="w-8 h-8 bg-BATAMART-primary/10 rounded-lg flex items-center justify-center">
+                  <Package className="w-4 h-4 text-BATAMART-primary" />
                 </div>
                 <h3 className="font-black text-gray-900">Product Details</h3>
               </div>
@@ -541,7 +540,7 @@ export default function ProductPage() {
                   {product.avgRating > 0 && (
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <div className="flex">
-                        {[1,2,3,4,5].map(s => (
+                        {[1, 2, 3, 4, 5].map(s => (
                           <Star key={s} className={`w-3.5 h-3.5 ${s <= Math.floor(product.avgRating) ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-200'}`} />
                         ))}
                       </div>
@@ -554,7 +553,7 @@ export default function ProductPage() {
               {product.totalReviews > 0 && (
                 <Link
                   href={`/product/${params.id}/reviews`}
-                  className="hidden sm:flex items-center gap-1.5 text-sm font-bold text-bata-primary hover:text-bata-dark transition-colors"
+                  className="hidden sm:flex items-center gap-1.5 text-sm font-bold text-BATAMART-primary hover:text-BATAMART-dark transition-colors"
                 >
                   View All <ArrowRight className="w-4 h-4" />
                 </Link>
@@ -570,8 +569,8 @@ export default function ProductPage() {
                         {review.reviewer?.profilePhoto ? (
                           <img src={review.reviewer.profilePhoto} alt={review.reviewer.name} className="w-10 h-10 rounded-full flex-shrink-0 object-cover" />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-bata-primary/10 flex items-center justify-center flex-shrink-0">
-                            <span className="text-bata-primary font-black text-sm">{(review.reviewer?.name || 'A')[0]}</span>
+                          <div className="w-10 h-10 rounded-full bg-BATAMART-primary/10 flex items-center justify-center flex-shrink-0">
+                            <span className="text-BATAMART-primary font-black text-sm">{(review.reviewer?.name || 'A')[0]}</span>
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
@@ -580,7 +579,7 @@ export default function ProductPage() {
                               <p className="font-bold text-sm text-gray-900">{review.reviewer?.name || 'Anonymous'}</p>
                               <div className="flex items-center gap-2">
                                 <div className="flex">
-                                  {[1,2,3,4,5].map(s => (
+                                  {[1, 2, 3, 4, 5].map(s => (
                                     <Star key={s} className={`w-3 h-3 ${s <= review.rating ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-200'}`} />
                                   ))}
                                 </div>

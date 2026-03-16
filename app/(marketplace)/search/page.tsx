@@ -15,8 +15,8 @@ function TrustPill({ level }: { level: string }) {
   const tone = level === 'GOLD'
     ? { bg: 'bg-amber-50', text: 'text-amber-700', ring: 'ring-amber-200', dot: 'bg-amber-400' }
     : level === 'SILVER'
-    ? { bg: 'bg-slate-50', text: 'text-slate-600', ring: 'ring-slate-200', dot: 'bg-slate-400' }
-    : { bg: 'bg-orange-50', text: 'text-orange-700', ring: 'ring-orange-200', dot: 'bg-orange-400' }
+      ? { bg: 'bg-slate-50', text: 'text-slate-600', ring: 'ring-slate-200', dot: 'bg-slate-400' }
+      : { bg: 'bg-orange-50', text: 'text-orange-700', ring: 'ring-orange-200', dot: 'bg-orange-400' }
   return (
     <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold ring-1 ${tone.bg} ${tone.text} ${tone.ring}`}>
       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${tone.dot}`} />
@@ -28,7 +28,7 @@ function TrustPill({ level }: { level: string }) {
 function StarRating({ rating }: { rating: number }) {
   return (
     <div className="flex items-center gap-0.5">
-      {[1,2,3,4,5].map(i => (
+      {[1, 2, 3, 4, 5].map(i => (
         <Star key={i} className={`w-2.5 h-2.5 ${i <= Math.round(rating) ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'}`} />
       ))}
       <span className="text-[10px] font-semibold text-gray-600 ml-0.5">{rating.toFixed(1)}</span>
@@ -62,7 +62,7 @@ function SearchPage() {
       const res = await fetch('/api/products')
       const data = await res.json()
       setProducts(data.products || [])
-    } catch {}
+    } catch { }
     finally { setLoading(false) }
   }
 
@@ -116,13 +116,13 @@ function SearchPage() {
   const handleProductClick = (id: string) => {
     const token = localStorage.getItem('token')
     try {
-      const viewed = JSON.parse(localStorage.getItem('bata-recently-viewed') || '[]')
+      const viewed = JSON.parse(localStorage.getItem('BATAMART-recently-viewed') || '[]')
       const product = products.find(p => p.id === id)
       if (product) {
         const updated = [product, ...viewed.filter((v: any) => v.id !== id)].slice(0, 20)
-        localStorage.setItem('bata-recently-viewed', JSON.stringify(updated))
+        localStorage.setItem('BATAMART-recently-viewed', JSON.stringify(updated))
       }
-    } catch {}
+    } catch { }
     window.location.href = token ? `/product/${id}` : '/login'
   }
 
@@ -141,7 +141,7 @@ function SearchPage() {
             >
               <ChevronLeft className="w-5 h-5 text-gray-600" />
             </button>
-            <div className="flex-1 flex items-center gap-2 bg-gray-50 ring-1 ring-gray-200 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-bata-primary/30 focus-within:bg-white transition-all">
+            <div className="flex-1 flex items-center gap-2 bg-gray-50 ring-1 ring-gray-200 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-BATAMART-primary/30 focus-within:bg-white transition-all">
               <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
               <input
                 type="text"
@@ -160,7 +160,7 @@ function SearchPage() {
             </div>
             <button
               onClick={handleSearch}
-              className="flex-shrink-0 px-3 py-2 bg-bata-primary hover:bg-bata-dark text-white rounded-xl font-bold text-sm transition-all"
+              className="flex-shrink-0 px-3 py-2 bg-BATAMART-primary hover:bg-BATAMART-dark text-white rounded-xl font-bold text-sm transition-all"
             >
               Go
             </button>
@@ -175,7 +175,7 @@ function SearchPage() {
           <div className="flex flex-wrap items-center gap-1.5 mb-4">
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filters:</span>
             {queryTokens.map(token => (
-              <span key={token} className="inline-flex items-center gap-1 px-2.5 py-1 bg-bata-primary text-white text-xs font-bold rounded-full">
+              <span key={token} className="inline-flex items-center gap-1 px-2.5 py-1 bg-BATAMART-primary text-white text-xs font-bold rounded-full">
                 {token}
                 <button onClick={() => removeToken(token)} className="hover:text-white/70">
                   <X className="w-2.5 h-2.5" />
@@ -206,7 +206,7 @@ function SearchPage() {
             <div className="relative">
               <button
                 onClick={() => setShowPriceFilter(p => !p)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all ${priceActive ? 'bg-bata-primary text-white border-bata-primary' : 'bg-white border-gray-200 text-gray-600'}`}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all ${priceActive ? 'bg-BATAMART-primary text-white border-BATAMART-primary' : 'bg-white border-gray-200 text-gray-600'}`}
               >
                 <Filter className="w-3 h-3" /> Price
               </button>
@@ -214,9 +214,9 @@ function SearchPage() {
                 <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-3 z-50">
                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Price Range (₦)</p>
                   <div className="flex items-center gap-1.5 mb-2">
-                    <input type="number" value={minPrice} onChange={e => setMinPrice(e.target.value)} placeholder="Min" className="w-full px-2 py-1.5 border-2 border-gray-200 rounded-lg text-xs focus:border-bata-primary focus:outline-none" />
+                    <input type="number" value={minPrice} onChange={e => setMinPrice(e.target.value)} placeholder="Min" className="w-full px-2 py-1.5 border-2 border-gray-200 rounded-lg text-xs focus:border-BATAMART-primary focus:outline-none" />
                     <span className="text-gray-400 font-bold text-xs">—</span>
-                    <input type="number" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} placeholder="Max" className="w-full px-2 py-1.5 border-2 border-gray-200 rounded-lg text-xs focus:border-bata-primary focus:outline-none" />
+                    <input type="number" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} placeholder="Max" className="w-full px-2 py-1.5 border-2 border-gray-200 rounded-lg text-xs focus:border-BATAMART-primary focus:outline-none" />
                   </div>
                   <div className="flex flex-wrap gap-1 mb-2">
                     {[
@@ -225,12 +225,12 @@ function SearchPage() {
                       { label: '₦20k-50k', min: '20000', max: '50000' },
                       { label: '>₦50k', min: '50000', max: '' }
                     ].map(p => (
-                      <button key={p.label} onClick={() => { setMinPrice(p.min); setMaxPrice(p.max) }} className="px-2 py-0.5 bg-gray-100 hover:bg-bata-primary/10 hover:text-bata-primary text-gray-600 text-[10px] font-semibold rounded-full transition-all">{p.label}</button>
+                      <button key={p.label} onClick={() => { setMinPrice(p.min); setMaxPrice(p.max) }} className="px-2 py-0.5 bg-gray-100 hover:bg-BATAMART-primary/10 hover:text-BATAMART-primary text-gray-600 text-[10px] font-semibold rounded-full transition-all">{p.label}</button>
                     ))}
                   </div>
                   <div className="flex gap-1.5">
                     <button onClick={clearPrice} className="flex-1 py-1.5 rounded-lg border-2 border-gray-200 text-gray-600 text-xs font-bold">Clear</button>
-                    <button onClick={applyPrice} className="flex-1 py-1.5 rounded-lg bg-bata-primary text-white text-xs font-bold">Apply</button>
+                    <button onClick={applyPrice} className="flex-1 py-1.5 rounded-lg bg-BATAMART-primary text-white text-xs font-bold">Apply</button>
                   </div>
                 </div>
               )}
@@ -268,8 +268,8 @@ function SearchPage() {
           </div>
         ) : !query.trim() ? (
           <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-            <div className="w-14 h-14 bg-bata-primary/10 rounded-2xl flex items-center justify-center mb-4">
-              <Search className="w-7 h-7 text-bata-primary" />
+            <div className="w-14 h-14 bg-BATAMART-primary/10 rounded-2xl flex items-center justify-center mb-4">
+              <Search className="w-7 h-7 text-BATAMART-primary" />
             </div>
             <h3 className="text-base font-black text-gray-800 mb-1">What are you looking for?</h3>
             <p className="text-xs text-gray-400 max-w-xs">Try "iPhone 128GB", "Black hoodie", or "Used laptop"</p>
@@ -281,7 +281,7 @@ function SearchPage() {
             </div>
             <h3 className="text-base font-black text-gray-800 mb-1">No results found</h3>
             <p className="text-xs text-gray-400 max-w-xs mb-4">No products match "<span className="font-semibold text-gray-600">{query}</span>". Try fewer or different keywords.</p>
-            <button onClick={() => router.push('/marketplace')} className="inline-flex items-center gap-2 bg-bata-primary text-white px-4 py-2 rounded-xl font-bold text-sm shadow-md">
+            <button onClick={() => router.push('/marketplace')} className="inline-flex items-center gap-2 bg-BATAMART-primary text-white px-4 py-2 rounded-xl font-bold text-sm shadow-md">
               Browse Marketplace <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -305,25 +305,25 @@ function SearchPage() {
                   </div>
                   <div className="p-2.5 flex flex-col flex-1">
                     <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">{product.category}</p>
-                    <h3 className="font-bold text-gray-900 line-clamp-2 text-xs leading-snug group-hover:text-bata-primary transition-colors flex-1">
+                    <h3 className="font-bold text-gray-900 line-clamp-2 text-xs leading-snug group-hover:text-BATAMART-primary transition-colors flex-1">
                       {product.name}
                     </h3>
                     {matchedTags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1.5">
                         {matchedTags.slice(0, 2).map((tag: string) => (
-                          <span key={tag} className="px-1.5 py-0.5 bg-bata-primary/10 text-bata-primary text-[9px] font-bold rounded-full">{tag}</span>
+                          <span key={tag} className="px-1.5 py-0.5 bg-BATAMART-primary/10 text-BATAMART-primary text-[9px] font-bold rounded-full">{tag}</span>
                         ))}
                       </div>
                     )}
                     <div className="mt-2 pt-2 border-t border-gray-50 space-y-1">
-                      <p className="text-bata-primary font-black text-sm tracking-tight">{formatPrice(product.price)}</p>
+                      <p className="text-BATAMART-primary font-black text-sm tracking-tight">{formatPrice(product.price)}</p>
                       <div className="flex items-center justify-between gap-1">
                         <StarRating rating={product.seller.avgRating} />
                         <TrustPill level={product.seller.trustLevel} />
                       </div>
                       <Link
                         href={`/seller/${product.seller.id}`}
-                        className="text-[10px] font-semibold text-gray-500 hover:text-bata-primary truncate block transition-colors"
+                        className="text-[10px] font-semibold text-gray-500 hover:text-BATAMART-primary truncate block transition-colors"
                         onClick={e => e.stopPropagation()}
                       >
                         {product.seller.name}
