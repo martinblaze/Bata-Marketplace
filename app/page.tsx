@@ -708,7 +708,7 @@ export default function HomePage() {
               <div className="col-span-2 md:col-span-1">
                 <div className="flex items-center mb-4">
                   <Image
-                    src="/BATAMARTMART - logo.png"
+                    src="/BATAMART - logo.png"
                     alt="BATAMART Logo"
                     width={400}
                     height={400}
