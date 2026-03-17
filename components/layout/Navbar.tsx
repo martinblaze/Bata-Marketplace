@@ -32,7 +32,7 @@ function BATAMARTLogo({ appMode = false }: { appMode?: boolean }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// App Mode — slim top bar (logo + notification only)
+// PWA App Mode — slim top bar (logo + notification only)
 // ─────────────────────────────────────────────────────────────────────────────
 function AppTopBar({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
@@ -48,19 +48,17 @@ function AppTopBar({ isLoggedIn }: { isLoggedIn: boolean }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// App Mode — bottom tab bar
-// Layout: Marketplace · Orders · [FAB Sell] · Wallet · Profile
+// PWA App Mode — bottom tab bar
+// Layout: Market · Orders · [FAB Sell] · Wallet · Profile
 // ─────────────────────────────────────────────────────────────────────────────
 function AppBottomNav({
   isLoggedIn,
-  cartCount,
   userRole,
   isSellerMode,
   userName,
   onLogout,
 }: {
   isLoggedIn: boolean
-  cartCount: number
   userRole: string
   isSellerMode: boolean
   userName: string
@@ -74,14 +72,12 @@ function AppBottomNav({
 
   const isSeller = userRole === 'SELLER' || userRole === 'ADMIN'
 
-  // Where the center FAB points
   const sellHref = isLoggedIn
     ? isSeller && isSellerMode
       ? '/sell?app=true'
       : '/become-seller?app=true'
     : '/login?app=true'
 
-  // Left tabs
   const leftTabs = [
     {
       href: '/marketplace?app=true',
@@ -108,7 +104,6 @@ function AppBottomNav({
     },
   ]
 
-  // Right tabs
   const rightTabs = [
     {
       href: isLoggedIn ? '/wallet?app=true' : '/login?app=true',
@@ -122,12 +117,10 @@ function AppBottomNav({
         </svg>
       ),
     },
-    // Profile handled separately (opens a drawer)
   ]
 
   return (
     <>
-      {/* Bottom nav */}
       <nav
         className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100"
         style={{ boxShadow: '0 -4px 24px rgba(0,0,0,0.07)' }}
@@ -163,14 +156,13 @@ function AppBottomNav({
 
           {/* CENTER FAB — Sell */}
           <div className="flex-1 flex items-center justify-center relative">
-            {/* Cutout illusion spacer */}
             <div className="absolute inset-0 bg-white" />
             <Link
               href={sellHref}
               className="relative z-10 flex flex-col items-center justify-center -mt-5"
             >
               <div
-                className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95"
+                className="w-14 h-14 rounded-full flex items-center justify-center transition-transform active:scale-95"
                 style={{
                   background: 'linear-gradient(135deg, #1a3f8f, #3b9ef5)',
                   boxShadow: '0 4px 20px rgba(26,63,143,0.45)',
@@ -211,7 +203,6 @@ function AppBottomNav({
               profileOpen ? 'text-blue-600' : 'text-gray-400'
             }`}
           >
-            {/* Avatar circle */}
             <div
               className={`w-[26px] h-[26px] rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                 isLoggedIn
@@ -230,28 +221,23 @@ function AppBottomNav({
         </div>
       </nav>
 
-      {/* Profile sheet */}
+      {/* Profile bottom sheet */}
       {profileOpen && (
         <>
-          {/* Backdrop */}
           <div
             className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-[2px]"
             onClick={() => setProfileOpen(false)}
           />
-
-          {/* Sheet */}
           <div
             className="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-3xl shadow-2xl"
             style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))' }}
           >
-            {/* Handle */}
             <div className="flex justify-center pt-3 pb-2">
               <div className="w-10 h-1 bg-gray-200 rounded-full" />
             </div>
 
             {isLoggedIn ? (
               <>
-                {/* User info */}
                 <div className="px-6 py-4 border-b border-gray-100">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-blue-100 border-2 border-blue-200 flex items-center justify-center text-blue-700 text-lg font-bold">
@@ -264,7 +250,6 @@ function AppBottomNav({
                   </div>
                 </div>
 
-                {/* Sheet links */}
                 <div className="px-4 py-2">
                   {[
                     { href: '/myprofile?app=true', icon: User, label: 'My Account' },
@@ -285,7 +270,6 @@ function AppBottomNav({
                     ))}
                 </div>
 
-                {/* Logout */}
                 <div className="px-6 pt-2">
                   <button
                     onClick={() => { setProfileOpen(false); onLogout() }}
@@ -330,7 +314,9 @@ export function Navbar() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const isApp = searchParams.get('app') === 'true'
+
+  const isApp     = searchParams.get('app')     === 'true'
+  const isAndroid = searchParams.get('android') === 'true'
 
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -437,12 +423,16 @@ export function Navbar() {
     setUserRole('')
     setIsSellerMode(true)
     setIsUserDropdownOpen(false)
-    router.push('/marketplace?app=true')
+    // In app mode go back to marketplace, otherwise landing page
+    router.push(isApp ? '/marketplace?app=true' : '/')
   }
 
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + '/')
 
-  // ── APP MODE ───────────────────────────────────────────────────────────────
+  // ── ANDROID WEBVIEW — render nothing, native nav handles everything ─────────
+  if (isAndroid) return null
+
+  // ── PWA APP MODE — top bar + bottom tab bar ────────────────────────────────
   if (isApp) {
     return (
       <>
@@ -451,19 +441,21 @@ export function Navbar() {
         <div className="h-14" />
         <AppBottomNav
           isLoggedIn={isLoggedIn}
-          cartCount={cartCount}
           userRole={userRole}
           isSellerMode={isSellerMode}
           userName={userName}
           onLogout={handleLogout}
         />
         {/* Spacer for fixed bottom nav */}
-        <div className="h-16" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }} />
+        <div
+          className="h-16"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        />
       </>
     )
   }
 
-  // ── BROWSER MODE ───────────────────────────────────────────────────────────
+  // ── BROWSER MODE — standard top navbar ────────────────────────────────────
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm transition-transform duration-300 ${
