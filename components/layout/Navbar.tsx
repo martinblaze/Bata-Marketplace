@@ -1,45 +1,63 @@
 'use client'
-
-import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useCartStore } from '@/lib/cart-store'
 import NotificationBell from '@/components/layout/NotificationBell'
+import Image from 'next/image'
 import {
   ChevronDown, User, LogOut, Store, ShoppingBag, Wallet,
   Package, AlertTriangle, PlusCircle, Globe, Plus,
 } from 'lucide-react'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Shared logo
+// Shared logo — uses plain <img> to avoid next/image issues with spaces in filename
 // ─────────────────────────────────────────────────────────────────────────────
 function BATAMARTLogo({ appMode = false }: { appMode?: boolean }) {
   const href = appMode ? '/marketplace?app=true' : '/'
   return (
     <Link href={href} className="flex items-center">
-      <Image
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
         src="/BATAMART - logo.png"
         alt="BATAMART"
-        width={140}
-        height={45}
-        priority
-        className="object-contain"
-        style={{ maxHeight: '45px', width: 'auto' }}
+        style={{ height: '38px', width: 'auto', objectFit: 'contain' }}
       />
     </Link>
   )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PWA App Mode — slim top bar (logo + notification only)
+// PWA App Mode — top bar: Logo + Cart + Bell
 // ─────────────────────────────────────────────────────────────────────────────
-function AppTopBar({ isLoggedIn }: { isLoggedIn: boolean }) {
+function AppTopBar({
+  isLoggedIn,
+  cartCount,
+}: {
+  isLoggedIn: boolean
+  cartCount: number
+}) {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100 shadow-sm">
       <div className="flex items-center justify-between h-14 px-4">
+        {/* Logo */}
         <BATAMARTLogo appMode />
-        <div className="flex items-center gap-3">
+
+        {/* Right side: Cart + Bell */}
+        <div className="flex items-center gap-2">
+          {isLoggedIn && (
+            <Link
+              href="/cart?app=true"
+              className="relative p-2 text-gray-600"
+            >
+              <ShoppingBag className="w-6 h-6" />
+              {cartCount > 0 && (
+                <span className="absolute top-0.5 right-0.5 bg-blue-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none">
+                  {cartCount > 9 ? '9+' : cartCount}
+                </span>
+              )}
+            </Link>
+          )}
           {isLoggedIn && <NotificationBell />}
         </div>
       </div>
@@ -423,7 +441,6 @@ export function Navbar() {
     setUserRole('')
     setIsSellerMode(true)
     setIsUserDropdownOpen(false)
-    // In app mode go back to marketplace, otherwise landing page
     router.push(isApp ? '/marketplace?app=true' : '/')
   }
 
@@ -432,11 +449,11 @@ export function Navbar() {
   // ── ANDROID WEBVIEW — render nothing, native nav handles everything ─────────
   if (isAndroid) return null
 
-  // ── PWA APP MODE — top bar + bottom tab bar ────────────────────────────────
+  // ── PWA APP MODE — top bar (logo + cart + bell) + bottom tab bar ───────────
   if (isApp) {
     return (
       <>
-        <AppTopBar isLoggedIn={isLoggedIn} />
+        <AppTopBar isLoggedIn={isLoggedIn} cartCount={cartCount} />
         {/* Spacer for fixed top bar */}
         <div className="h-14" />
         <AppBottomNav
@@ -465,7 +482,15 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
 
-          <BATAMARTLogo />
+          {/* Use plain img here too for consistency */}
+          <Link href="/" className="flex items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/BATAMART - logo.png"
+              alt="BATAMART"
+              style={{ height: '45px', width: 'auto', objectFit: 'contain' }}
+            />
+          </Link>
 
           <div className="hidden md:flex items-center space-x-2">
             {isLoggedIn && (
