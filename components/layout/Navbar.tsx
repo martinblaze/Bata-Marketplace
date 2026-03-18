@@ -319,6 +319,7 @@ function AppBottomNav({
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main exported Navbar
+// No spacer divs here — spacers live in NavbarWrapper
 // ─────────────────────────────────────────────────────────────────────────────
 export function Navbar() {
   const router = useRouter()
@@ -328,9 +329,7 @@ export function Navbar() {
   const isAppParam  = searchParams.get('app')     === 'true'
   const isAndroid   = searchParams.get('android') === 'true'
 
-  // ── KEY FIX ─────────────────────────────────────────────────────────────────
-  // Detect if running as installed PWA via matchMedia.
-  // This fires even when ?app=true is lost during internal Next.js navigation.
+  // Detect standalone PWA via matchMedia — persists even when ?app=true is lost
   const [isStandalone, setIsStandalone] = useState(false)
   useEffect(() => {
     const mq = window.matchMedia('(display-mode: standalone)')
@@ -340,7 +339,6 @@ export function Navbar() {
     return () => mq.removeEventListener('change', handler)
   }, [])
 
-  // isApp = true if either the URL param says so OR the browser is in standalone mode
   const isApp = isAppParam || isStandalone
 
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -456,14 +454,12 @@ export function Navbar() {
   // ── ANDROID WEBVIEW — return null, native nav handles everything ───────────
   if (isAndroid) return null
 
-  // ── PWA / APP MODE — top bar + bottom tab bar ──────────────────────────────
-  // Fires when ?app=true is in URL OR when running as installed PWA (standalone)
+  // ── PWA / APP MODE — fixed top bar + fixed bottom tab bar only ─────────────
+  // NO spacer divs here — spacers are in NavbarWrapper
   if (isApp) {
     return (
       <>
         <AppTopBar isLoggedIn={isLoggedIn} cartCount={cartCount} />
-        {/* Spacer for fixed top bar */}
-        <div className="h-14" />
         <AppBottomNav
           isLoggedIn={isLoggedIn}
           userRole={userRole}
@@ -471,13 +467,12 @@ export function Navbar() {
           userName={userName}
           onLogout={handleLogout}
         />
-        {/* Spacer for fixed bottom nav */}
-        <div className="h-16" />
       </>
     )
   }
 
-  // ── BROWSER MODE — standard top navbar ────────────────────────────────────
+  // ── BROWSER MODE — standard top navbar only, no spacer ────────────────────
+  // Spacer is in NavbarWrapper
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm transition-transform duration-300 ${

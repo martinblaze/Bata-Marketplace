@@ -3,9 +3,20 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 
+function preloadImage(src: string): Promise<void> {
+  return new Promise((resolve) => {
+    const img = new window.Image()
+    img.onload = () => resolve()
+    img.onerror = () => resolve()
+    img.src = src
+  })
+}
+
 export default function SplashScreen() {
+  const [blocking, setBlocking] = useState(false) // ← false by default, only true when needed
   const [visible, setVisible] = useState(false)
   const [phase, setPhase] = useState<'idle' | 'in' | 'out'>('idle')
+
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -19,23 +30,40 @@ export default function SplashScreen() {
     const isAndroid  = searchParams.get('android') === 'true'
     const isAppMode  = isStandalone || isAppParam
 
-    // ── Android WebView already has its own native Java splash ────────────────
-    // Never show the web splash inside the Android app — it would play twice.
+    // Android has its own native splash — do nothing
     if (isAndroid) return
 
-    const run = () => {
+    const shouldShowAppSplash =
+      isAppMode && !sessionStorage.getItem('batamart_splash_app')
+
+    const shouldShowBrowserSplash =
+      !isAppMode &&
+      pathname === '/marketplace' &&
+      !sessionStorage.getItem('batamart_splash_browser')
+
+    // Nothing to show — don't block anything
+    if (!shouldShowAppSplash && !shouldShowBrowserSplash) return
+
+    // ── We ARE going to show a splash ────────────────────────────────────────
+    // NOW we set blocking to cover the page while the logo preloads
+    setBlocking(true)
+
+    if (shouldShowAppSplash)     sessionStorage.setItem('batamart_splash_app', '1')
+    if (shouldShowBrowserSplash) sessionStorage.setItem('batamart_splash_browser', '1')
+
+    // Preload logo fully before showing anything
+    preloadImage('/BATAMART - logo.png').then(() => {
       setVisible(true)
-      // tiny double-rAF so the element is mounted before CSS transitions fire
+
       requestAnimationFrame(() => {
         requestAnimationFrame(() => setPhase('in'))
       })
 
-      // At 2500ms → start fade-out
       const outTimer = setTimeout(() => setPhase('out'), 2500)
 
-      // At 3000ms → unmount + redirect if needed
       const doneTimer = setTimeout(() => {
         setVisible(false)
+        setBlocking(false)
         if (isAppMode && pathname === '/') {
           router.replace('/marketplace?app=true')
         }
@@ -45,27 +73,18 @@ export default function SplashScreen() {
         clearTimeout(outTimer)
         clearTimeout(doneTimer)
       }
-    }
-
-    // ── PWA / app mode ────────────────────────────────────────────────────────
-    // Show once per session then never again until browser is closed.
-    if (isAppMode) {
-      if (sessionStorage.getItem('batamart_splash_app')) return
-      sessionStorage.setItem('batamart_splash_app', '1')
-      return run()
-    }
-
-    // ── Browser mode ──────────────────────────────────────────────────────────
-    // Only show the first time user hits /marketplace this session.
-    // Never on landing page or any other page.
-    if (pathname === '/marketplace') {
-      if (sessionStorage.getItem('batamart_splash_browser')) return
-      sessionStorage.setItem('batamart_splash_browser', '1')
-      return run()
-    }
-
-    // All other pages → do nothing
+    })
   }, [pathname, searchParams, router])
+
+  // White cover while preloading logo (only in app/standalone mode)
+  if (blocking && !visible) {
+    return (
+      <div
+        className="fixed inset-0 z-[9999] bg-white"
+        aria-hidden="true"
+      />
+    )
+  }
 
   if (!visible) return null
 
@@ -83,9 +102,9 @@ export default function SplashScreen() {
   const textStyle: React.CSSProperties = {
     opacity:   phase === 'in' ? 1 : 0,
     transform:
-      phase === 'in'  ? 'translateY(0)'
+      phase === 'in'   ? 'translateY(0)'
       : phase === 'out' ? 'translateY(-20px)'
-      :                   'translateY(30px)', // starts pushed down like Android's 30dp
+      :                   'translateY(30px)',
     transition:
       phase === 'in'
         ? 'opacity 700ms cubic-bezier(0.45,0,0.55,1) 600ms, transform 700ms cubic-bezier(0.45,0,0.55,1) 600ms'
@@ -96,7 +115,6 @@ export default function SplashScreen() {
 
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white">
-      {/* Logo — 280×120 equivalent of Android's fitCenter */}
       <img
         src="/BATAMART - logo.png"
         alt="BataMart"
@@ -107,8 +125,6 @@ export default function SplashScreen() {
           ...logoStyle,
         }}
       />
-
-      {/* Text — slides up from 30px below, fades in */}
       <p
         style={{
           marginTop: '12px',
