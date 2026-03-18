@@ -152,6 +152,7 @@ export default function NotificationBell() {
       PENALTY_ISSUED: '⚠️',
       PAYMENT_RECEIVED: '💰',
       WITHDRAWAL_PROCESSED: '💸',
+      REFERRAL_REWARD: '🎁',
     }
     return icons[type] || '🔔'
   }
@@ -193,7 +194,7 @@ export default function NotificationBell() {
             className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 max-h-[600px] overflow-hidden flex flex-col">
+          <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-96 max-w-[384px] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 max-h-[70vh] overflow-hidden flex flex-col">
             {/* Header */}
             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
               <h3 className="font-bold text-lg">Notifications</h3>
