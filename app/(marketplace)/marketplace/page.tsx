@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   Search, Star, Shield, ShoppingBag, Sparkles, Flame,
@@ -231,6 +231,12 @@ function SectionHeader({ title, icon, onSeeAll, delay = 0 }: { title: string; ic
 
 export default function MarketplacePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Detect app mode — URL param OR standalone PWA
+  const isApp = searchParams.get('app') === 'true' ||
+    (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches)
+
   const [allProducts, setAllProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState('All')
@@ -244,7 +250,6 @@ export default function MarketplacePage() {
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 })
   const inputRef = useRef<HTMLInputElement>(null)
   const searchRef = useRef<HTMLDivElement>(null)
-  // ✅ FIX: track when user is clicking a suggestion so outside-click handler doesn't close dropdown first
   const isClickingSuggestionRef = useRef(false)
 
   useEffect(() => {
@@ -265,7 +270,6 @@ export default function MarketplacePage() {
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
-      // ✅ FIX: if user is clicking a suggestion, don't close the dropdown
       if (isClickingSuggestionRef.current) return
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) setShowSuggestions(false)
     }
@@ -382,9 +386,7 @@ export default function MarketplacePage() {
         {suggestions.map((s: any, i) => (
           <button
             key={i}
-            // ✅ FIX: set flag on mousedown so outside-click handler is skipped
             onMouseDown={e => { e.preventDefault(); isClickingSuggestionRef.current = true }}
-            // ✅ FIX: clear flag then execute action
             onClick={() => {
               isClickingSuggestionRef.current = false
               if (s.type === 'product') {
@@ -410,7 +412,6 @@ export default function MarketplacePage() {
         ))}
         {searchInput.trim() && (
           <button
-            // ✅ FIX: same pattern for the "Search for X" button
             onMouseDown={e => { e.preventDefault(); isClickingSuggestionRef.current = true }}
             onClick={() => { isClickingSuggestionRef.current = false; handleSearch() }}
             className="w-full flex items-center gap-3 px-4 py-3 bg-BATAMART-primary/5 hover:bg-BATAMART-primary/10 transition-colors border-t border-gray-50"
@@ -504,15 +505,18 @@ export default function MarketplacePage() {
                   <button onClick={() => handleSearch()} className="btn-press flex-1 sm:flex-none px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-3.5 bg-BATAMART-primary hover:bg-BATAMART-dark text-white rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm shadow-md transition-colors">
                     Search
                   </button>
-                  <Link href="/sell" className="sm:hidden btn-press px-4 py-2.5 bg-BATAMART-primary text-white rounded-lg flex items-center justify-center shadow-md">
-                    <Sparkles className="w-4 h-4" />
-                  </Link>
+                  {/* Only show quick sell icon in non-app mode on mobile */}
+                  {!isApp && (
+                    <Link href="/sell" className="sm:hidden btn-press px-4 py-2.5 bg-BATAMART-primary text-white rounded-lg flex items-center justify-center shadow-md">
+                      <Sparkles className="w-4 h-4" />
+                    </Link>
+                  )}
                 </div>
               </div>
 
               {/* Hot tags */}
               <div className="flex items-center gap-2 mt-3 overflow-x-auto no-scrollbar pb-1 -mb-1">
-                <span className="text-[10px] sm:text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap flex-shrink-0">Hot:</span>
+                <span className="text-[10px] sm:text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap flex-shrink-0">HOT:</span>
                 <div className="flex gap-1.5 sm:gap-2">
                   {['iPhone', 'Sneakers', 'Laptop', 'Books', 'Jollof', 'Earbuds'].map(tag => (
                     <button key={tag} onClick={() => router.push(`/search?q=${encodeURIComponent(tag)}`)}
@@ -695,12 +699,15 @@ export default function MarketplacePage() {
         )}
       </div>
 
-      {/* Floating Sell Button for Mobile */}
-      <div className="fixed bottom-4 right-4 z-50 sm:hidden">
-        <Link href="/sell" className="btn-press flex items-center gap-2 bg-BATAMART-primary text-white px-4 py-3 rounded-xl font-bold text-sm shadow-lg">
-          <Sparkles className="w-4 h-4" /> Sell
-        </Link>
-      </div>
+      {/* Floating Sell Button — hidden in app mode since bottom nav already has Sell */}
+      {!isApp && (
+        <div className="fixed bottom-4 right-4 z-50 sm:hidden">
+          <Link href="/sell" className="btn-press flex items-center gap-2 bg-BATAMART-primary text-white px-4 py-3 rounded-xl font-bold text-sm shadow-lg">
+            <Sparkles className="w-4 h-4" /> Sell
+          </Link>
+        </div>
+      )}
+
     </div>
   )
 }
