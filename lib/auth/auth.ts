@@ -1,6 +1,4 @@
 // lib/auth/auth.ts
-// Replace ONLY the getUserFromRequest function at the bottom of your existing file.
-// Everything above it (generateToken, verifyToken, hashPassword, etc.) stays the same.
 
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
@@ -87,23 +85,21 @@ export async function sendEmailOTP(email: string, code: string): Promise<boolean
           'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
         },
         body: JSON.stringify({
-          from: process.env.RESEND_FROM_EMAIL || 'BATAMART <onboarding@resend.dev>',
+          from: process.env.RESEND_FROM_EMAIL || 'BATAMART <noreply@batamart.com>',
           to: [email],
           subject: 'Your BATAMART Verification Code',
           html: `
-            <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f9fafb; border-radius: 12px;">
-              <div style="text-align: center; margin-bottom: 24px;">
-                <div style="display: inline-block; background: linear-gradient(135deg, #6366F1, #8B5CF6); border-radius: 12px; padding: 12px 20px;">
-                  <span style="font-size: 24px; font-weight: 800; color: white; letter-spacing: 2px;">BATAMART</span>
-                </div>
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <div style="background: linear-gradient(135deg, #1a3f8f, #3b9ef5); padding: 20px; text-align: center;">
+                <h1 style="color: white; margin: 0;">BATAMART</h1>
               </div>
-              <div style="background: white; border-radius: 12px; padding: 32px; text-align: center;">
-                <h2 style="color: #111827; font-size: 20px; margin-bottom: 8px;">Verification Code</h2>
-                <p style="color: #6B7280; margin-bottom: 24px;">Enter this code to continue. It expires in 10 minutes.</p>
-                <div style="background: #F3F4F6; border-radius: 8px; padding: 16px 24px; display: inline-block; margin-bottom: 24px;">
-                  <span style="font-size: 36px; font-weight: 800; letter-spacing: 10px; color: #6366F1;">${code}</span>
+              <div style="padding: 30px; background: #f9f9f9;">
+                <h2 style="color: #333;">Verification Code</h2>
+                <p style="color: #666;">Enter this code to continue. It expires in 10 minutes.</p>
+                <div style="background: white; border: 2px solid #1a3f8f; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0;">
+                  <span style="font-size: 36px; font-weight: bold; color: #1a3f8f; letter-spacing: 8px;">${code}</span>
                 </div>
-                <p style="color: #9CA3AF; font-size: 13px;">If you didn't request this, you can safely ignore this email.</p>
+                <p style="color: #999; font-size: 14px;">If you didn't request this, you can safely ignore this email.</p>
               </div>
             </div>
           `,
@@ -132,13 +128,7 @@ export async function sendEmailOTP(email: string, code: string): Promise<boolean
 }
 
 // ─── Suspension check helper ──────────────────────────────────────────────────
-// Returns null if suspended (caller should return 403), or the user if clear.
-// Also auto-lifts expired suspensions.
-export async function checkSuspension(userId: string): Promise<{
-  suspended: boolean
-  reason?: string
-  until?: Date | null
-}> {
+export async function checkSuspension(userId: string): Promise<{ suspended: boolean; reason?: string; until?: Date | null }> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { isSuspended: true, suspendedUntil: true, suspensionReason: true },
@@ -147,7 +137,7 @@ export async function checkSuspension(userId: string): Promise<{
   if (!user) return { suspended: false }
 
   // Auto-lift expired suspension
-  if (user.isSuspended && user.suspendedUntil && new Date(user.suspendedUntil) <= new Date()) {
+  if (user.isSuspended && user.suspendedUntil && new Date(user.suspendedUntil) < new Date()) {
     await prisma.user.update({
       where: { id: userId },
       data: { isSuspended: false, suspendedUntil: null, suspensionReason: null },
@@ -166,40 +156,9 @@ export async function checkSuspension(userId: string): Promise<{
   return { suspended: false }
 }
 
-// ─── getUserFromRequest ───────────────────────────────────────────────────────
-// Returns null if: no token, bad token, user not found, or user is suspended.
-// Suspended users get { suspended: true } instead of null so callers can
-// return a 403 with context rather than a generic 401.
-export async function getUserFromRequest(request: Request): Promise<
-  | ({
-    id: string
-    name: string | null
-    phone: string | null
-    email: string | null
-    matricNumber: string | null
-    profilePhoto: string | null
-    role: string
-    hostelName: string | null
-    roomNumber: string | null
-    landmark: string | null
-    trustLevel: string
-    avgRating: number
-    totalReviews: number
-    completedOrders: number
-    pendingBalance: number
-    availableBalance: number
-    penaltyPoints: number
-    isSuspended: boolean
-    suspendedUntil: Date | null
-    suspensionReason: string | null
-    isRiderVerified: boolean
-    isAvailable: boolean
-    faceDescriptor: import('@prisma/client').Prisma.JsonValue | null
-    createdAt: Date
-    updatedAt: Date
-  })
-  | null
-> {
+// ─── getUserFromRequest ────────────────────────────────────────────────────────
+// Used by every API route to get the current authenticated user.
+export const getUserFromRequest = async (request: Request) => {
   const authHeader = request.headers.get('authorization')
   if (!authHeader) return null
 
@@ -232,7 +191,7 @@ export async function getUserFromRequest(request: Request): Promise<
       suspensionReason: true,
       isRiderVerified: true,
       isAvailable: true,
-      faceDescriptor: true,
+      withdrawalPin: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -240,8 +199,8 @@ export async function getUserFromRequest(request: Request): Promise<
 
   if (!user) return null
 
-  // ── Auto-lift expired suspension ──
-  if (user.isSuspended && user.suspendedUntil && new Date(user.suspendedUntil) <= new Date()) {
+  // Auto-lift expired suspension
+  if (user.isSuspended && user.suspendedUntil && new Date(user.suspendedUntil) < new Date()) {
     await prisma.user.update({
       where: { id: user.id },
       data: { isSuspended: false, suspendedUntil: null, suspensionReason: null },
@@ -250,9 +209,6 @@ export async function getUserFromRequest(request: Request): Promise<
     user.suspendedUntil = null
     user.suspensionReason = null
   }
-
-  // ── Block suspended users from all API routes ──
-  if (user.isSuspended) return null
 
   return user
 }
