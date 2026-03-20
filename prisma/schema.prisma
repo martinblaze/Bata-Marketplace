@@ -198,15 +198,7 @@ model User {
   suspendedUntil     DateTime?
   suspensionReason   String?
 
-  faceDescriptor     Json?
-
-  // ── Face token ────────────────────────────────────────────────────────────
-  // Issued after successful face verification. Only the SHA-256 hash is stored.
-  // Raw token is returned to the client once and sent with the withdrawal request.
-  // Single-use and expires 2 minutes after issuance.
-  faceToken            String?
-  faceTokenExpiry      DateTime?
-
+  // Withdrawal PIN
   withdrawalPin            String?
   withdrawalPinAttempts    Int       @default(0)
   withdrawalPinLockedUntil DateTime?

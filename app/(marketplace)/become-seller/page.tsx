@@ -1,22 +1,15 @@
-// app/(marketplace)/become-seller/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
-
-const FaceVerification = dynamic(() => import('@/components/ui/FaceVerification'), { ssr: false })
-
-type FlowStep = 'info' | 'face_scan' | 'saving_face' | 'done'
 
 export default function BecomeSellerPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [checkingAuth, setCheckingAuth] = useState(true)
-  const [flowStep, setFlowStep] = useState<FlowStep>('info')
-  const [showFaceScan, setShowFaceScan] = useState(false)
+  const [done, setDone] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -27,45 +20,12 @@ export default function BecomeSellerPage() {
     }
   }, [])
 
-  // Step 1: User clicks "Become a Seller" → show face scan
-  const handleBecomeSeller = () => {
+  const handleBecomeSeller = async () => {
     setError('')
-    setShowFaceScan(true)
-  }
-
-  // Step 2: Face scan succeeds → save descriptor, then call become-seller API
-  const handleFaceScanSuccess = async (descriptor?: Float32Array) => {
-    setShowFaceScan(false)
-    setFlowStep('saving_face')
-    setError('')
-
-    if (!descriptor) {
-      setError('Could not capture face data. Please try again.')
-      setFlowStep('info')
-      return
-    }
-
+    setLoading(true)
     try {
       const token = localStorage.getItem('token')
-
-      // 1. Save face descriptor
-      const faceResponse = await fetch('/api/auth/save-face', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ descriptor: Array.from(descriptor) }),
-      })
-
-      if (!faceResponse.ok) {
-        const d = await faceResponse.json()
-        throw new Error(d.error || 'Failed to save face data')
-      }
-
-      // 2. Upgrade to seller
-      setLoading(true)
-      const sellerResponse = await fetch('/api/auth/become-seller', {
+      const res = await fetch('/api/auth/become-seller', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -73,19 +33,17 @@ export default function BecomeSellerPage() {
         },
       })
 
-      const sellerData = await sellerResponse.json()
+      const data = await res.json()
 
-      if (!sellerResponse.ok) {
-        throw new Error(sellerData.error || 'Failed to become seller')
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to become seller')
       }
 
-      // Success
       localStorage.setItem('userRole', 'SELLER')
       window.dispatchEvent(new Event('auth-change'))
-      setFlowStep('done')
+      setDone(true)
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.')
-      setFlowStep('info')
     } finally {
       setLoading(false)
     }
@@ -94,21 +52,19 @@ export default function BecomeSellerPage() {
   if (checkingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-BATAMART-primary border-t-transparent"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-BATAMART-primary border-t-transparent" />
       </div>
     )
   }
 
-  // Success state
-  if (flowStep === 'done') {
+  if (done) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
           <div className="text-7xl mb-4">🎉</div>
           <h1 className="text-3xl font-bold text-gray-900 mb-3">You're a Seller!</h1>
-          <p className="text-gray-600 mb-2">Your face ID has been registered.</p>
           <p className="text-gray-500 text-sm mb-8">
-            You can now list products. Your face will be verified every time you request a withdrawal.
+            You can now list products. Set a withdrawal PIN in your wallet to enable payouts.
           </p>
           <div className="space-y-3">
             <button
@@ -118,25 +74,18 @@ export default function BecomeSellerPage() {
               🛍️ List My First Product
             </button>
             <button
+              onClick={() => router.push('/wallet')}
+              className="w-full border border-gray-200 text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-50 transition"
+            >
+              🔐 Set Withdrawal PIN
+            </button>
+            <button
               onClick={() => router.push('/marketplace')}
-              className="w-full border border-gray-200 text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-50"
+              className="w-full border border-gray-200 text-gray-500 py-3 rounded-xl font-medium hover:bg-gray-50 transition"
             >
               Go to Marketplace
             </button>
           </div>
-        </div>
-      </div>
-    )
-  }
-
-  // Saving state
-  if (flowStep === 'saving_face') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
-          <div className="w-16 h-16 border-4 border-BATAMART-primary border-t-transparent rounded-full animate-spin mx-auto mb-6" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Setting up your seller account...</h2>
-          <p className="text-gray-500 text-sm">Saving face ID and upgrading your account.</p>
         </div>
       </div>
     )
@@ -186,17 +135,16 @@ export default function BecomeSellerPage() {
               </ul>
             </div>
 
-            {/* Face ID notice */}
             <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-6">
-              <h3 className="font-bold text-indigo-900 text-lg mb-3">🔐 Face ID Security</h3>
+              <h3 className="font-bold text-indigo-900 text-lg mb-3">🔐 PIN Security</h3>
               <p className="text-indigo-800 text-sm mb-3">
-                To protect your earnings, BATAMART requires a one-time face scan when you become a seller.
-                Your face will then be used to verify <strong>every withdrawal request</strong> — so only you can access your money.
+                To protect your earnings, BATAMART requires a 6-digit withdrawal PIN.
+                Your PIN will be required every time you request a withdrawal — so only you can access your money.
               </p>
               <ul className="text-xs text-indigo-700 space-y-1">
-                <li>• Takes less than 30 seconds</li>
-                <li>• Turn head left & right, blink, open mouth</li>
-                <li>• Stored securely — never shared</li>
+                <li>• Set your PIN anytime from your Wallet page</li>
+                <li>• Change it whenever you want</li>
+                <li>• PIN is hashed and stored securely — never visible to anyone</li>
               </ul>
             </div>
 
@@ -237,7 +185,7 @@ export default function BecomeSellerPage() {
                 disabled={loading}
                 className="w-full bg-gradient-to-r from-BATAMART-primary to-BATAMART-secondary hover:from-BATAMART-dark hover:to-BATAMART-dark text-white py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
               >
-                {loading ? 'Processing...' : '🔐 Scan Face & Become a Seller'}
+                {loading ? 'Processing...' : '🛍️ Become a Seller'}
               </button>
 
               <p className="text-center text-gray-500 text-sm mt-4">
@@ -250,17 +198,6 @@ export default function BecomeSellerPage() {
           </div>
         </div>
       </div>
-
-      {/* Face scan modal */}
-      {showFaceScan && (
-        <FaceVerification
-          mode="register"
-          title="🔐 Register Your Face"
-          subtitle="One-time setup to protect your withdrawals"
-          onSuccess={handleFaceScanSuccess}
-          onCancel={() => setShowFaceScan(false)}
-        />
-      )}
     </div>
   )
 }

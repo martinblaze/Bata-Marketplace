@@ -3,9 +3,6 @@
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import dynamic from 'next/dynamic'
-
-const FaceVerification = dynamic(() => import('@/components/ui/FaceVerification'), { ssr: false })
 
 function SignupForm() {
   const router = useRouter()
@@ -23,12 +20,6 @@ function SignupForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const [showFaceScan, setShowFaceScan] = useState(false)
-  const [faceRegistered, setFaceRegistered] = useState(false)
-  const [faceLoading, setFaceLoading] = useState(false)
-  const [createdToken, setCreatedToken] = useState<string | null>(null)
-
-  // ── Read referral code from URL (?ref=BATAMART-XXXXXX) ──────────
   const [referralCode, setReferralCode] = useState('')
   useEffect(() => {
     const ref = searchParams.get('ref')
@@ -43,7 +34,8 @@ function SignupForm() {
 
   const validatePhone = (ph: string) => {
     const digits = ph.replace(/\D/g, '')
-    if (digits.length < 10 || digits.length > 15) return 'Enter a valid phone number'
+    if (digits.length < 10) return 'Enter a valid phone number'
+    if (digits.length > 15) return 'Enter a valid phone number'
     return ''
   }
 
@@ -144,7 +136,7 @@ function SignupForm() {
           password,
           otpCode: otp.join(''),
           role: wantToSell ? 'SELLER' : 'BUYER',
-          referralCode: referralCode || undefined,  // ← pass referral code
+          referralCode: referralCode || undefined,
         }),
       })
 
@@ -154,13 +146,7 @@ function SignupForm() {
         localStorage.setItem('userName', data.user.name)
         localStorage.setItem('userRole', data.user.role)
         window.dispatchEvent(new Event('auth-change'))
-
-        if (wantToSell) {
-          setCreatedToken(data.token)
-          setStep(4)
-        } else {
-          router.push(data.user.hostelName ? '/marketplace' : '/profile/setup')
-        }
+        router.push(data.user.hostelName ? '/marketplace' : '/profile/setup')
       } else {
         setError(data.error || 'Signup failed')
       }
@@ -171,79 +157,33 @@ function SignupForm() {
     }
   }
 
-  const handleFaceScanSuccess = async (descriptor?: Float32Array) => {
-    setShowFaceScan(false)
-    if (!descriptor) {
-      setError('Could not capture face data. Please try again.')
-      return
-    }
-
-    setFaceLoading(true)
-    setError('')
-
-    try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/auth/save-face', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ descriptor: Array.from(descriptor) }),
-      })
-
-      const data = await response.json()
-      if (response.ok) {
-        setFaceRegistered(true)
-      } else {
-        setError(data.error || 'Failed to save face data')
-      }
-    } catch {
-      setError('Network error. Please try again.')
-    } finally {
-      setFaceLoading(false)
-    }
-  }
-
-  const handleCompleteFaceStep = () => {
-    router.push('/profile/setup')
-  }
-
-  const handleSkipFace = () => {
-    if (confirm('⚠️ Without face registration, you will not be able to withdraw funds from your wallet. You can register later in your profile settings. Continue anyway?')) {
-      router.push('/profile/setup')
-    }
-  }
-
-  const totalSteps = wantToSell ? 4 : 3
+  const totalSteps = 3
 
   const BATAMARTLogo = () => (
     <div className="text-center mb-8">
-      <div className="inline-flex items-center space-x-2 mb-4">
-        <div className="w-12 h-12 bg-gradient-to-br from-BATAMART-primary to-BATAMART-secondary rounded-xl flex items-center justify-center shadow-lg">
-          <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M3 3h18v4H3V3zm0 6h18v12H3V9zm2 2v8h14v-8H5zm2 2h10v4H7v-4z" />
-          </svg>
+      <div className="flex items-center justify-center gap-2 mb-2">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1a3f8f, #3b9ef5)' }}>
+          <span className="text-white font-black text-xl">B</span>
         </div>
-        <span className="font-bold text-2xl bg-gradient-to-r from-BATAMART-primary to-BATAMART-secondary bg-clip-text text-transparent">BATAMART</span>
+        <span className="text-2xl font-black text-gray-900">BATAMART</span>
       </div>
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
-      <p className="text-gray-500">Step {step} of {totalSteps}</p>
+      <h1 className="text-xl font-bold text-gray-800">Create Account</h1>
+      <p className="text-sm text-gray-500 mt-1">Step {step} of {totalSteps}</p>
     </div>
   )
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
         <BATAMARTLogo />
 
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="space-y-4">
 
           {/* Step 1 */}
           {step === 1 && (
-            <form onSubmit={handleSendOTP} className="space-y-5">
+            <form onSubmit={handleSendOTP} className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Full Name</label>
                 <input
                   type="text"
                   value={name}
@@ -255,9 +195,9 @@ function SignupForm() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Phone Number</label>
                 <div className="flex">
-                  <span className="inline-flex items-center px-3 border-2 border-r-0 border-gray-200 rounded-l-lg bg-gray-50 text-gray-500 text-sm font-medium">
+                  <span className="flex items-center px-3 border-2 border-r-0 border-gray-200 rounded-l-lg bg-gray-50 text-gray-500 text-sm font-semibold">
                     +234
                   </span>
                   <input
@@ -276,7 +216,7 @@ function SignupForm() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Email Address</label>
                 <input
                   type="email"
                   value={email}
@@ -288,10 +228,9 @@ function SignupForm() {
                 <p className="text-xs text-gray-500 mt-1">A verification code will be sent to this email</p>
               </div>
 
-              {/* ── Referral Code Field ───────────────────────────── */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Referral Code <span className="text-gray-400 font-normal">(optional)</span>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Referral Code <span className="font-normal text-gray-400">(optional)</span>
                 </label>
                 <input
                   type="text"
@@ -302,44 +241,42 @@ function SignupForm() {
                   maxLength={11}
                 />
                 {referralCode && (
-                  <p className="text-xs text-green-600 mt-1 font-medium">
-                    🎉 Referral code applied!
-                  </p>
+                  <p className="text-xs text-green-600 font-semibold mt-1">🎉 Referral code applied!</p>
                 )}
               </div>
 
-              <div className="pt-3 border-t border-gray-100">
-                <div className="flex items-center">
+              <div>
+                <label className="flex items-start gap-3 cursor-pointer">
                   <input
-                    id="wantToSell"
                     type="checkbox"
                     checked={wantToSell}
                     onChange={(e) => setWantToSell(e.target.checked)}
-                    className="h-5 w-5 text-BATAMART-primary focus:ring-BATAMART-primary border-gray-300 rounded"
+                    className="h-5 w-5 text-BATAMART-primary focus:ring-BATAMART-primary border-gray-300 rounded mt-0.5"
                   />
-                  <label htmlFor="wantToSell" className="ml-3 text-sm font-medium text-gray-700">
+                  <span className="text-sm text-gray-700 font-medium">
                     I want to sell products on BATAMART
-                  </label>
-                </div>
+                  </span>
+                </label>
                 {wantToSell && (
-                  <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <p className="text-sm text-yellow-800 font-medium mb-1">🎉 Welcome Seller!</p>
-                    <ul className="text-xs text-yellow-700 space-y-1">
-                      <li>• List products for sale immediately</li>
-                      <li>• Get paid securely via escrow</li>
-                      <li>• Free to list — no fees</li>
-                      <li>• 🔐 Face ID required for withdrawals</li>
+                  <div className="mt-2 p-3 bg-blue-50 rounded-lg text-xs text-blue-700 space-y-1">
+                    <p className="font-bold">🎉 Welcome Seller!</p>
+                    <ul className="space-y-0.5 list-disc list-inside">
+                      <li>List products for sale immediately</li>
+                      <li>Get paid securely via escrow</li>
+                      <li>Free to list — no fees</li>
+                      <li>🔐 PIN required for withdrawals</li>
                     </ul>
                   </div>
                 )}
               </div>
 
-              {error && <p className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</p>}
+              {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-BATAMART-primary hover:bg-BATAMART-dark text-white py-3.5 rounded-lg font-bold text-lg disabled:opacity-50"
+                className="w-full py-3.5 text-white font-bold rounded-lg transition disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, #1a3f8f, #3b9ef5)' }}
               >
                 {loading ? 'Sending...' : 'Send Verification Code'}
               </button>
@@ -348,16 +285,14 @@ function SignupForm() {
 
           {/* Step 2 */}
           {step === 2 && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <p className="text-gray-600 text-sm">
-                  Code sent to <span className="font-semibold text-gray-900">{email}</span>
-                </p>
-              </div>
+            <div className="space-y-4">
+              <p className="text-center text-sm text-gray-500">
+                Code sent to <span className="font-semibold text-gray-800">{email}</span>
+              </p>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-4 text-center">Enter 6-Digit Code</label>
-                <div className="flex justify-center gap-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Enter 6-Digit Code</label>
+                <div className="flex gap-2 justify-center">
                   {otp.map((digit, i) => (
                     <input
                       key={i}
@@ -374,46 +309,41 @@ function SignupForm() {
                 </div>
               </div>
 
-              {error && <p className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm text-center">{error}</p>}
+              {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
 
               <button
                 onClick={handleVerifyOTP}
-                disabled={loading || otp.join('').length !== 6}
-                className="w-full bg-BATAMART-primary hover:bg-BATAMART-dark text-white py-3.5 rounded-lg font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                disabled={loading}
+                className="w-full py-3.5 text-white font-bold rounded-lg transition disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, #1a3f8f, #3b9ef5)' }}
               >
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Verifying...
-                  </span>
-                ) : 'Verify Code'}
+                {loading ? 'Verifying...' : 'Verify Code'}
               </button>
 
-              <div className="text-center space-y-2">
+              <div className="flex items-center justify-between">
                 <button
+                  type="button"
                   onClick={() => { setStep(1); setOtp(['', '', '', '', '', '']); setError('') }}
                   className="text-sm text-gray-500 hover:text-BATAMART-primary transition-colors"
                 >
                   ← Change email
                 </button>
-                <div>
-                  <button
-                    onClick={handleSendOTP as unknown as React.MouseEventHandler}
-                    disabled={loading}
-                    className="text-sm text-BATAMART-primary hover:underline disabled:opacity-50"
-                  >
-                    Resend code
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleSendOTP as any}
+                  className="text-sm text-BATAMART-primary hover:underline font-semibold"
+                >
+                  Resend code
+                </button>
               </div>
             </div>
           )}
 
           {/* Step 3 */}
           {step === 3 && (
-            <form onSubmit={handleSetPassword} className="space-y-5">
+            <form onSubmit={handleSetPassword} className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Create Password</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Create Password</label>
                 <input
                   type="password"
                   value={password}
@@ -424,7 +354,7 @@ function SignupForm() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm Password</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Confirm Password</label>
                 <input
                   type="password"
                   value={confirmPassword}
@@ -436,40 +366,37 @@ function SignupForm() {
               </div>
 
               {wantToSell && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                  <p className="text-sm text-green-800 font-medium">✅ Signing up as a Seller</p>
-                  <p className="text-xs text-green-700 mt-1">Next: Quick face scan to secure your withdrawals.</p>
+                <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-700 font-medium">
+                  ✅ Signing up as a Seller — You can set your withdrawal PIN after signup.
                 </div>
               )}
 
-              <div className="pt-2 border-t border-gray-100">
-                <div className="flex items-start gap-3">
-                  <input
-                    id="agreeTerms"
-                    type="checkbox"
-                    checked={agreedToTerms}
-                    onChange={(e) => setAgreedToTerms(e.target.checked)}
-                    className="mt-0.5 h-5 w-5 flex-shrink-0 text-BATAMART-primary focus:ring-BATAMART-primary border-gray-300 rounded cursor-pointer"
-                  />
-                  <label htmlFor="agreeTerms" className="text-sm text-gray-600 cursor-pointer leading-relaxed">
-                    I have read and agree to BATAMART's{' '}
-                    <Link href="/terms" target="_blank" className="text-BATAMART-primary font-semibold hover:underline">
-                      Terms & Conditions
-                    </Link>{' '}
-                    and{' '}
-                    <Link href="/privacy" target="_blank" className="text-BATAMART-primary font-semibold hover:underline">
-                      Privacy Policy
-                    </Link>
-                  </label>
-                </div>
-              </div>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  className="mt-0.5 h-5 w-5 flex-shrink-0 text-BATAMART-primary focus:ring-BATAMART-primary border-gray-300 rounded cursor-pointer"
+                />
+                <span className="text-sm text-gray-600">
+                  I have read and agree to BATAMART's{' '}
+                  <Link href="/terms/buyers" className="text-BATAMART-primary hover:underline font-semibold">
+                    Terms & Conditions
+                  </Link>
+                  {' '}and{' '}
+                  <Link href="/privacy" className="text-BATAMART-primary hover:underline font-semibold">
+                    Privacy Policy
+                  </Link>
+                </span>
+              </label>
 
-              {error && <p className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</p>}
+              {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
 
               <button
                 type="submit"
                 disabled={loading || !agreedToTerms}
-                className="w-full bg-BATAMART-primary hover:bg-BATAMART-dark text-white py-3.5 rounded-lg font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="w-full py-3.5 text-white font-bold rounded-lg transition disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, #1a3f8f, #3b9ef5)' }}
               >
                 {loading
                   ? 'Creating account...'
@@ -479,116 +406,30 @@ function SignupForm() {
               </button>
 
               {!agreedToTerms && (
-                <p className="text-center text-xs text-gray-400">
+                <p className="text-xs text-amber-600 text-center">
                   Please agree to the Terms & Conditions to continue
                 </p>
               )}
             </form>
           )}
 
-          {/* Step 4: Face Registration (sellers only) */}
-          {step === 4 && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-4xl">🔐</span>
-                </div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Register Your Face</h2>
-                <p className="text-sm text-gray-600">
-                  As a seller, your face is used to verify your identity when you withdraw money — keeping your earnings safe.
-                </p>
-              </div>
-
-              {faceRegistered ? (
-                <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
-                  <div className="text-5xl mb-3">✅</div>
-                  <p className="font-bold text-green-800 text-lg">Face Registered!</p>
-                  <p className="text-green-700 text-sm mt-1">Your face ID is securely saved.</p>
-                </div>
-              ) : (
-                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
-                  <p className="text-sm text-indigo-800 font-medium mb-3">📋 What you'll do:</p>
-                  <ul className="text-xs text-indigo-700 space-y-2">
-                    <li className="flex items-center gap-2">
-                      <span className="w-5 h-5 bg-indigo-200 rounded-full flex items-center justify-center text-indigo-800 font-bold flex-shrink-0">1</span>
-                      Look straight at the camera
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-5 h-5 bg-indigo-200 rounded-full flex items-center justify-center text-indigo-800 font-bold flex-shrink-0">2</span>
-                      Turn your head right
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-5 h-5 bg-indigo-200 rounded-full flex items-center justify-center text-indigo-800 font-bold flex-shrink-0">3</span>
-                      Turn your head left
-                    </li>
-                  </ul>
-                </div>
-              )}
-
-              {error && <p className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</p>}
-
-              {faceLoading && (
-                <div className="text-center py-2">
-                  <div className="inline-block w-6 h-6 border-2 border-BATAMART-primary border-t-transparent rounded-full animate-spin" />
-                  <p className="text-sm text-gray-500 mt-2">Saving face data...</p>
-                </div>
-              )}
-
-              {faceRegistered ? (
-                <button
-                  onClick={handleCompleteFaceStep}
-                  className="w-full bg-green-500 hover:bg-green-600 text-white py-3.5 rounded-lg font-bold text-lg transition"
-                >
-                  Continue to Profile Setup →
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={() => setShowFaceScan(true)}
-                    disabled={faceLoading}
-                    className="w-full bg-BATAMART-primary hover:bg-BATAMART-dark text-white py-3.5 rounded-lg font-bold text-lg disabled:opacity-50 transition"
-                  >
-                    {faceLoading ? 'Saving...' : '📸 Start Face Scan'}
-                  </button>
-                  <button
-                    onClick={handleSkipFace}
-                    className="w-full text-sm text-gray-400 hover:text-gray-600 py-2"
-                  >
-                    Skip for now (not recommended)
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-
-          <div className="mt-6 text-center">
-            <p className="text-gray-600 text-sm">
-              Already have an account?{' '}
-              <Link href="/login" className="text-BATAMART-primary font-semibold hover:underline">Login</Link>
-            </p>
-          </div>
+          <p className="text-center text-sm text-gray-500 pt-2">
+            Already have an account?{' '}
+            <Link href="/login" className="text-BATAMART-primary font-semibold hover:underline">
+              Login
+            </Link>
+          </p>
         </div>
       </div>
-
-      {showFaceScan && (
-        <FaceVerification
-          mode="register"
-          title="🔐 Register Your Face"
-          subtitle="Complete the 3 checks to secure your account"
-          onSuccess={handleFaceScanSuccess}
-          onCancel={() => setShowFaceScan(false)}
-        />
-      )}
     </div>
   )
 }
 
-// useSearchParams requires Suspense boundary in Next.js 14 App Router
 export default function SignupPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-8 h-8 border-2 border-BATAMART-primary border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-BATAMART-primary border-t-transparent" />
       </div>
     }>
       <SignupForm />
