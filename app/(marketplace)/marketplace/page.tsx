@@ -9,6 +9,7 @@ import {
   AlertCircle, Clock, TrendingUp, X, ChevronRight,
   Package, Zap, Award, ArrowRight, Tag, Eye,
 } from 'lucide-react'
+import { isSplashPending } from '@/components/SplashScreen'
 
 const ANIM_CSS = `
   @keyframes fadeSlideUp {
@@ -237,6 +238,33 @@ export default function MarketplacePage() {
   const isApp = searchParams.get('app') === 'true' ||
     (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches)
 
+  // ── SPLASH GUARD ──────────────────────────────────────────────────────────
+  // Synchronously check on first render if splash is pending.
+  // If yes → render blank white page until splash fires 'batamart:splash-done'.
+  // If no  → render normally (splash already shown this session).
+  const [splashDone, setSplashDone] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true
+    return !isSplashPending()
+  })
+
+  useEffect(() => {
+    if (splashDone) return
+    const handler = () => setSplashDone(true)
+    window.addEventListener('batamart:splash-done', handler)
+    // Safety fallback — if event never fires for any reason, unblock after 4s
+    const fallback = setTimeout(() => setSplashDone(true), 4000)
+    return () => {
+      window.removeEventListener('batamart:splash-done', handler)
+      clearTimeout(fallback)
+    }
+  }, [splashDone])
+
+  // ── BLANK SCREEN WHILE SPLASH IS ACTIVE ───────────────────────────────────
+  if (!splashDone) {
+    return <div className="min-h-screen bg-white" />
+  }
+  // ──────────────────────────────────────────────────────────────────────────
+
   const [allProducts, setAllProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState('All')
@@ -343,7 +371,7 @@ export default function MarketplacePage() {
     router.push(`/search?q=${encodeURIComponent(q)}`)
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault()
       handleSearch()
@@ -372,21 +400,19 @@ export default function MarketplacePage() {
 
   const SuggestionsDropdown = mounted && showSuggestions && suggestions.length > 0
     ? createPortal(
-      <div className="drop-in" style={{
-        position: 'absolute', top: dropdownPos.top, left: dropdownPos.left,
-        width: dropdownPos.width, zIndex: 9999, background: 'white',
-        borderRadius: 16, overflow: 'hidden', maxHeight: 360, overflowY: 'auto',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.14), 0 4px 16px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.05)',
-      }}>
-        <div className="px-4 pt-3 pb-2 border-b border-gray-50">
-          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+      <div
+        className="drop-in fixed z-[9998] bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
+        style={{ top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, maxHeight: '320px', overflowY: 'auto' }}
+      >
+        <div className="px-4 py-2.5 border-b border-gray-50">
+          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
             {!searchInput.trim() ? 'Recent Searches' : 'Suggestions'}
           </span>
         </div>
         {suggestions.map((s: any, i) => (
           <button
             key={i}
-            onMouseDown={e => { e.preventDefault(); isClickingSuggestionRef.current = true }}
+            onMouseDown={(e) => { e.preventDefault(); isClickingSuggestionRef.current = true }}
             onClick={() => {
               isClickingSuggestionRef.current = false
               if (s.type === 'product') {
@@ -398,29 +424,29 @@ export default function MarketplacePage() {
             className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
           >
             {s.type === 'product' && s.image
-              ? <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100"><img src={s.image} alt="" className="w-full h-full object-cover" /></div>
+              ? <img src={s.image} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" alt="" />
               : s.type === 'recent'
-                ? <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0"><Clock className="w-4 h-4 text-gray-400" /></div>
-                : <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0"><TrendingUp className="w-4 h-4 text-orange-500" /></div>
+                ? <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                : <TrendingUp className="w-4 h-4 text-BATAMART-primary flex-shrink-0" />
             }
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-800 truncate">{s.label}</p>
-              {s.sublabel && <p className="text-xs text-gray-400">{s.sublabel}</p>}
+              {s.sublabel && <p className="text-xs text-BATAMART-primary font-bold">{s.sublabel}</p>}
             </div>
             <ArrowRight className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
           </button>
         ))}
         {searchInput.trim() && (
           <button
-            onMouseDown={e => { e.preventDefault(); isClickingSuggestionRef.current = true }}
+            onMouseDown={(e) => { e.preventDefault(); isClickingSuggestionRef.current = true }}
             onClick={() => { isClickingSuggestionRef.current = false; handleSearch() }}
             className="w-full flex items-center gap-3 px-4 py-3 bg-BATAMART-primary/5 hover:bg-BATAMART-primary/10 transition-colors border-t border-gray-50"
           >
-            <div className="w-9 h-9 rounded-xl bg-BATAMART-primary/15 flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-BATAMART-primary/10 flex items-center justify-center flex-shrink-0">
               <Search className="w-4 h-4 text-BATAMART-primary" />
             </div>
-            <p className="text-sm font-bold text-BATAMART-primary">Search for "<span>{searchInput}</span>"</p>
-            <ArrowRight className="w-3.5 h-3.5 text-BATAMART-primary ml-auto" />
+            <span className="text-sm font-bold text-BATAMART-primary">Search for "{searchInput}"</span>
+            <ArrowRight className="w-3.5 h-3.5 text-BATAMART-primary flex-shrink-0 ml-auto" />
           </button>
         )}
       </div>,
@@ -507,21 +533,21 @@ export default function MarketplacePage() {
                   </button>
                   {/* Only show quick sell icon in non-app mode on mobile */}
                   {!isApp && (
-                    <Link href="/sell" className="sm:hidden btn-press px-4 py-2.5 bg-BATAMART-primary text-white rounded-lg flex items-center justify-center shadow-md">
-                      <Sparkles className="w-4 h-4" />
+                    <Link href="/sell" className="btn-press sm:hidden flex items-center justify-center w-10 h-10 my-auto bg-white border border-gray-200 rounded-lg shadow-sm">
+                      <Sparkles className="w-4 h-4 text-BATAMART-primary" />
                     </Link>
                   )}
                 </div>
               </div>
 
               {/* Hot tags */}
-              <div className="flex items-center gap-2 mt-3 overflow-x-auto no-scrollbar pb-1 -mb-1">
-                <span className="text-[10px] sm:text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap flex-shrink-0">HOT:</span>
-                <div className="flex gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-2 mt-3 overflow-hidden">
+                <span className="text-[10px] sm:text-xs font-black text-gray-400 uppercase tracking-wider flex-shrink-0">HOT:</span>
+                <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
                   {['iPhone', 'Sneakers', 'Laptop', 'Books', 'Jollof', 'Earbuds'].map(tag => (
                     <button key={tag} onClick={() => router.push(`/search?q=${encodeURIComponent(tag)}`)}
                       className="hot-tag flex items-center gap-1 px-2.5 sm:px-3 py-1.5 bg-gray-100 hover:bg-BATAMART-primary/10 hover:text-BATAMART-primary text-gray-600 rounded-full text-[10px] sm:text-xs font-semibold whitespace-nowrap flex-shrink-0">
-                      <Tag className="w-2.5 h-2.5 sm:w-3 sm:h-3" />{tag}
+                      <Tag className="w-2.5 h-2.5" />{tag}
                     </button>
                   ))}
                 </div>
@@ -532,22 +558,22 @@ export default function MarketplacePage() {
       </div>
 
       {/* ── CATEGORY NAV ── */}
-      <div className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between gap-4 py-2">
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 flex-1">
+          <div className="flex items-center justify-between gap-3 py-2">
+            <div className="flex gap-1.5 overflow-x-auto no-scrollbar flex-1">
               {CATEGORIES.map(cat => (
                 <button key={cat.name} onClick={() => setSelectedCategory(cat.name)}
                   className={`cat-btn flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-semibold whitespace-nowrap text-xs ${selectedCategory === cat.name
                       ? 'cat-active bg-BATAMART-primary text-white shadow-md shadow-BATAMART-primary/25'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                     }`}>
-                  <span className="text-sm">{cat.icon}</span>
-                  <span>{cat.name}</span>
+                  {cat.icon}
+                  {cat.name}
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl flex-shrink-0">
+            <div className="flex items-center gap-0.5 bg-gray-100 rounded-xl p-1 flex-shrink-0">
               {(['feed', 'grid'] as const).map(mode => (
                 <button key={mode} onClick={() => setViewMode(mode)}
                   className="px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all duration-200"
@@ -561,57 +587,58 @@ export default function MarketplacePage() {
       </div>
 
       {/* ── CONTENT ── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24">
 
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
-            {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} delay={i * 40} />)}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+            {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} delay={i * 60} />)}
           </div>
 
         ) : selectedCategory !== 'All' ? (
           <div>
-            <div className="flex items-center gap-2 mb-5 section-enter">
+            <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-gray-500">
               <button onClick={() => setSelectedCategory('All')} className="text-xs font-bold text-gray-400 hover:text-BATAMART-primary transition-colors">← All</button>
-              <span className="text-gray-300">/</span>
-              <span className="text-xs font-bold text-gray-700">{selectedCategory}</span>
-              <span className="text-xs text-gray-400">({filteredByCategory.length})</span>
+              /
+              <span className="text-gray-700">{selectedCategory}</span>
+              <span className="text-gray-400">({filteredByCategory.length})</span>
             </div>
             {filteredByCategory.length === 0 ? (
-              <div className="section-enter flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-dashed border-gray-200">
-                <ShoppingBag className="w-10 h-10 text-gray-300 mb-3" />
-                <h3 className="text-lg font-black text-gray-800 mb-1">Nothing here yet</h3>
-                <Link href="/sell" className="btn-press mt-4 inline-flex items-center gap-2 bg-BATAMART-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md">
-                  List a Product <ArrowRight className="w-4 h-4" />
+              <div className="text-center py-16">
+                <ShoppingBag className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                <p className="text-gray-400 font-semibold mb-4">Nothing here yet</p>
+                <Link href="/sell" className="btn-press inline-flex items-center gap-2 px-5 py-2.5 bg-BATAMART-primary text-white rounded-xl font-bold text-sm shadow-md">
+                  <Sparkles className="w-4 h-4" /> List a Product
                 </Link>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
                 {filteredByCategory.map((p, i) => <ProductCard key={p.id} product={p} onClick={() => handleProductClick(p.id)} delay={i * 40} />)}
               </div>
             )}
           </div>
 
         ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
             {allProducts.map((p, i) => <ProductCard key={p.id} product={p} onClick={() => handleProductClick(p.id)} delay={i * 30} />)}
           </div>
 
         ) : (
-          <div className="space-y-12">
+          <div className="space-y-8 sm:space-y-10">
 
             {interestCategories.length > 0 && (
               <div>
-                <SectionHeader title="Your Interests" delay={0}
-                  icon={<div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center"><Sparkles className="w-4 h-4 text-purple-600" /></div>}
+                <SectionHeader
+                  title="Your Interests"
+                  icon={<Eye className="w-5 h-5 text-violet-500" />}
                 />
-                <div className="flex flex-wrap gap-2.5">
+                <div className="flex flex-wrap gap-2">
                   {interestCategories.map((cat, i) => {
                     const catObj = CATEGORIES.find(c => c.name === cat)
                     return (
                       <button key={cat} onClick={() => setSelectedCategory(cat)}
                         className="interest-pill card-enter flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700"
                         style={{ animationDelay: `${i * 50}ms` }}>
-                        <span>{catObj?.icon}</span> {cat}
+                        {catObj?.icon} {cat}
                       </button>
                     )
                   })}
@@ -621,15 +648,16 @@ export default function MarketplacePage() {
 
             {recentlyViewed.length > 0 && (
               <div>
-                <SectionHeader title="Recently Viewed" delay={60}
-                  icon={<div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center"><Eye className="w-4 h-4 text-blue-600" /></div>}
+                <SectionHeader
+                  title="Recently Viewed"
+                  icon={<Clock className="w-5 h-5 text-gray-400" />}
                 />
-                <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar -mx-1 px-1">
+                <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
                   {recentlyViewed.slice(0, 8).map((p, i) => (
                     <div key={p.id} onClick={() => handleProductClick(p.id)}
                       className="rv-card card-enter flex-shrink-0 w-40 cursor-pointer bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm"
                       style={{ animationDelay: `${i * 50}ms` }}>
-                      <div className="w-40 h-40 overflow-hidden bg-gray-100">
+                      <div className="aspect-square bg-gray-100 overflow-hidden">
                         <img src={p.images?.[0] || '/placeholder.png'} alt={p.name} className="product-img w-full h-full object-cover" />
                       </div>
                       <div className="p-2.5">
@@ -644,11 +672,12 @@ export default function MarketplacePage() {
 
             {interestProducts.length > 0 && (
               <div>
-                <SectionHeader title="Based on Your Orders" delay={80}
-                  icon={<div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center"><TrendingUp className="w-4 h-4 text-emerald-600" /></div>}
+                <SectionHeader
+                  title="Based on Your Orders"
+                  icon={<ShoppingBag className="w-5 h-5 text-BATAMART-primary" />}
                   onSeeAll={() => setSelectedCategory(interestCategories[0])}
                 />
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                   {interestProducts.map((p, i) => <ProductCard key={p.id} product={p} onClick={() => handleProductClick(p.id)} delay={i * 40} />)}
                 </div>
               </div>
@@ -656,10 +685,11 @@ export default function MarketplacePage() {
 
             {newListings.length > 0 && (
               <div>
-                <SectionHeader title="New on BATAMART" delay={100}
-                  icon={<div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center"><Sparkles className="w-4 h-4 text-green-600" /></div>}
+                <SectionHeader
+                  title="New Listings"
+                  icon={<Sparkles className="w-5 h-5 text-emerald-500" />}
                 />
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                   {newListings.map((p, i) => <ProductCard key={p.id} product={p} onClick={() => handleProductClick(p.id)} delay={i * 40} />)}
                 </div>
               </div>
@@ -667,29 +697,31 @@ export default function MarketplacePage() {
 
             {popularProducts.length > 0 && (
               <div>
-                <SectionHeader title="🔥 Popular on Campus" delay={120}
-                  icon={<div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center"><Flame className="w-4 h-4 text-orange-600" /></div>}
+                <SectionHeader
+                  title="Popular Right Now"
+                  icon={<TrendingUp className="w-5 h-5 text-orange-500" />}
                 />
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                   {popularProducts.map((p, i) => <ProductCard key={p.id} product={p} onClick={() => handleProductClick(p.id)} delay={i * 40} />)}
                 </div>
               </div>
             )}
 
             <div>
-              <SectionHeader title="All Listings" delay={140}
-                icon={<div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center"><ShoppingBag className="w-4 h-4 text-gray-600" /></div>}
+              <SectionHeader
+                title="All Listings"
+                icon={<ShoppingBag className="w-5 h-5 text-gray-400" />}
               />
               {allProducts.length === 0 ? (
-                <div className="section-enter flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-dashed border-gray-200">
-                  <ShoppingBag className="w-10 h-10 text-gray-300 mb-3" />
-                  <h3 className="text-lg font-black text-gray-800 mb-1">No products yet</h3>
-                  <Link href="/sell" className="btn-press mt-4 inline-flex items-center gap-2 bg-BATAMART-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md">
-                    Be the first to list <ArrowRight className="w-4 h-4" />
+                <div className="text-center py-16">
+                  <ShoppingBag className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                  <p className="text-gray-400 font-semibold mb-4">No products yet</p>
+                  <Link href="/sell" className="btn-press inline-flex items-center gap-2 px-5 py-2.5 bg-BATAMART-primary text-white rounded-xl font-bold text-sm shadow-md">
+                    <Sparkles className="w-4 h-4" /> Be the first to list
                   </Link>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
                   {allProducts.map((p, i) => <ProductCard key={p.id} product={p} onClick={() => handleProductClick(p.id)} delay={i * 25} />)}
                 </div>
               )}
@@ -701,8 +733,8 @@ export default function MarketplacePage() {
 
       {/* Floating Sell Button — hidden in app mode since bottom nav already has Sell */}
       {!isApp && (
-        <div className="fixed bottom-4 right-4 z-50 sm:hidden">
-          <Link href="/sell" className="btn-press flex items-center gap-2 bg-BATAMART-primary text-white px-4 py-3 rounded-xl font-bold text-sm shadow-lg">
+        <div className="fixed bottom-6 right-4 sm:right-6 z-40">
+          <Link href="/sell" className="btn-press flex items-center gap-2 px-5 py-3 bg-BATAMART-primary text-white rounded-2xl font-bold text-sm shadow-xl shadow-BATAMART-primary/30">
             <Sparkles className="w-4 h-4" /> Sell
           </Link>
         </div>
