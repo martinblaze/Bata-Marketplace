@@ -3,12 +3,15 @@
 @tailwind utilities;
 
 /* ── SPLASH BLOCKER ────────────────────────────────────────────────────────
-   When splash-pending is on <html>, hide everything instantly.
-   The inline script in layout.tsx adds this class synchronously before
-   React hydrates, so NOTHING shows until SplashScreen removes it.
-   Only applies in standalone PWA mode on first open.
-   Uses visibility:hidden (not display:none) so page still loads in bg.
+   When splash-pending is on <html>, hide EVERYTHING instantly.
+   Uses visibility:hidden so the page still loads in background.
+   The inline script in layout.tsx adds this class synchronously,
+   BEFORE React hydrates — so nothing shows until SplashScreen removes it.
 ──────────────────────────────────────────────────────────────────────────── */
+html.splash-pending body {
+  overflow: hidden !important;
+}
+
 html.splash-pending body > * {
   visibility: hidden !important;
   pointer-events: none !important;
@@ -18,6 +21,12 @@ html.splash-pending body > * {
 html.splash-pending #__splash_screen {
   visibility: visible !important;
   pointer-events: auto !important;
+}
+
+/* Extra safety: hide the Next.js root div children too */
+html.splash-pending body > div > * {
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 @layer base {
@@ -100,8 +109,7 @@ html {
 /* ── PREVENT MOBILE INPUT ZOOM ─────────────────────────────────────────────
    iOS Safari & Chrome Android zoom into inputs with font-size < 16px.
    This forces all inputs/textareas to render at 16px on mobile so the
-   browser never triggers the auto-zoom. Visual appearance stays the same
-   since layout, padding, and container sizing still control the look.
+   browser never triggers the auto-zoom.
 ──────────────────────────────────────────────────────────────────────────── */
 @media screen and (max-width: 768px) {
   input,

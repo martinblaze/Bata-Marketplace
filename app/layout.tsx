@@ -55,11 +55,9 @@ export default function RootLayout({
 
         {/*
           ── BULLETPROOF SPLASH BLOCKER ──────────────────────────────────────
-          This inline script runs SYNCHRONOUSLY before React hydrates.
-          If we're in standalone PWA mode AND haven't shown the splash yet
-          this session, we add 'splash-pending' to <body> which hides all
-          page content via CSS until SplashScreen removes the class.
-          This eliminates the flash of marketplace before splash 100%.
+          Runs SYNCHRONOUSLY before React hydrates — zero flash guaranteed.
+          Hides body immediately if splash is needed, shows it only after
+          SplashScreen component calls unblockPage().
         */}
         <script
           dangerouslySetInnerHTML={{
@@ -73,13 +71,41 @@ export default function RootLayout({
                   var splashShown = sessionStorage.getItem('batamart_splash_app');
 
                   if (!isAndroid && (isStandalone || isAppParam) && !splashShown) {
+                    // Add class to <html> for CSS to pick up immediately
                     document.documentElement.classList.add('splash-pending');
+                    // ALSO directly hide body as a belt-and-suspenders approach
+                    // This fires before any CSS is parsed, blocking the flash
+                    document.addEventListener('DOMContentLoaded', function() {
+                      var style = document.createElement('style');
+                      style.textContent = 'body > *:not(#__splash_screen) { visibility: hidden !important; }';
+                      document.head.appendChild(style);
+                    });
                   }
                 } catch(e) {}
               })();
             `,
           }}
         />
+
+        {/*
+          ── INSTANT BODY HIDE ────────────────────────────────────────────────
+          This <style> tag is parsed by the browser BEFORE any JS runs.
+          It hides body content the moment the HTML is received, before
+          React, before hydration, before anything. The splash-pending class
+          is what gates it — added by the script above synchronously.
+        */}
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            html.splash-pending body > * {
+              visibility: hidden !important;
+              pointer-events: none !important;
+            }
+            html.splash-pending #__splash_screen {
+              visibility: visible !important;
+              pointer-events: auto !important;
+            }
+          `
+        }} />
       </head>
 
       <body className={inter.className}>
