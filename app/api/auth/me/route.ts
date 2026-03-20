@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // ── 2. Fetch user (including suspension fields) ────────────────────────
+    // ── 2. Fetch user ──────────────────────────────────────────────────────
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: {
@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
         matricNumber: true,
         profilePhoto: true,
         role: true,
+        isSellerMode: true,
         hostelName: true,
         roomNumber: true,
         landmark: true,
@@ -44,7 +45,6 @@ export async function GET(request: NextRequest) {
         suspensionReason: true,
         isRiderVerified: true,
         isAvailable: true,
-        faceDescriptor: true,
         withdrawalPin: true,
         createdAt: true,
         updatedAt: true,
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     }
 
     // ── 3. Auto-lift expired suspension ───────────────────────────────────
-    if (user.isSuspended && user.suspendedUntil && new Date(user.suspendedUntil) <= new Date()) {
+    if (user.isSuspended && user.suspendedUntil && new Date(user.suspendedUntil) < new Date()) {
       await prisma.user.update({
         where: { id: user.id },
         data: { isSuspended: false, suspendedUntil: null, suspensionReason: null },
@@ -66,9 +66,7 @@ export async function GET(request: NextRequest) {
       user.suspensionReason = null
     }
 
-    // ── 4. Return 403 for suspended users — distinct from 401 ─────────────
-    // This lets the client know it's not a token problem but an account problem,
-    // so it can show the right message and force logout immediately.
+    // ── 4. Return 403 for suspended users ─────────────────────────────────
     if (user.isSuspended) {
       return NextResponse.json(
         {
@@ -91,6 +89,7 @@ export async function GET(request: NextRequest) {
         matricNumber: user.matricNumber,
         profilePhoto: user.profilePhoto,
         role: user.role,
+        isSellerMode: user.isSellerMode,
         hostelName: user.hostelName,
         roomNumber: user.roomNumber,
         landmark: user.landmark,
@@ -105,10 +104,9 @@ export async function GET(request: NextRequest) {
         suspendedUntil: user.suspendedUntil,
         isRiderVerified: user.isRiderVerified,
         isAvailable: user.isAvailable,
+        hasWithdrawalPin: !!user.withdrawalPin,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
-        hasFaceId: !!user.faceDescriptor,
-        hasWithdrawalPin: !!user.withdrawalPin,
       },
     })
   } catch (error) {
