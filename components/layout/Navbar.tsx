@@ -144,7 +144,7 @@ function AppBottomNav({
     <>
       <nav
         className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100"
-        style={{ boxShadow: '0 -4px 24px rgba(0,0,0,0.07)' }}
+        style={{ boxShadow: '0 -4px 24px rgba(0,0,0,0.07)', position: 'fixed', bottom: 0, left: 0, right: 0, transform: 'translateZ(0)', WebkitTransform: 'translateZ(0)' }}
       >
         <div
           className="flex items-stretch"
