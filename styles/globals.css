@@ -97,6 +97,20 @@ html {
   scroll-behavior: smooth;
 }
 
+/* ── PREVENT MOBILE INPUT ZOOM ─────────────────────────────────────────────
+   iOS Safari & Chrome Android zoom into inputs with font-size < 16px.
+   This forces all inputs/textareas to render at 16px on mobile so the
+   browser never triggers the auto-zoom. Visual appearance stays the same
+   since layout, padding, and container sizing still control the look.
+──────────────────────────────────────────────────────────────────────────── */
+@media screen and (max-width: 768px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

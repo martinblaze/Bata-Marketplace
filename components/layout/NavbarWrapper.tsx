@@ -11,7 +11,6 @@ function NavbarContent() {
   const isAndroid = searchParams.get('android') === 'true'
   const isAppParam = searchParams.get('app') === 'true'
 
-  // Detect standalone PWA (same logic as Navbar.tsx)
   const [isStandalone, setIsStandalone] = useState(false)
   useEffect(() => {
     const mq = window.matchMedia('(display-mode: standalone)')
@@ -30,19 +29,17 @@ function NavbarContent() {
 
   if (hideNav) return null
 
-  // Android WebView — Navbar returns null internally, no spacers needed
+  // Android WebView — Navbar handles everything internally, no spacers
   if (isAndroid) return <Navbar />
 
-  // App mode (PWA / standalone) — spacer for fixed top bar only
-  // Bottom nav spacer is handled by page scroll area naturally
+  // App mode (PWA / standalone) — ONE spacer only for the fixed top bar (h-14 = 56px)
+  // ❌ DO NOT add h-16 here — that was causing the giant gap at the top
+  // ✅ Bottom nav spacing belongs inside each page's content, not here
   if (isApp) {
     return (
       <>
         <Navbar />
-        {/* Spacer to push content below the fixed top bar (h-14 = 56px) */}
         <div className="h-14" />
-        {/* Spacer to push content above the fixed bottom nav (h-16 = 64px) */}
-        <div className="h-16" />
       </>
     )
   }
