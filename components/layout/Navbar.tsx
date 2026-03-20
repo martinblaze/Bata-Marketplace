@@ -43,17 +43,27 @@ function AppTopBar({
       <div className="flex items-center justify-between h-14 px-4">
         <BATAMARTLogo appMode />
         <div className="flex items-center gap-2">
-          {isLoggedIn && (
-            <Link href="/cart?app=true" className="relative p-2 text-gray-600">
-              <ShoppingBag className="w-6 h-6" />
-              {cartCount > 0 && (
-                <span className="absolute top-0.5 right-0.5 bg-blue-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none">
-                  {cartCount > 9 ? '9+' : cartCount}
-                </span>
-              )}
+          {isLoggedIn ? (
+            <>
+              <Link href="/cart?app=true" className="relative p-2 text-gray-600">
+                <ShoppingBag className="w-6 h-6" />
+                {cartCount > 0 && (
+                  <span className="absolute top-0.5 right-0.5 bg-blue-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none">
+                    {cartCount > 9 ? '9+' : cartCount}
+                  </span>
+                )}
+              </Link>
+              <NotificationBell />
+            </>
+          ) : (
+            <Link
+              href="/login?app=true"
+              className="px-4 py-1.5 rounded-lg text-sm font-bold text-white"
+              style={{ background: 'linear-gradient(135deg, #1a3f8f, #3b9ef5)' }}
+            >
+              Login
             </Link>
           )}
-          {isLoggedIn && <NotificationBell />}
         </div>
       </div>
     </nav>
