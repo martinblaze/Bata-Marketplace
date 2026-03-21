@@ -58,7 +58,6 @@ export function usePushNotifications() {
         ...options,
       } as NotificationOptions & { vibrate?: number[] });
 
-      // Add vibration separately if supported
       if ('vibrate' in navigator) {
         navigator.vibrate([200, 100, 200]);
       }
@@ -85,26 +84,41 @@ export function usePushNotifications() {
   };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// NotificationPrompt — shown to users who haven't granted/denied yet
+// ─────────────────────────────────────────────────────────────────────────────
 export function NotificationPrompt() {
   const { permission, isSupported, requestPermission } = usePushNotifications();
   const [dismissed, setDismissed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const wasDismissed = localStorage.getItem('notificationPromptDismissed');
     if (wasDismissed) {
       setDismissed(true);
+      return;
     }
+    // Slight delay so it doesn't pop in immediately on page load
+    const t = setTimeout(() => setVisible(true), 2000);
+    return () => clearTimeout(t);
   }, []);
 
   const handleDismiss = () => {
-    setDismissed(true);
-    localStorage.setItem('notificationPromptDismissed', 'true');
+    setVisible(false);
+    setTimeout(() => {
+      setDismissed(true);
+      localStorage.setItem('notificationPromptDismissed', 'true');
+    }, 300);
   };
 
   const handleEnable = async () => {
+    setLoading(true);
     const granted = await requestPermission();
+    setLoading(false);
     if (granted) {
-      setDismissed(true);
+      setVisible(false);
+      setTimeout(() => setDismissed(true), 300);
     }
   };
 
@@ -113,39 +127,132 @@ export function NotificationPrompt() {
   }
 
   return (
-    <div className="fixed bottom-20 lg:bottom-4 right-4 max-w-sm bg-white rounded-lg shadow-2xl border border-gray-200 p-4 z-40 animate-in slide-in-from-bottom-5 duration-300">
-      <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-          🔔
-        </div>
-        <div className="flex-1">
-          <h4 className="font-semibold text-gray-900 mb-1">
-            Stay Updated
-          </h4>
-          <p className="text-sm text-gray-600 mb-3">
-            Enable notifications to get updates about your orders, messages, and more.
-          </p>
-          <div className="flex gap-2">
-            <button
-              onClick={handleEnable}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              Enable
-            </button>
-            <button
-              onClick={handleDismiss}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 text-sm font-medium rounded-lg transition-colors"
-            >
-              Not Now
-            </button>
+    <>
+      <style>{`
+        @keyframes notifSlideIn {
+          from { opacity: 0; transform: translateY(16px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes notifSlideOut {
+          from { opacity: 1; transform: translateY(0) scale(1); }
+          to   { opacity: 0; transform: translateY(16px) scale(0.97); }
+        }
+        .notif-prompt-enter { animation: notifSlideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        .notif-prompt-exit  { animation: notifSlideOut 0.25s ease forwards; }
+
+        @keyframes bellRing {
+          0%, 100% { transform: rotate(0); }
+          15%       { transform: rotate(14deg); }
+          30%       { transform: rotate(-10deg); }
+          45%       { transform: rotate(8deg); }
+          60%       { transform: rotate(-6deg); }
+          75%       { transform: rotate(4deg); }
+        }
+        .bell-ring { animation: bellRing 1.6s ease 0.6s both; }
+      `}</style>
+
+      <div
+        className={`fixed right-4 z-[9990] w-[calc(100vw-2rem)] max-w-[320px] ${
+          visible ? 'notif-prompt-enter' : 'notif-prompt-exit'
+        }`}
+        // sits above bottom nav (64px) + a little gap
+        style={{ bottom: 'calc(72px + max(env(safe-area-inset-bottom), 16px) + 12px)' }}
+      >
+        <div
+          className="rounded-2xl overflow-hidden"
+          style={{
+            background: '#fff',
+            boxShadow: '0 8px 32px rgba(26,63,143,0.16), 0 2px 8px rgba(0,0,0,0.06)',
+            border: '1px solid rgba(59,158,245,0.15)',
+          }}
+        >
+          {/* Gradient top bar */}
+          <div
+            className="h-1"
+            style={{ background: 'linear-gradient(90deg, #1a3f8f, #3b9ef5)' }}
+          />
+
+          <div className="p-4">
+            {/* Header row */}
+            <div className="flex items-start gap-3 mb-3">
+              {/* Bell icon */}
+              <div
+                className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bell-ring"
+                style={{
+                  background: 'linear-gradient(135deg, #1a3f8f, #3b9ef5)',
+                  boxShadow: '0 4px 12px rgba(26,63,143,0.3)',
+                }}
+              >
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-gray-900 text-sm leading-tight">
+                  Stay in the loop 🔔
+                </p>
+                <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                  Get notified about your orders, deliveries, and messages instantly.
+                </p>
+              </div>
+
+              {/* Close */}
+              <button
+                onClick={handleDismiss}
+                className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors -mt-0.5 -mr-0.5"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Benefit pills */}
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {['Order updates', 'Delivery alerts', 'New messages'].map((label) => (
+                <span
+                  key={label}
+                  className="text-[10px] font-medium px-2 py-1 rounded-full"
+                  style={{ background: 'rgba(59,158,245,0.08)', color: '#1a3f8f' }}
+                >
+                  ✓ {label}
+                </span>
+              ))}
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={handleEnable}
+                disabled={loading}
+                className="flex-1 py-2.5 rounded-xl text-white text-xs font-bold transition-opacity"
+                style={{
+                  background: 'linear-gradient(135deg, #1a3f8f, #3b9ef5)',
+                  boxShadow: '0 4px 12px rgba(26,63,143,0.3)',
+                  opacity: loading ? 0.7 : 1,
+                }}
+              >
+                {loading ? 'Enabling…' : 'Enable Notifications'}
+              </button>
+              <button
+                onClick={handleDismiss}
+                className="px-3 py-2.5 rounded-xl text-xs font-medium text-gray-500 transition-colors"
+                style={{ background: '#f3f4f6' }}
+              >
+                Later
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
-// Utility to show notification for specific events
+// ─────────────────────────────────────────────────────────────────────────────
+// Notification event helpers — unchanged
+// ─────────────────────────────────────────────────────────────────────────────
 export function useNotificationEvents() {
   const { sendNotification, permission } = usePushNotifications();
 
