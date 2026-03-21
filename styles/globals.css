@@ -150,3 +150,12 @@ div.fixed {
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
 }
+
+nav[class*="fixed"][class*="bottom-0"] {
+  position: fixed !important;
+  bottom: 0 !important;
+  transform: translateZ(0) !important;
+  -webkit-transform: translateZ(0) !important;
+  transition: none !important;
+  will-change: transform;
+}

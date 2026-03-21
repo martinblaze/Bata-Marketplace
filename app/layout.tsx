@@ -40,6 +40,11 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   themeColor: '#0ea5e9',
+  // ✅ KEY FIX for bottom nav + keyboard:
+  // 'resizes-visual' means only the VISUAL viewport shrinks when the keyboard
+  // opens — the LAYOUT viewport (where `fixed` positioning is anchored) stays
+  // full height. So `fixed bottom-0` never moves regardless of keyboard state.
+  interactiveWidget: 'resizes-visual',
 }
 
 export default function RootLayout({
