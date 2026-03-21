@@ -26,26 +26,25 @@ function useKeyboardAwareBottom(ref: React.RefObject<HTMLElement | null>) {
     const el = ref.current
 
     const update = () => {
-      // offsetTop = how far the visual viewport has scrolled inside the layout viewport
-      // height    = current visual viewport height (shrinks when keyboard opens)
-      // window.innerHeight = full layout viewport height (stays constant)
-      const keyboardHeight = window.innerHeight - vv.height - vv.offsetTop
-      // Push the nav up by exactly the keyboard height so it stays at the
-      // bottom of the VISIBLE screen, not the bottom of the layout viewport.
-      el.style.transform = `translateY(-${Math.max(0, keyboardHeight)}px)`
+      // Only care about keyboard height — ignore page scroll entirely.
+      // When keyboard is closed: vv.height ≈ window.innerHeight, so offset = 0.
+      // When keyboard is open:   vv.height shrinks, so offset = keyboard height.
+      const keyboardHeight = Math.max(0, window.innerHeight - vv.height)
+      if (keyboardHeight > 50) {
+        // Keyboard is open — push nav up above the keyboard
+        el.style.transform = `translateZ(0) translateY(-${keyboardHeight}px)`
+      } else {
+        // Keyboard is closed — sit at bottom as normal
+        el.style.transform = 'translateZ(0)'
+      }
     }
 
+    // Only listen to RESIZE (keyboard open/close), NOT scroll
     vv.addEventListener('resize', update)
-    vv.addEventListener('scroll', update)
-
-    // Run once immediately
-    update()
 
     return () => {
       vv.removeEventListener('resize', update)
-      vv.removeEventListener('scroll', update)
-      // Reset on unmount
-      if (ref.current) ref.current.style.transform = ''
+      if (ref.current) ref.current.style.transform = 'translateZ(0)'
     }
   }, [ref])
 }
@@ -193,8 +192,8 @@ function AppBottomNav({
         className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100"
         style={{
           boxShadow: '0 -4px 24px rgba(0,0,0,0.07)',
-          // translateZ(0) keeps it on the GPU layer — the useKeyboardAwareBottom
-          // hook will override transform dynamically when keyboard opens.
+          // translateZ(0) forces GPU layer. The useKeyboardAwareBottom hook
+          // only overrides this on resize (keyboard open/close), never on scroll.
           transform: 'translateZ(0)',
           WebkitTransform: 'translateZ(0)',
           willChange: 'transform',
