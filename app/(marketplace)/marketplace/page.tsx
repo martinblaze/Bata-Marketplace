@@ -234,13 +234,9 @@ export default function MarketplacePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // Detect app mode — URL param OR standalone PWA
   const isApp = searchParams.get('app') === 'true' ||
     (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches)
 
-  // ── ALL HOOKS MUST BE AT THE TOP — no hooks after any early return ────────
-
-  // Splash guard — synchronously check if splash is pending on first render
   const [splashDone, setSplashDone] = useState<boolean>(() => {
     if (typeof window === 'undefined') return true
     return !isSplashPending()
@@ -261,12 +257,10 @@ export default function MarketplacePage() {
   const searchRef = useRef<HTMLDivElement>(null)
   const isClickingSuggestionRef = useRef(false)
 
-  // Listen for splash done event
   useEffect(() => {
     if (splashDone) return
     const handler = () => setSplashDone(true)
     window.addEventListener('batamart:splash-done', handler)
-    // Safety fallback — if event never fires for any reason, unblock after 4s
     const fallback = setTimeout(() => setSplashDone(true), 4000)
     return () => {
       window.removeEventListener('batamart:splash-done', handler)
@@ -447,11 +441,9 @@ export default function MarketplacePage() {
       document.body
     ) : null
 
-  // ── BLANK SCREEN WHILE SPLASH IS ACTIVE ──────────────────────────────────
   if (!splashDone) {
     return <div className="min-h-screen bg-white" />
   }
-  // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-[#f7f8fa]">
@@ -531,7 +523,6 @@ export default function MarketplacePage() {
                   <button onClick={() => handleSearch()} className="btn-press flex-1 sm:flex-none px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-3.5 bg-BATAMART-primary hover:bg-BATAMART-dark text-white rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm shadow-md transition-colors">
                     Search
                   </button>
-                  {/* Only show quick sell icon in non-app mode on mobile */}
                   {!isApp && (
                     <Link href="/sell" className="btn-press sm:hidden flex items-center justify-center w-10 h-10 my-auto bg-white border border-gray-200 rounded-lg shadow-sm">
                       <Sparkles className="w-4 h-4 text-BATAMART-primary" />
@@ -560,8 +551,11 @@ export default function MarketplacePage() {
       {/* ── CATEGORY NAV ── */}
       <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
+
+          {/* Top row: on mobile shows only Feed/Grid toggle. On sm+ shows categories + toggle inline */}
           <div className="flex items-center justify-between gap-3 py-2">
-            <div className="flex gap-1.5 overflow-x-auto no-scrollbar flex-1">
+            {/* Desktop: horizontal scroll categories */}
+            <div className="hidden sm:flex gap-1.5 overflow-x-auto no-scrollbar flex-1">
               {CATEGORIES.map(cat => (
                 <button key={cat.name} onClick={() => setSelectedCategory(cat.name)}
                   className={`cat-btn flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-semibold whitespace-nowrap text-xs ${selectedCategory === cat.name
@@ -573,7 +567,9 @@ export default function MarketplacePage() {
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-0.5 bg-gray-100 rounded-xl p-1 flex-shrink-0">
+
+            {/* Feed/Grid toggle — always visible */}
+            <div className="flex items-center gap-0.5 bg-gray-100 rounded-xl p-1 flex-shrink-0 ml-auto">
               {(['feed', 'grid'] as const).map(mode => (
                 <button key={mode} onClick={() => setViewMode(mode)}
                   className="px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all duration-200"
@@ -583,6 +579,21 @@ export default function MarketplacePage() {
               ))}
             </div>
           </div>
+
+          {/* Mobile only: all categories visible in a wrap grid — no hidden scroll */}
+          <div className="sm:hidden flex flex-wrap gap-1.5 pb-2.5">
+            {CATEGORIES.map(cat => (
+              <button key={cat.name} onClick={() => setSelectedCategory(cat.name)}
+                className={`cat-btn flex items-center gap-1 px-3 py-1.5 rounded-xl font-semibold text-xs ${selectedCategory === cat.name
+                    ? 'cat-active bg-BATAMART-primary text-white shadow-md shadow-BATAMART-primary/25'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}>
+                {cat.icon}
+                {cat.name}
+              </button>
+            ))}
+          </div>
+
         </div>
       </div>
 
