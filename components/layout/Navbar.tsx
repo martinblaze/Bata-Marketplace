@@ -9,6 +9,8 @@ import {
   ChevronDown, User, LogOut, Store, ShoppingBag, Wallet,
   Package, AlertTriangle, PlusCircle, Globe, Plus,
 } from 'lucide-react'
+
+// ─────────────────────────────────────────────────────────────────────────────
 import { isSplashPending } from '@/components/SplashScreen'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -67,6 +69,314 @@ function AppTopBar({
         </div>
       </div>
     </nav>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RIDER PWA — top bar
+// ─────────────────────────────────────────────────────────────────────────────
+function RiderTopBar({
+  isLoggedIn,
+  userName,
+}: {
+  isLoggedIn: boolean
+  userName: string
+}) {
+  return (
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-gray-800"
+      style={{ background: 'linear-gradient(135deg, #0f172a, #1e293b)' }}
+    >
+      <div className="flex items-center justify-between h-14 px-4">
+        {/* Rider brand */}
+        <div className="flex items-center gap-2.5">
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center"
+            style={{ background: 'linear-gradient(135deg, #1a3f8f, #3b9ef5)' }}
+          >
+            {/* Rider / bike icon */}
+            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <circle cx="5.5" cy="17.5" r="3.5" />
+              <circle cx="18.5" cy="17.5" r="3.5" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 6h-4l-2 5.5M9 17.5h5.5l2-5.5H19" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6l1.5 5.5" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-white font-bold text-sm leading-none">BataMart</p>
+            <p className="text-blue-400 text-[10px] font-medium leading-none mt-0.5">Rider Mode</p>
+          </div>
+        </div>
+
+        {/* Rider name */}
+        {isLoggedIn && userName && (
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-300 text-xs font-bold">
+              {userName.charAt(0).toUpperCase()}
+            </div>
+            <span className="text-gray-300 text-xs font-medium">{userName.split(' ')[0]}</span>
+          </div>
+        )}
+      </div>
+    </nav>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RIDER PWA — bottom tab bar
+// Layout: Dashboard · Deliveries · [Status FAB] · Earnings · Profile
+// ─────────────────────────────────────────────────────────────────────────────
+function RiderBottomNav({ onLogout }: { onLogout: () => void }) {
+  const pathname = usePathname()
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [isAvailable, setIsAvailable] = useState<boolean | null>(null)
+  const [toggling, setToggling] = useState(false)
+
+  // Load rider availability on mount
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+    fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => { if (d.user) setIsAvailable(d.user.isAvailable ?? true) })
+      .catch(() => {})
+  }, [])
+
+  const toggleAvailability = async () => {
+    if (toggling) return
+    setToggling(true)
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch('/api/riders/toggle-availability', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) setIsAvailable(prev => !prev)
+    } catch {}
+    finally { setToggling(false) }
+  }
+
+  const isActive = (path: string) =>
+    pathname === path || pathname.startsWith(path + '/')
+
+  const leftTabs = [
+    {
+      href: '/rider-dashboard?app=true&rider=true',
+      label: 'Dashboard',
+      match: '/rider-dashboard',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-[22px] h-[22px]">
+          <rect x="3" y="3" width="7" height="7" rx="1" strokeLinecap="round" strokeLinejoin="round" />
+          <rect x="14" y="3" width="7" height="7" rx="1" strokeLinecap="round" strokeLinejoin="round" />
+          <rect x="3" y="14" width="7" height="7" rx="1" strokeLinecap="round" strokeLinejoin="round" />
+          <rect x="14" y="14" width="7" height="7" rx="1" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ),
+    },
+    {
+      href: '/rider-dashboard?app=true&rider=true&tab=deliveries',
+      label: 'Deliveries',
+      match: '/rider-dashboard',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-[22px] h-[22px]">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
+          <rect x="9" y="3" width="6" height="4" rx="1" strokeLinecap="round" strokeLinejoin="round" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6M9 16h4" />
+        </svg>
+      ),
+    },
+  ]
+
+  const rightTabs = [
+    {
+      href: '/wallet?app=true&rider=true',
+      label: 'Earnings',
+      match: '/wallet',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-[22px] h-[22px]">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 8h18v11a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 8V6a2 2 0 012-2h14a2 2 0 012 2v2" />
+          <circle cx="16" cy="14" r="1.5" fill="currentColor" stroke="none" />
+        </svg>
+      ),
+    },
+  ]
+
+  return (
+    <>
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-50 border-t"
+        style={{
+          background: '#0f172a',
+          borderColor: '#1e293b',
+          boxShadow: '0 -4px 24px rgba(0,0,0,0.4)',
+          transform: 'translateZ(0)',
+          WebkitTransform: 'translateZ(0)',
+          willChange: 'transform',
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden',
+        }}
+      >
+        <div
+          className="flex items-stretch"
+          style={{
+            height: 'calc(64px + max(env(safe-area-inset-bottom), 16px))',
+            paddingBottom: 'max(env(safe-area-inset-bottom), 16px)',
+          }}
+        >
+          {/* LEFT TABS */}
+          {leftTabs.map(({ href, label, match, icon }) => {
+            const active = isActive(match)
+            return (
+              <Link
+                key={label}
+                href={href}
+                className={`flex-1 flex flex-col items-center justify-center gap-[3px] relative transition-colors ${
+                  active ? 'text-blue-400' : 'text-gray-500'
+                }`}
+              >
+                {active && (
+                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-b-full"
+                    style={{ background: 'linear-gradient(90deg, #1a3f8f, #3b9ef5)' }}
+                  />
+                )}
+                <span className={active ? 'scale-110 transition-transform' : 'transition-transform'}>
+                  {icon}
+                </span>
+                <span className="text-[10px] font-medium leading-none">{label}</span>
+              </Link>
+            )
+          })}
+
+          {/* CENTER FAB — Availability toggle */}
+          <div className="flex-1 flex items-center justify-center relative">
+            <div className="absolute inset-0" style={{ background: '#0f172a' }} />
+            <button
+              onClick={toggleAvailability}
+              disabled={toggling || isAvailable === null}
+              className="relative z-10 flex flex-col items-center justify-center -mt-5"
+            >
+              <div
+                className="w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-95"
+                style={{
+                  background: isAvailable
+                    ? 'linear-gradient(135deg, #059669, #10b981)'
+                    : 'linear-gradient(135deg, #374151, #4b5563)',
+                  boxShadow: isAvailable
+                    ? '0 4px 20px rgba(5,150,105,0.5)'
+                    : '0 4px 20px rgba(0,0,0,0.4)',
+                  opacity: toggling ? 0.7 : 1,
+                }}
+              >
+                {/* Bike icon */}
+                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <circle cx="5.5" cy="17.5" r="3.5" />
+                  <circle cx="18.5" cy="17.5" r="3.5" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 6h-4l-2 5.5M9 17.5h5.5l2-5.5H19" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6l1.5 5.5" />
+                </svg>
+              </div>
+              <span
+                className="text-[10px] font-semibold mt-1 leading-none"
+                style={{ color: isAvailable ? '#10b981' : '#6b7280' }}
+              >
+                {isAvailable === null ? '…' : isAvailable ? 'Online' : 'Offline'}
+              </span>
+            </button>
+          </div>
+
+          {/* RIGHT TABS */}
+          {rightTabs.map(({ href, label, match, icon }) => {
+            const active = isActive(match)
+            return (
+              <Link
+                key={label}
+                href={href}
+                className={`flex-1 flex flex-col items-center justify-center gap-[3px] relative transition-colors ${
+                  active ? 'text-blue-400' : 'text-gray-500'
+                }`}
+              >
+                {active && (
+                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-b-full"
+                    style={{ background: 'linear-gradient(90deg, #1a3f8f, #3b9ef5)' }}
+                  />
+                )}
+                <span className={active ? 'scale-110 transition-transform' : 'transition-transform'}>
+                  {icon}
+                </span>
+                <span className="text-[10px] font-medium leading-none">{label}</span>
+              </Link>
+            )
+          })}
+
+          {/* PROFILE TAB */}
+          <button
+            onClick={() => setProfileOpen(true)}
+            className={`flex-1 flex flex-col items-center justify-center gap-[3px] relative transition-colors ${
+              profileOpen ? 'text-blue-400' : 'text-gray-500'
+            }`}
+          >
+            <div className="w-[26px] h-[26px] rounded-full bg-blue-900/40 border border-blue-700/40 flex items-center justify-center">
+              <User className="w-3.5 h-3.5 text-blue-400" />
+            </div>
+            <span className="text-[10px] font-medium leading-none">Profile</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Rider profile sheet */}
+      {profileOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-[2px]"
+            onClick={() => setProfileOpen(false)}
+          />
+          <div
+            className="fixed bottom-0 left-0 right-0 z-[70] rounded-t-3xl shadow-2xl border-t border-gray-800"
+            style={{
+              background: '#0f172a',
+              paddingBottom: 'calc(24px + max(env(safe-area-inset-bottom), 16px))',
+            }}
+          >
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 bg-gray-700 rounded-full" />
+            </div>
+
+            <div className="px-4 py-2">
+              {[
+                { href: '/rider-dashboard?app=true&rider=true', icon: () => (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
+                    <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
+                  </svg>
+                ), label: 'Dashboard' },
+                { href: '/myprofile?app=true&rider=true', icon: User, label: 'My Profile' },
+                { href: '/wallet?app=true&rider=true', icon: Wallet, label: 'Earnings' },
+              ].map(({ href, icon: Icon, label }) => (
+                <Link
+                  key={label}
+                  href={href}
+                  onClick={() => setProfileOpen(false)}
+                  className="flex items-center gap-3 px-2 py-3.5 text-gray-300 hover:text-blue-400 border-b border-gray-800 last:border-0"
+                >
+                  <Icon className="w-5 h-5 text-gray-500" />
+                  <span className="font-medium text-sm">{label}</span>
+                </Link>
+              ))}
+            </div>
+
+            <div className="px-6 pt-3">
+              <button
+                onClick={() => { setProfileOpen(false); onLogout() }}
+                className="flex items-center justify-center w-full gap-2 bg-red-950/60 text-red-400 font-semibold py-3 rounded-xl border border-red-900/40"
+              >
+                <LogOut className="w-5 h-5" />
+                Logout
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </>
   )
 }
 
@@ -337,7 +647,6 @@ function AppBottomNav({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Main exported Navbar
 // No spacer divs here — spacers live in NavbarWrapper
 // ─────────────────────────────────────────────────────────────────────────────
 export function Navbar() {
@@ -347,6 +656,7 @@ export function Navbar() {
 
   const isAppParam  = searchParams.get('app')     === 'true'
   const isAndroid   = searchParams.get('android') === 'true'
+  const isRiderParam = searchParams.get('rider')  === 'true'
 
   const [isStandalone, setIsStandalone] = useState(false)
   useEffect(() => {
@@ -358,6 +668,18 @@ export function Navbar() {
   }, [])
 
   const isApp = isAppParam || isStandalone
+
+  // ── RIDER MODE — persisted in sessionStorage so it survives page navigation
+  // Once rider=true is detected in the URL, we keep isRider=true for the session.
+  const [isRider, setIsRider] = useState(false)
+  useEffect(() => {
+    if (isRiderParam) {
+      sessionStorage.setItem('batamart_rider_mode', 'true')
+      setIsRider(true)
+    } else {
+      setIsRider(sessionStorage.getItem('batamart_rider_mode') === 'true')
+    }
+  }, [isRiderParam])
 
   // ── SPLASH GUARD ─────────────────────────────────────────────────────────
   const [splashDone, setSplashDone] = useState<boolean>(() => {
@@ -476,13 +798,14 @@ export function Navbar() {
 
   const handleLogout = () => {
     localStorage.clear()
+    sessionStorage.removeItem('batamart_rider_mode')
     setIsLoggedIn(false)
     setUserName('')
     setUserBalance(0)
     setUserRole('')
     setIsSellerMode(true)
     setIsUserDropdownOpen(false)
-    router.push(isApp ? '/marketplace?app=true' : '/')
+    router.push(isRider ? '/rider-dashboard' : isApp ? '/marketplace?app=true' : '/')
   }
 
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + '/')
@@ -498,6 +821,16 @@ export function Navbar() {
 
   // ── PWA / APP MODE — fixed top bar + fixed bottom tab bar ─────────────────
   if (isApp) {
+    // Rider PWA — different top bar label + rider-specific bottom nav
+    if (isRider) {
+      return (
+        <>
+          <RiderTopBar isLoggedIn={isLoggedIn} userName={userName} />
+          <RiderBottomNav onLogout={handleLogout} />
+        </>
+      )
+    }
+
     return (
       <>
         <AppTopBar isLoggedIn={isLoggedIn} cartCount={cartCount} />

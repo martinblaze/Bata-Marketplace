@@ -1,0 +1,22 @@
+{
+  "name": "BataMart Rider",
+  "short_name": "BM Rider",
+  "description": "BataMart delivery rider app — accept and manage deliveries at UNIZIK",
+  "start_url": "/rider-dashboard?app=true&rider=true",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#f59e0b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
