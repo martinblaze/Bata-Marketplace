@@ -166,7 +166,26 @@ nav[class*="fixed"][class*="bottom-0"] {
 }
 
 /* ── IOS PWA SCROLL FIX ─────────────────────────────────────────────────────
-   
+   iOS Safari PWA has a unique bug: during rubber-band momentum scrolling
+   (the bounce when you scroll past top/bottom), iOS briefly repositions ALL
+   `fixed` elements relative to the bouncing visual viewport. This makes the
+   bottom nav jiggle then snap back after you release your finger.
+
+   Fix: move scrolling from <body> to #page-scroll-container instead.
+   When body doesn't scroll, iOS has nothing to rubber-band, so fixed
+   elements never move. `-webkit-overflow-scrolling: touch` keeps the native
+   smooth scroll feel. `overscroll-behavior: none` kills the bounce entirely.
+
+   ALSO fixes:
+   1. Content hidden under top navbar — padding-top: 56px (matching h-14)
+      pushes page content below the fixed navbar. The NavbarWrapper spacer
+      div lives OUTSIDE this container so without this, pages start at top:0
+      and the first 56px of content is hidden under the navbar.
+   2. Bottom nav stretch after keyboard — `min-h-screen` inside a scroll
+      container resolves to 100vh which overflows the container. After the
+      keyboard opens/closes iOS repaints and that overflow makes the bottom
+      nav appear to stretch then snap back. Resetting min-height on direct
+      children kills it entirely.
 ──────────────────────────────────────────────────────────────────────────── */
 @supports (-webkit-touch-callout: none) {
   html,
@@ -180,5 +199,17 @@ nav[class*="fixed"][class*="bottom-0"] {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch; /* smooth native iOS scroll feel */
     overscroll-behavior: none;         /* no bounce at scroll edges */
+    box-sizing: border-box;
+    /* FIX 1: push content below fixed top navbar.                          */
+    /* NavbarWrapper spacer is OUTSIDE this container so without this,      */
+    /* pages render under the navbar.                                       */
+    padding-top: 56px;
+  }
+
+  /* FIX 2: min-h-screen inside a scroll container = 100vh = overflows      */
+  /* the container height. After keyboard fires iOS repaints the overflow    */
+  /* and the bottom nav appears to stretch then snap. Reset it.             */
+  #page-scroll-container > * {
+    min-height: 0 !important;
   }
 }
