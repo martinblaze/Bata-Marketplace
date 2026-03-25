@@ -10,12 +10,8 @@ import {
   Package, AlertTriangle, PlusCircle, Globe, Plus,
 } from 'lucide-react'
 
-// ─────────────────────────────────────────────────────────────────────────────
 import { isSplashPending } from '@/components/SplashScreen'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Shared logo
-// ─────────────────────────────────────────────────────────────────────────────
 function BATAMARTLogo({ appMode = false }: { appMode?: boolean }) {
   const href = appMode ? '/marketplace?app=true' : '/'
   return (
@@ -30,9 +26,6 @@ function BATAMARTLogo({ appMode = false }: { appMode?: boolean }) {
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PWA App Mode — top bar: Logo + Cart + Bell
-// ─────────────────────────────────────────────────────────────────────────────
 function AppTopBar({
   isLoggedIn,
   cartCount,
@@ -72,9 +65,6 @@ function AppTopBar({
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RIDER PWA — top bar
-// ─────────────────────────────────────────────────────────────────────────────
 function RiderTopBar({
   isLoggedIn,
   userName,
@@ -87,13 +77,11 @@ function RiderTopBar({
       style={{ background: 'linear-gradient(135deg, #0f172a, #1e293b)' }}
     >
       <div className="flex items-center justify-between h-14 px-4">
-        {/* Rider brand */}
         <div className="flex items-center gap-2.5">
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center"
             style={{ background: 'linear-gradient(135deg, #1a3f8f, #3b9ef5)' }}
           >
-            {/* Rider / bike icon */}
             <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <circle cx="5.5" cy="17.5" r="3.5" />
               <circle cx="18.5" cy="17.5" r="3.5" />
@@ -106,8 +94,6 @@ function RiderTopBar({
             <p className="text-blue-400 text-[10px] font-medium leading-none mt-0.5">Rider Mode</p>
           </div>
         </div>
-
-        {/* Rider name */}
         {isLoggedIn && userName && (
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-300 text-xs font-bold">
@@ -121,17 +107,12 @@ function RiderTopBar({
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RIDER PWA — bottom tab bar
-// Layout: Dashboard · Deliveries · [Status FAB] · Earnings · Profile
-// ─────────────────────────────────────────────────────────────────────────────
 function RiderBottomNav({ onLogout }: { onLogout: () => void }) {
   const pathname = usePathname()
   const [profileOpen, setProfileOpen] = useState(false)
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null)
   const [toggling, setToggling] = useState(false)
 
-  // Load rider availability on mount
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (!token) return
@@ -209,8 +190,10 @@ function RiderBottomNav({ onLogout }: { onLogout: () => void }) {
           background: '#0f172a',
           borderColor: '#1e293b',
           boxShadow: '0 -4px 24px rgba(0,0,0,0.4)',
-          transform: 'translateZ(0)',
-          WebkitTransform: 'translateZ(0)',
+          // iOS PWA fix — translate3d forces GPU compositing layer
+          // which prevents the nav from moving when keyboard dismisses
+          transform: 'translate3d(0,0,0)',
+          WebkitTransform: 'translate3d(0,0,0)',
           willChange: 'transform',
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden',
@@ -223,7 +206,6 @@ function RiderBottomNav({ onLogout }: { onLogout: () => void }) {
             paddingBottom: 'max(env(safe-area-inset-bottom), 16px)',
           }}
         >
-          {/* LEFT TABS */}
           {leftTabs.map(({ href, label, match, icon }) => {
             const active = isActive(match)
             return (
@@ -247,7 +229,6 @@ function RiderBottomNav({ onLogout }: { onLogout: () => void }) {
             )
           })}
 
-          {/* CENTER FAB — Availability toggle */}
           <div className="flex-1 flex items-center justify-center relative">
             <div className="absolute inset-0" style={{ background: '#0f172a' }} />
             <button
@@ -267,7 +248,6 @@ function RiderBottomNav({ onLogout }: { onLogout: () => void }) {
                   opacity: toggling ? 0.7 : 1,
                 }}
               >
-                {/* Bike icon */}
                 <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <circle cx="5.5" cy="17.5" r="3.5" />
                   <circle cx="18.5" cy="17.5" r="3.5" />
@@ -284,7 +264,6 @@ function RiderBottomNav({ onLogout }: { onLogout: () => void }) {
             </button>
           </div>
 
-          {/* RIGHT TABS */}
           {rightTabs.map(({ href, label, match, icon }) => {
             const active = isActive(match)
             return (
@@ -308,7 +287,6 @@ function RiderBottomNav({ onLogout }: { onLogout: () => void }) {
             )
           })}
 
-          {/* PROFILE TAB */}
           <button
             onClick={() => setProfileOpen(true)}
             className={`flex-1 flex flex-col items-center justify-center gap-[3px] relative transition-colors ${
@@ -323,7 +301,6 @@ function RiderBottomNav({ onLogout }: { onLogout: () => void }) {
         </div>
       </nav>
 
-      {/* Rider profile sheet */}
       {profileOpen && (
         <>
           <div
@@ -340,7 +317,6 @@ function RiderBottomNav({ onLogout }: { onLogout: () => void }) {
             <div className="flex justify-center pt-3 pb-2">
               <div className="w-10 h-1 bg-gray-700 rounded-full" />
             </div>
-
             <div className="px-4 py-2">
               {[
                 { href: '/rider-dashboard?app=true&rider=true', icon: () => (
@@ -363,7 +339,6 @@ function RiderBottomNav({ onLogout }: { onLogout: () => void }) {
                 </Link>
               ))}
             </div>
-
             <div className="px-6 pt-3">
               <button
                 onClick={() => { setProfileOpen(false); onLogout() }}
@@ -380,10 +355,6 @@ function RiderBottomNav({ onLogout }: { onLogout: () => void }) {
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PWA App Mode — bottom tab bar
-// Layout: Market · Orders · [FAB Sell] · Wallet · Profile
-// ─────────────────────────────────────────────────────────────────────────────
 function AppBottomNav({
   isLoggedIn,
   userRole,
@@ -399,6 +370,45 @@ function AppBottomNav({
 }) {
   const pathname = usePathname()
   const [profileOpen, setProfileOpen] = useState(false)
+
+  // ── iOS PWA keyboard fix ──────────────────────────────────────────────────
+  // On iOS, when the keyboard dismisses, the visual viewport resizes and
+  // breaks fixed positioning. We detect focus/blur on inputs and force a
+  // repaint of the nav after the keyboard animation completes.
+  useEffect(() => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
+    if (!isIOS) return
+
+    let lastScrollY = 0
+
+    const onFocusIn = () => {
+      lastScrollY = window.scrollY
+    }
+
+    const onFocusOut = () => {
+      // Wait for iOS keyboard close animation (~300ms)
+      setTimeout(() => {
+        // Restore scroll position — prevents content jumping under top nav
+        window.scrollTo({ top: lastScrollY, behavior: 'instant' })
+        // Force nav repaint by toggling display — fixes floating bottom nav
+        const navs = document.querySelectorAll('nav')
+        navs.forEach(nav => {
+          nav.style.display = 'none'
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          nav.offsetHeight // trigger reflow
+          nav.style.display = ''
+        })
+      }, 300)
+    }
+
+    window.addEventListener('focusin', onFocusIn)
+    window.addEventListener('focusout', onFocusOut)
+    return () => {
+      window.removeEventListener('focusin', onFocusIn)
+      window.removeEventListener('focusout', onFocusOut)
+    }
+  }, [])
+  // ─────────────────────────────────────────────────────────────────────────
 
   const isActive = (path: string) =>
     pathname === path || pathname.startsWith(path + '/')
@@ -452,13 +462,14 @@ function AppBottomNav({
 
   return (
     <>
-      {/* ── FIXED BOTTOM NAV ── */}
       <nav
         className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100"
         style={{
           boxShadow: '0 -4px 24px rgba(0,0,0,0.07)',
-          transform: 'translateZ(0)',
-          WebkitTransform: 'translateZ(0)',
+          // translate3d instead of translateZ — more reliable on iOS Safari
+          // for keeping fixed elements anchored during viewport resize
+          transform: 'translate3d(0,0,0)',
+          WebkitTransform: 'translate3d(0,0,0)',
           willChange: 'transform',
           WebkitBackfaceVisibility: 'hidden',
           backfaceVisibility: 'hidden',
@@ -471,7 +482,6 @@ function AppBottomNav({
             paddingBottom: 'max(env(safe-area-inset-bottom), 16px)',
           }}
         >
-          {/* LEFT TABS */}
           {leftTabs.map(({ href, label, match, icon }) => {
             const active = isActive(match)
             return (
@@ -493,7 +503,6 @@ function AppBottomNav({
             )
           })}
 
-          {/* CENTER FAB — Sell */}
           <div className="flex-1 flex items-center justify-center relative">
             <div className="absolute inset-0 bg-white" />
             <Link
@@ -513,7 +522,6 @@ function AppBottomNav({
             </Link>
           </div>
 
-          {/* RIGHT TABS */}
           {rightTabs.map(({ href, label, match, icon }) => {
             const active = isActive(match)
             return (
@@ -535,7 +543,6 @@ function AppBottomNav({
             )
           })}
 
-          {/* PROFILE TAB */}
           <button
             onClick={() => setProfileOpen(true)}
             className={`flex-1 flex flex-col items-center justify-center gap-[3px] relative transition-colors ${
@@ -560,7 +567,6 @@ function AppBottomNav({
         </div>
       </nav>
 
-      {/* Profile bottom sheet */}
       {profileOpen && (
         <>
           <div
@@ -646,9 +652,6 @@ function AppBottomNav({
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// No spacer divs here — spacers live in NavbarWrapper
-// ─────────────────────────────────────────────────────────────────────────────
 export function Navbar() {
   const router = useRouter()
   const pathname = usePathname()
@@ -669,8 +672,6 @@ export function Navbar() {
 
   const isApp = isAppParam || isStandalone
 
-  // ── RIDER MODE — persisted in sessionStorage so it survives page navigation
-  // Once rider=true is detected in the URL, we keep isRider=true for the session.
   const [isRider, setIsRider] = useState(false)
   useEffect(() => {
     if (isRiderParam) {
@@ -681,7 +682,6 @@ export function Navbar() {
     }
   }, [isRiderParam])
 
-  // ── SPLASH GUARD ─────────────────────────────────────────────────────────
   const [splashDone, setSplashDone] = useState<boolean>(() => {
     if (typeof window === 'undefined') return true
     return !isSplashPending()
@@ -697,7 +697,6 @@ export function Navbar() {
       clearTimeout(fallback)
     }
   }, [splashDone])
-  // ─────────────────────────────────────────────────────────────────────────
 
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -714,6 +713,10 @@ export function Navbar() {
   const cartCount = getTotalItems()
 
   useEffect(() => {
+    // ── Disable scroll-hide on iOS PWA — it fights the keyboard fix ──────
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
+    if (isIOS && isApp) return
+
     const handleScroll = () => {
       const currentScrollY = window.scrollY
       if (currentScrollY > lastScrollY.current && currentScrollY > 80) {
@@ -725,7 +728,7 @@ export function Navbar() {
     }
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+  }, [isApp])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -810,18 +813,11 @@ export function Navbar() {
 
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + '/')
 
-  // ── ANDROID WEBVIEW — return null, native nav handles everything ───────────
   if (isAndroid) return null
-
-  // ── SPLASH ACTIVE — hide everything ──────────────────────────────────────
   if (!splashDone) return null
-
-  // ── HOME PAGE — no navbar on the landing page ─────────────────────────────
   if (pathname === '/') return null
 
-  // ── PWA / APP MODE — fixed top bar + fixed bottom tab bar ─────────────────
   if (isApp) {
-    // Rider PWA — different top bar label + rider-specific bottom nav
     if (isRider) {
       return (
         <>
@@ -830,7 +826,6 @@ export function Navbar() {
         </>
       )
     }
-
     return (
       <>
         <AppTopBar isLoggedIn={isLoggedIn} cartCount={cartCount} />
@@ -845,7 +840,6 @@ export function Navbar() {
     )
   }
 
-  // ── BROWSER MODE — standard fixed top navbar ───────────────────────────────
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm transition-transform duration-300 ${

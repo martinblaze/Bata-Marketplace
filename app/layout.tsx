@@ -6,13 +6,13 @@ import { NavbarWrapper } from '@/components/layout/NavbarWrapper'
 import { ThemeProvider } from '@/components/layout/ThemeProvider'
 import { NotificationPrompt } from '@/hooks/usePushSubscription'
 import { SuspensionGuard } from '@/components/layout/SuspensionGuard'
-import { AppScrollFix } from '@/components/layout/AppScrollFix'
 
 // 🔥 PWA + UX
 import PWARegister from '@/components/PWARegister'
 import SplashScreen from '@/components/SplashScreen'
 import InstallPrompt from '@/components/InstallPrompt'
 import IosInstallPrompt from '@/components/IosInstallPrompt'
+import { IOSAppShell } from '@/components/layout/IOSAppShell'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -163,10 +163,11 @@ export default function RootLayout({
           <IosInstallPrompt />
           <SuspensionGuard />
           <NavbarWrapper />
-          <AppScrollFix>
-            {children}
-          </AppScrollFix>
           <NotificationPrompt />
+          <NavbarWrapper />
+          <IOSAppShell>
+            {children}
+          </IOSAppShell>
         </ThemeProvider>
       </body>
     </html>
