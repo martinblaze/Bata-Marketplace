@@ -12,6 +12,7 @@ import PWARegister from '@/components/PWARegister'
 import SplashScreen from '@/components/SplashScreen'
 import InstallPrompt from '@/components/InstallPrompt'
 import IosInstallPrompt from '@/components/IosInstallPrompt'
+import { IOSAppShell } from '@/components/layout/IOSAppShell'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -30,20 +31,12 @@ export const metadata: Metadata = {
   },
 }
 
-// ✅ PROPER NEXT.JS VIEWPORT EXPORT
-// This is the ONLY reliable way to lock zoom across ALL route transitions
-// in Next.js App Router. A raw &lt;meta&gt; tag in &lt;head&gt; gets overridden by
-// Next.js during client-side navigation — this export doesn't.
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
   themeColor: '#0ea5e9',
-  // ✅ KEY FIX for bottom nav + keyboard:
-  // 'resizes-visual' means only the VISUAL viewport shrinks when the keyboard
-  // opens — the LAYOUT viewport (where `fixed` positioning is anchored) stays
-  // full height. So `fixed bottom-0` never moves regardless of keyboard state.
   interactiveWidget: 'resizes-visual',
 }
 
@@ -63,19 +56,11 @@ export default function RootLayout({
         &lt;link rel="manifest" href="/manifest.json" /&gt;
         &lt;link rel="apple-touch-icon" href="/apple-touch-icon.png" /&gt;
 
-        {/*
-          ── BULLETPROOF ZOOM KILLER ──────────────────────────────────────────
-          The viewport export above handles the meta tag, but iOS Safari can
-          STILL allow pinch zoom even with user-scalable=no in some versions.
-          This JS kills it at the touch-event level — works on every page,
-          survives every route transition because it's registered once on the
-          document at app boot.
-        */}
+        {/* ── BULLETPROOF ZOOM KILLER ── */}
         &lt;script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
-                // Kill pinch-to-zoom via touch events (iOS Safari bypass)
                 document.addEventListener('gesturestart', function(e) {
                   e.preventDefault();
                 }, { passive: false });
@@ -95,12 +80,41 @@ export default function RootLayout({
           }}
         /&gt;
 
-        {/*
-          ── BULLETPROOF SPLASH BLOCKER ──────────────────────────────────────
-          Runs SYNCHRONOUSLY before React hydrates — zero flash guaranteed.
-          Hides body immediately if splash is needed, shows it only after
-          SplashScreen component calls unblockPage().
-        */}
+        {/* ── iOS PWA KEYBOARD FIX ── */}
+        &lt;script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                // Only run on iOS
+                if (!(/iPad|iPhone|iPod/.test(navigator.userAgent))) return;
+
+                var lastScrollY = 0;
+
+                // Save scroll position when keyboard opens
+                window.addEventListener('focusin', function(e) {
+                  lastScrollY = window.scrollY;
+                });
+
+                // Restore everything when keyboard closes
+                window.addEventListener('focusout', function(e) {
+                  setTimeout(function() {
+                    // Restore scroll position
+                    window.scrollTo({ top: lastScrollY, behavior: 'instant' });
+
+                    // Force all navs to repaint — fixes floating bottom nav
+                    document.querySelectorAll('nav').forEach(function(nav) {
+                      nav.style.display = 'none';
+                      nav.offsetHeight; // trigger reflow
+                      nav.style.display = '';
+                    });
+                  }, 100);
+                });
+              })();
+            `,
+          }}
+        /&gt;
+
+        {/* ── BULLETPROOF SPLASH BLOCKER ── */}
         &lt;script
           dangerouslySetInnerHTML={{
             __html: `
@@ -126,13 +140,7 @@ export default function RootLayout({
           }}
         /&gt;
 
-        {/*
-          ── INSTANT BODY HIDE ────────────────────────────────────────────────
-          This &lt;style&gt; tag is parsed by the browser BEFORE any JS runs.
-          It hides body content the moment the HTML is received, before
-          React, before hydration, before anything. The splash-pending class
-          is what gates it — added by the script above synchronously.
-        */}
+        {/* ── INSTANT BODY HIDE ── */}
         &lt;style dangerouslySetInnerHTML={{
           __html: `
             html.splash-pending body &gt; * {
@@ -155,17 +163,11 @@ export default function RootLayout({
           &lt;IosInstallPrompt /&gt;
           &lt;SuspensionGuard /&gt;
           &lt;NavbarWrapper /&gt;
-          {/*
-            Plain div — no fixed positioning wrapper.
-            NavbarWrapper already outputs the correct spacer divs (h-14 / h-16)
-            so content starts below the navbar naturally.
-            The navbar itself is kept fixed via its own CSS + GPU layer forcing
-            in globals.css and the willChange/translateZ on the nav element.
-          */}
-          &lt;div id="page-scroll-container"&gt;
-            {children}
-          &lt;/div&gt;
           &lt;NotificationPrompt /&gt;
+          &lt;NavbarWrapper /&gt;
+          &lt;IOSAppShell&gt;
+            {children}
+          &lt;/IOSAppShell&gt;
         &lt;/ThemeProvider&gt;
       &lt;/body&gt;
     &lt;/html&gt;
@@ -13542,6 +13544,121 @@ export default function SplashScreen() {
     &lt;/div&gt;
   )
 }</pre></div>
+<div class='file-block'><div class='file-header'>components/layout/AppScrollFix.tsx</div><pre>'use client'
+
+import { useEffect, useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+
+function AppScrollFixInner({ children }: { children: React.ReactNode }) {
+  const searchParams = useSearchParams()
+  const isAppParam = searchParams.get('app') === 'true'
+  const isAndroid = searchParams.get('android') === 'true'
+
+  const [isStandalone, setIsStandalone] = useState(false)
+
+  useEffect(() =&gt; {
+    const mq = window.matchMedia('(display-mode: standalone)')
+    setIsStandalone(mq.matches)
+    const handler = (e: MediaQueryListEvent) =&gt; setIsStandalone(e.matches)
+    mq.addEventListener('change', handler)
+    return () =&gt; mq.removeEventListener('change', handler)
+  }, [])
+
+  const isApp = isAppParam || isStandalone || isAndroid
+
+  return (
+    &lt;div id="page-scroll-container" className={isApp ? 'pb-nav' : ''}&gt;
+      {children}
+    &lt;/div&gt;
+  )
+}
+
+export function AppScrollFix({ children }: { children: React.ReactNode }) {
+  return (
+    &lt;Suspense fallback={&lt;div id="page-scroll-container"&gt;{children}&lt;/div&gt;}&gt;
+      &lt;AppScrollFixInner&gt;{children}&lt;/AppScrollFixInner&gt;
+    &lt;/Suspense&gt;
+  )
+}</pre></div>
+<div class='file-block'><div class='file-header'>components/layout/IOSAppShell.tsx</div><pre>'use client'
+
+import { useEffect, useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+
+function IOSAppShellInner({ children }: { children: React.ReactNode }) {
+  const searchParams = useSearchParams()
+  const isAppParam = searchParams.get('app') === 'true'
+  const isAndroid = searchParams.get('android') === 'true'
+
+  const [isIOS, setIsIOS] = useState(false)
+  const [isStandalone, setIsStandalone] = useState(false)
+
+  useEffect(() =&gt; {
+    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) &amp;&amp; !(window as any).MSStream
+    const mq = window.matchMedia('(display-mode: standalone)')
+    setIsIOS(ios)
+    setIsStandalone(mq.matches)
+    const handler = (e: MediaQueryListEvent) =&gt; setIsStandalone(e.matches)
+    mq.addEventListener('change', handler)
+    return () =&gt; mq.removeEventListener('change', handler)
+  }, [])
+
+  const isApp = isAppParam || isStandalone
+  const isIOSApp = isIOS &amp;&amp; isApp &amp;&amp; !isAndroid
+
+  if (isIOSApp) {
+    return (
+      &lt;div
+        id="ios-app-shell"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          // Push content below the fixed top navbar (h-14 = 56px)
+          paddingTop: '56px',
+          // Account for iOS safe area at bottom
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
+      &gt;
+        {/* This div is the ONLY thing that scrolls */}
+        &lt;div
+          id="ios-scroll-area"
+          style={{
+            flex: 1,
+            overflowY: 'scroll',
+            overflowX: 'hidden',
+            // Critical — tells iOS this is the scroll container
+            WebkitOverflowScrolling: 'touch',
+            // Bottom padding so content clears the bottom nav (64px)
+            paddingBottom: '64px',
+          }}
+        &gt;
+          {children}
+        &lt;/div&gt;
+      &lt;/div&gt;
+    )
+  }
+
+  // Non-iOS or browser — render normally, no shell
+  return (
+    &lt;div id="page-scroll-container" style={{ paddingBottom: 'calc(64px + max(env(safe-area-inset-bottom), 16px))' }}&gt;
+      {children}
+    &lt;/div&gt;
+  )
+}
+
+export function IOSAppShell({ children }: { children: React.ReactNode }) {
+  return (
+    &lt;Suspense fallback={&lt;div id="page-scroll-container"&gt;{children}&lt;/div&gt;}&gt;
+      &lt;IOSAppShellInner&gt;{children}&lt;/IOSAppShellInner&gt;
+    &lt;/Suspense&gt;
+  )
+}</pre></div>
 <div class='file-block'><div class='file-header'>components/layout/MobileNav.tsx</div><pre>'use client';
 
 import { X, Menu, Home, ShoppingBag, Package, Wallet, User, Settings, LogOut } from 'lucide-react';
@@ -13694,12 +13811,8 @@ import {
   Package, AlertTriangle, PlusCircle, Globe, Plus,
 } from 'lucide-react'
 
-// ─────────────────────────────────────────────────────────────────────────────
 import { isSplashPending } from '@/components/SplashScreen'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Shared logo
-// ─────────────────────────────────────────────────────────────────────────────
 function BATAMARTLogo({ appMode = false }: { appMode?: boolean }) {
   const href = appMode ? '/marketplace?app=true' : '/'
   return (
@@ -13714,9 +13827,6 @@ function BATAMARTLogo({ appMode = false }: { appMode?: boolean }) {
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PWA App Mode — top bar: Logo + Cart + Bell
-// ─────────────────────────────────────────────────────────────────────────────
 function AppTopBar({
   isLoggedIn,
   cartCount,
@@ -13756,9 +13866,6 @@ function AppTopBar({
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RIDER PWA — top bar
-// ─────────────────────────────────────────────────────────────────────────────
 function RiderTopBar({
   isLoggedIn,
   userName,
@@ -13771,13 +13878,11 @@ function RiderTopBar({
       style={{ background: 'linear-gradient(135deg, #0f172a, #1e293b)' }}
     &gt;
       &lt;div className="flex items-center justify-between h-14 px-4"&gt;
-        {/* Rider brand */}
         &lt;div className="flex items-center gap-2.5"&gt;
           &lt;div
             className="w-8 h-8 rounded-lg flex items-center justify-center"
             style={{ background: 'linear-gradient(135deg, #1a3f8f, #3b9ef5)' }}
           &gt;
-            {/* Rider / bike icon */}
             &lt;svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}&gt;
               &lt;circle cx="5.5" cy="17.5" r="3.5" /&gt;
               &lt;circle cx="18.5" cy="17.5" r="3.5" /&gt;
@@ -13790,8 +13895,6 @@ function RiderTopBar({
             &lt;p className="text-blue-400 text-[10px] font-medium leading-none mt-0.5"&gt;Rider Mode&lt;/p&gt;
           &lt;/div&gt;
         &lt;/div&gt;
-
-        {/* Rider name */}
         {isLoggedIn &amp;&amp; userName &amp;&amp; (
           &lt;div className="flex items-center gap-2"&gt;
             &lt;div className="w-7 h-7 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-300 text-xs font-bold"&gt;
@@ -13805,17 +13908,12 @@ function RiderTopBar({
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RIDER PWA — bottom tab bar
-// Layout: Dashboard · Deliveries · [Status FAB] · Earnings · Profile
-// ─────────────────────────────────────────────────────────────────────────────
 function RiderBottomNav({ onLogout }: { onLogout: () =&gt; void }) {
   const pathname = usePathname()
   const [profileOpen, setProfileOpen] = useState(false)
   const [isAvailable, setIsAvailable] = useState&lt;boolean | null&gt;(null)
   const [toggling, setToggling] = useState(false)
 
-  // Load rider availability on mount
   useEffect(() =&gt; {
     const token = localStorage.getItem('token')
     if (!token) return
@@ -13893,8 +13991,10 @@ function RiderBottomNav({ onLogout }: { onLogout: () =&gt; void }) {
           background: '#0f172a',
           borderColor: '#1e293b',
           boxShadow: '0 -4px 24px rgba(0,0,0,0.4)',
-          transform: 'translateZ(0)',
-          WebkitTransform: 'translateZ(0)',
+          // iOS PWA fix — translate3d forces GPU compositing layer
+          // which prevents the nav from moving when keyboard dismisses
+          transform: 'translate3d(0,0,0)',
+          WebkitTransform: 'translate3d(0,0,0)',
           willChange: 'transform',
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden',
@@ -13907,7 +14007,6 @@ function RiderBottomNav({ onLogout }: { onLogout: () =&gt; void }) {
             paddingBottom: 'max(env(safe-area-inset-bottom), 16px)',
           }}
         &gt;
-          {/* LEFT TABS */}
           {leftTabs.map(({ href, label, match, icon }) =&gt; {
             const active = isActive(match)
             return (
@@ -13931,7 +14030,6 @@ function RiderBottomNav({ onLogout }: { onLogout: () =&gt; void }) {
             )
           })}
 
-          {/* CENTER FAB — Availability toggle */}
           &lt;div className="flex-1 flex items-center justify-center relative"&gt;
             &lt;div className="absolute inset-0" style={{ background: '#0f172a' }} /&gt;
             &lt;button
@@ -13951,7 +14049,6 @@ function RiderBottomNav({ onLogout }: { onLogout: () =&gt; void }) {
                   opacity: toggling ? 0.7 : 1,
                 }}
               &gt;
-                {/* Bike icon */}
                 &lt;svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}&gt;
                   &lt;circle cx="5.5" cy="17.5" r="3.5" /&gt;
                   &lt;circle cx="18.5" cy="17.5" r="3.5" /&gt;
@@ -13968,7 +14065,6 @@ function RiderBottomNav({ onLogout }: { onLogout: () =&gt; void }) {
             &lt;/button&gt;
           &lt;/div&gt;
 
-          {/* RIGHT TABS */}
           {rightTabs.map(({ href, label, match, icon }) =&gt; {
             const active = isActive(match)
             return (
@@ -13992,7 +14088,6 @@ function RiderBottomNav({ onLogout }: { onLogout: () =&gt; void }) {
             )
           })}
 
-          {/* PROFILE TAB */}
           &lt;button
             onClick={() =&gt; setProfileOpen(true)}
             className={`flex-1 flex flex-col items-center justify-center gap-[3px] relative transition-colors ${
@@ -14007,7 +14102,6 @@ function RiderBottomNav({ onLogout }: { onLogout: () =&gt; void }) {
         &lt;/div&gt;
       &lt;/nav&gt;
 
-      {/* Rider profile sheet */}
       {profileOpen &amp;&amp; (
         &lt;&gt;
           &lt;div
@@ -14024,7 +14118,6 @@ function RiderBottomNav({ onLogout }: { onLogout: () =&gt; void }) {
             &lt;div className="flex justify-center pt-3 pb-2"&gt;
               &lt;div className="w-10 h-1 bg-gray-700 rounded-full" /&gt;
             &lt;/div&gt;
-
             &lt;div className="px-4 py-2"&gt;
               {[
                 { href: '/rider-dashboard?app=true&amp;rider=true', icon: () =&gt; (
@@ -14047,7 +14140,6 @@ function RiderBottomNav({ onLogout }: { onLogout: () =&gt; void }) {
                 &lt;/Link&gt;
               ))}
             &lt;/div&gt;
-
             &lt;div className="px-6 pt-3"&gt;
               &lt;button
                 onClick={() =&gt; { setProfileOpen(false); onLogout() }}
@@ -14064,10 +14156,6 @@ function RiderBottomNav({ onLogout }: { onLogout: () =&gt; void }) {
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PWA App Mode — bottom tab bar
-// Layout: Market · Orders · [FAB Sell] · Wallet · Profile
-// ─────────────────────────────────────────────────────────────────────────────
 function AppBottomNav({
   isLoggedIn,
   userRole,
@@ -14083,6 +14171,45 @@ function AppBottomNav({
 }) {
   const pathname = usePathname()
   const [profileOpen, setProfileOpen] = useState(false)
+
+  // ── iOS PWA keyboard fix ──────────────────────────────────────────────────
+  // On iOS, when the keyboard dismisses, the visual viewport resizes and
+  // breaks fixed positioning. We detect focus/blur on inputs and force a
+  // repaint of the nav after the keyboard animation completes.
+  useEffect(() =&gt; {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) &amp;&amp; !(window as any).MSStream
+    if (!isIOS) return
+
+    let lastScrollY = 0
+
+    const onFocusIn = () =&gt; {
+      lastScrollY = window.scrollY
+    }
+
+    const onFocusOut = () =&gt; {
+      // Wait for iOS keyboard close animation (~300ms)
+      setTimeout(() =&gt; {
+        // Restore scroll position — prevents content jumping under top nav
+        window.scrollTo({ top: lastScrollY, behavior: 'instant' })
+        // Force nav repaint by toggling display — fixes floating bottom nav
+        const navs = document.querySelectorAll('nav')
+        navs.forEach(nav =&gt; {
+          nav.style.display = 'none'
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          nav.offsetHeight // trigger reflow
+          nav.style.display = ''
+        })
+      }, 300)
+    }
+
+    window.addEventListener('focusin', onFocusIn)
+    window.addEventListener('focusout', onFocusOut)
+    return () =&gt; {
+      window.removeEventListener('focusin', onFocusIn)
+      window.removeEventListener('focusout', onFocusOut)
+    }
+  }, [])
+  // ─────────────────────────────────────────────────────────────────────────
 
   const isActive = (path: string) =&gt;
     pathname === path || pathname.startsWith(path + '/')
@@ -14136,13 +14263,14 @@ function AppBottomNav({
 
   return (
     &lt;&gt;
-      {/* ── FIXED BOTTOM NAV ── */}
       &lt;nav
         className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100"
         style={{
           boxShadow: '0 -4px 24px rgba(0,0,0,0.07)',
-          transform: 'translateZ(0)',
-          WebkitTransform: 'translateZ(0)',
+          // translate3d instead of translateZ — more reliable on iOS Safari
+          // for keeping fixed elements anchored during viewport resize
+          transform: 'translate3d(0,0,0)',
+          WebkitTransform: 'translate3d(0,0,0)',
           willChange: 'transform',
           WebkitBackfaceVisibility: 'hidden',
           backfaceVisibility: 'hidden',
@@ -14155,7 +14283,6 @@ function AppBottomNav({
             paddingBottom: 'max(env(safe-area-inset-bottom), 16px)',
           }}
         &gt;
-          {/* LEFT TABS */}
           {leftTabs.map(({ href, label, match, icon }) =&gt; {
             const active = isActive(match)
             return (
@@ -14177,7 +14304,6 @@ function AppBottomNav({
             )
           })}
 
-          {/* CENTER FAB — Sell */}
           &lt;div className="flex-1 flex items-center justify-center relative"&gt;
             &lt;div className="absolute inset-0 bg-white" /&gt;
             &lt;Link
@@ -14197,7 +14323,6 @@ function AppBottomNav({
             &lt;/Link&gt;
           &lt;/div&gt;
 
-          {/* RIGHT TABS */}
           {rightTabs.map(({ href, label, match, icon }) =&gt; {
             const active = isActive(match)
             return (
@@ -14219,7 +14344,6 @@ function AppBottomNav({
             )
           })}
 
-          {/* PROFILE TAB */}
           &lt;button
             onClick={() =&gt; setProfileOpen(true)}
             className={`flex-1 flex flex-col items-center justify-center gap-[3px] relative transition-colors ${
@@ -14244,7 +14368,6 @@ function AppBottomNav({
         &lt;/div&gt;
       &lt;/nav&gt;
 
-      {/* Profile bottom sheet */}
       {profileOpen &amp;&amp; (
         &lt;&gt;
           &lt;div
@@ -14330,9 +14453,6 @@ function AppBottomNav({
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// No spacer divs here — spacers live in NavbarWrapper
-// ─────────────────────────────────────────────────────────────────────────────
 export function Navbar() {
   const router = useRouter()
   const pathname = usePathname()
@@ -14353,8 +14473,6 @@ export function Navbar() {
 
   const isApp = isAppParam || isStandalone
 
-  // ── RIDER MODE — persisted in sessionStorage so it survives page navigation
-  // Once rider=true is detected in the URL, we keep isRider=true for the session.
   const [isRider, setIsRider] = useState(false)
   useEffect(() =&gt; {
     if (isRiderParam) {
@@ -14365,7 +14483,6 @@ export function Navbar() {
     }
   }, [isRiderParam])
 
-  // ── SPLASH GUARD ─────────────────────────────────────────────────────────
   const [splashDone, setSplashDone] = useState&lt;boolean&gt;(() =&gt; {
     if (typeof window === 'undefined') return true
     return !isSplashPending()
@@ -14381,7 +14498,6 @@ export function Navbar() {
       clearTimeout(fallback)
     }
   }, [splashDone])
-  // ─────────────────────────────────────────────────────────────────────────
 
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -14398,6 +14514,10 @@ export function Navbar() {
   const cartCount = getTotalItems()
 
   useEffect(() =&gt; {
+    // ── Disable scroll-hide on iOS PWA — it fights the keyboard fix ──────
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) &amp;&amp; !(window as any).MSStream
+    if (isIOS &amp;&amp; isApp) return
+
     const handleScroll = () =&gt; {
       const currentScrollY = window.scrollY
       if (currentScrollY &gt; lastScrollY.current &amp;&amp; currentScrollY &gt; 80) {
@@ -14409,7 +14529,7 @@ export function Navbar() {
     }
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () =&gt; window.removeEventListener('scroll', handleScroll)
-  }, [])
+  }, [isApp])
 
   useEffect(() =&gt; {
     const handleClickOutside = (event: MouseEvent) =&gt; {
@@ -14494,18 +14614,11 @@ export function Navbar() {
 
   const isActive = (path: string) =&gt; pathname === path || pathname.startsWith(path + '/')
 
-  // ── ANDROID WEBVIEW — return null, native nav handles everything ───────────
   if (isAndroid) return null
-
-  // ── SPLASH ACTIVE — hide everything ──────────────────────────────────────
   if (!splashDone) return null
-
-  // ── HOME PAGE — no navbar on the landing page ─────────────────────────────
   if (pathname === '/') return null
 
-  // ── PWA / APP MODE — fixed top bar + fixed bottom tab bar ─────────────────
   if (isApp) {
-    // Rider PWA — different top bar label + rider-specific bottom nav
     if (isRider) {
       return (
         &lt;&gt;
@@ -14514,7 +14627,6 @@ export function Navbar() {
         &lt;/&gt;
       )
     }
-
     return (
       &lt;&gt;
         &lt;AppTopBar isLoggedIn={isLoggedIn} cartCount={cartCount} /&gt;
@@ -14529,7 +14641,6 @@ export function Navbar() {
     )
   }
 
-  // ── BROWSER MODE — standard fixed top navbar ───────────────────────────────
   return (
     &lt;nav
       className={`fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm transition-transform duration-300 ${
@@ -26481,6 +26592,18 @@ nav[class*="fixed"][class*="bottom-0"] {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch; /* smooth native iOS scroll feel */
     overscroll-behavior: none;         /* no bounce at scroll edges */
+  }
+}
+
+.pb-nav {
+  padding-bottom: calc(64px + max(env(safe-area-inset-bottom), 16px)) !important;
+}
+
+@supports (-webkit-touch-callout: none) {
+  nav {
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    will-change: transform;
   }
 }</pre></div>
 <div class='file-block'><div class='file-header'>styles/mobile.css</div><pre>/* Mobile-first responsive utilities */

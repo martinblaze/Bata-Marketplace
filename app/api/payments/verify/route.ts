@@ -6,6 +6,12 @@ import { notifyOrderPlaced } from '@/lib/push/sendPushNotification'
 
 export const dynamic = 'force-dynamic'
 
+// ── Helper: always use the public app URL for redirects ──────────────────────
+function appRedirect(path: string) {
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  return NextResponse.redirect(`${base}${path}`)
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const reference = searchParams.get('reference')
@@ -18,7 +24,7 @@ export async function GET(request: NextRequest) {
 
   if (!reference) {
     console.error('❌ ERROR: No reference in URL')
-    return NextResponse.redirect(new URL('/checkout?error=no_reference', request.url))
+    return appRedirect('/checkout?error=no_reference')
   }
 
   try {
@@ -35,12 +41,12 @@ export async function GET(request: NextRequest) {
 
     if (!verifyData.status) {
       console.error('❌ Paystack status is false')
-      return NextResponse.redirect(new URL('/checkout?error=payment_failed', request.url))
+      return appRedirect('/checkout?error=payment_failed')
     }
 
     if (verifyData.data.status !== 'success') {
       console.error('❌ Payment status not success')
-      return NextResponse.redirect(new URL('/checkout?error=payment_failed', request.url))
+      return appRedirect('/checkout?error=payment_failed')
     }
 
     console.log('✅ Payment verified with Paystack')
@@ -55,9 +61,7 @@ export async function GET(request: NextRequest) {
 
     if (existingOrder) {
       console.log('⚠️ Order already exists:', existingOrder.orderNumber)
-      return NextResponse.redirect(
-        new URL(`/orders?payment=success&order=${existingOrder.orderNumber}`, request.url)
-      )
+      return appRedirect(`/orders?payment=success&order=${existingOrder.orderNumber}`)
     }
 
     console.log('✅ No duplicate found')
@@ -82,7 +86,7 @@ export async function GET(request: NextRequest) {
 
     if (!meta || !meta.userId || !meta.cartItems || meta.cartItems.length === 0) {
       console.error('❌ Invalid metadata')
-      return NextResponse.redirect(new URL('/checkout?error=invalid_metadata', request.url))
+      return appRedirect('/checkout?error=invalid_metadata')
     }
 
     console.log('✅ Metadata valid — User:', meta.userId, '| Items:', meta.cartItems.length)
@@ -100,7 +104,7 @@ export async function GET(request: NextRequest) {
 
     if (!buyer) {
       console.error('❌ Buyer not found')
-      return NextResponse.redirect(new URL('/checkout?error=user_not_found', request.url))
+      return appRedirect('/checkout?error=user_not_found')
     }
 
     console.log('✅ Buyer found:', buyer.name)
@@ -114,19 +118,13 @@ export async function GET(request: NextRequest) {
       })
 
       if (!product) {
-        return NextResponse.redirect(
-          new URL(`/checkout?error=product_not_found&product=${encodeURIComponent(item.name)}`, request.url)
-        )
+        return appRedirect(`/checkout?error=product_not_found&product=${encodeURIComponent(item.name)}`)
       }
       if (!product.isActive) {
-        return NextResponse.redirect(
-          new URL(`/checkout?error=product_inactive&product=${encodeURIComponent(item.name)}`, request.url)
-        )
+        return appRedirect(`/checkout?error=product_inactive&product=${encodeURIComponent(item.name)}`)
       }
       if (product.quantity < item.quantity) {
-        return NextResponse.redirect(
-          new URL(`/checkout?error=out_of_stock&product=${encodeURIComponent(item.name)}`, request.url)
-        )
+        return appRedirect(`/checkout?error=out_of_stock&product=${encodeURIComponent(item.name)}`)
       }
       console.log(`✅ ${item.name}: OK`)
     }
@@ -198,17 +196,13 @@ export async function GET(request: NextRequest) {
     console.log('\n🎉 Redirecting to Orders Page')
     console.log('═'.repeat(70))
 
-    return NextResponse.redirect(
-      new URL(`/orders?payment=success&order=${firstOrderNumber}&count=${orders.length}`, request.url)
-    )
+    return appRedirect(`/orders?payment=success&order=${firstOrderNumber}&count=${orders.length}`)
 
   } catch (error) {
     console.error('\n💥 FATAL ERROR')
     console.error(error instanceof Error ? error.message : error)
     if (error instanceof Error) console.error(error.stack)
-    return NextResponse.redirect(
-      new URL('/checkout?error=verification_failed&reason=exception', request.url)
-    )
+    return appRedirect('/checkout?error=verification_failed&reason=exception')
   }
 }
 
