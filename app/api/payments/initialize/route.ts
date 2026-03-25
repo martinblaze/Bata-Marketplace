@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       category: string
       sellerId: string
       sellerName: string
-      orderNote?: string  // ← ADDED orderNote field
+      orderNote?: string
     }[] = []
 
     if (cartItems && Array.isArray(cartItems) && cartItems.length > 0) {
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
           category: product.category,
           sellerId: product.sellerId,
           sellerName: product.seller.name,
-          orderNote: item.orderNote,  // ← ADDED: preserve orderNote from cart item
+          orderNote: item.orderNote,
         })
       }
     } else if (productId) {
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
         category: product.category,
         sellerId: product.sellerId,
         sellerName: product.seller.name,
-        orderNote: body.orderNote,  // ← ADDED: for single product purchase
+        orderNote: body.orderNote,
       }]
     } else {
       return NextResponse.json({ error: 'No products provided' }, { status: 400 })
@@ -142,6 +142,22 @@ export async function POST(request: NextRequest) {
     console.log('💳 PROD MODE: Initializing Paystack payment')
     const reference = `BATAMART-${Date.now()}-${user.id.substring(0, 8)}`
 
+    // ✅ FIX: Always use the real production URL for the callback.
+    // NEXT_PUBLIC_APP_URL must be set in Vercel environment variables.
+    // Never rely on a localhost fallback — if the env var is missing,
+    // throw a clear error instead of silently sending users to localhost.
+    const APP_URL = process.env.NEXT_PUBLIC_APP_URL
+    if (!APP_URL) {
+      console.error('❌ NEXT_PUBLIC_APP_URL is not set! Cannot initialize payment.')
+      return NextResponse.json(
+        { error: 'Server misconfiguration: NEXT_PUBLIC_APP_URL is not set.' },
+        { status: 500 }
+      )
+    }
+
+    const callbackUrl = `${APP_URL}/api/payments/verify`
+    console.log('📍 Paystack callback_url:', callbackUrl)
+
     const paystackRes = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
       headers: {
@@ -152,7 +168,7 @@ export async function POST(request: NextRequest) {
         email: user.email || `${user.id}@BATAMART.app`,
         amount: fees.totalAmount * 100, // kobo
         reference,
-        callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/verify`,
+        callback_url: callbackUrl,
         metadata: {
           userId: user.id,
           cartItems: items,
@@ -200,7 +216,7 @@ export async function createOrders(
     category: string
     sellerId: string
     sellerName: string
-    orderNote?: string  // ← ADDED orderNote field to type
+    orderNote?: string
   }[],
   user: {
     id: string
@@ -241,9 +257,6 @@ export async function createOrders(
     console.log('🔨 Creating order:', orderNumber)
 
     try {
-      // ═══════════════════════════════════════════════════════
-      // CRITICAL FIX: Transaction ONLY for database operations
-      // ═══════════════════════════════════════════════════════
       const order = await prisma.$transaction(async (tx) => {
         const seller = await tx.user.findUnique({
           where: { id: sellerId },
@@ -277,7 +290,7 @@ export async function createOrders(
           isPaid: true,
           paymentId: paymentReference || `dev_${Date.now()}`,
           status: 'PENDING' as const,
-          orderNote: orderNotes || null,  // ← ADDED: store combined order notes
+          orderNote: orderNotes || null,
         }
 
         const newOrder = await tx.order.create({ data: orderData })
@@ -340,7 +353,6 @@ export async function createOrders(
 
       createdOrders.push(order)
 
-      // Queue notification for later
       notificationQueue.push({
         orderId: order.id,
         buyerId: user.id,
