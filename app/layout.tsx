@@ -164,7 +164,6 @@ export default function RootLayout({
           <SuspensionGuard />
           <NavbarWrapper />
           <NotificationPrompt />
-          <NavbarWrapper />
           <IOSAppShell>
             {children}
           </IOSAppShell>

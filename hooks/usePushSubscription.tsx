@@ -191,126 +191,157 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   return outputArray
 }
 
-// ── Global floating NotificationPrompt (passive nudge) ───────────────────────
-// Shown on every page except when snoozed.
-// "Not Now" snoozes for 24h, then shows again — never dismisses forever.
+// ── Global NotificationPrompt ─────────────────────────────────────────────────
+// Rendered as a BOTTOM SHEET — slides up from below the bottom nav.
+// Does NOT use fixed positioning that fights with IOSAppShell / z-index stacks.
+// Backdrop dims the page, sheet sits above everything at z-[9999].
 export function NotificationPrompt() {
   const { shouldShowPassive, snooze, markGranted } = useNotificationNudge()
   const { isLoading, subscribe } = usePushSubscription()
   const [visible, setVisible] = useState(false)
+  const [animOut, setAnimOut] = useState(false)
 
   useEffect(() => {
     if (!shouldShowPassive) return
-    // Delay so it doesn't slam in on page load
     const t = setTimeout(() => setVisible(true), 3000)
     return () => clearTimeout(t)
   }, [shouldShowPassive])
+
+  const dismiss = (andSnooze = true) => {
+    setAnimOut(true)
+    setTimeout(() => {
+      setVisible(false)
+      setAnimOut(false)
+      if (andSnooze) snooze()
+    }, 280)
+  }
 
   const handleEnable = async () => {
     const granted = await subscribe()
     if (granted) {
       markGranted()
-      setVisible(false)
+      dismiss(false)
     }
-  }
-
-  const handleSnooze = () => {
-    setVisible(false)
-    snooze()
   }
 
   if (!visible) return null
 
   return (
-    <div
-      className="fixed right-4 z-[9990] w-[calc(100vw-2rem)] max-w-[320px]"
-      style={{
-        bottom: 'calc(72px + max(env(safe-area-inset-bottom), 16px) + 12px)',
-        animation: 'notifSlideIn 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards',
-      }}
-    >
+    <>
       <style>{`
-        @keyframes notifSlideIn {
-          from { opacity: 0; transform: translateY(16px) scale(0.97); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
+        @keyframes npBackdropIn  { from{opacity:0} to{opacity:1} }
+        @keyframes npBackdropOut { from{opacity:1} to{opacity:0} }
+        @keyframes npSheetIn     { from{transform:translateY(100%)} to{transform:translateY(0)} }
+        @keyframes npSheetOut    { from{transform:translateY(0)} to{transform:translateY(100%)} }
+        @keyframes npBellRing {
+          0%,100%{transform:rotate(0)}
+          15%{transform:rotate(14deg)}
+          30%{transform:rotate(-10deg)}
+          45%{transform:rotate(8deg)}
+          60%{transform:rotate(-5deg)}
+          75%{transform:rotate(3deg)}
         }
-        @keyframes bellRing {
-          0%,100% { transform: rotate(0); }
-          15%      { transform: rotate(14deg); }
-          30%      { transform: rotate(-10deg); }
-          45%      { transform: rotate(8deg); }
-          60%      { transform: rotate(-6deg); }
-          75%      { transform: rotate(4deg); }
+        .np-backdrop {
+          animation: ${animOut ? 'npBackdropOut' : 'npBackdropIn'} 0.28s ease forwards;
         }
-        .bell-ring-anim { animation: bellRing 1.6s ease 0.6s both; }
+        .np-sheet {
+          animation: ${animOut ? 'npSheetOut' : 'npSheetIn'} 0.32s cubic-bezier(0.32,0.72,0,1) forwards;
+        }
+        .np-bell { animation: npBellRing 1.6s ease 0.5s both; }
       `}</style>
 
-      <div className="rounded-2xl overflow-hidden"
-        style={{
-          background: '#fff',
-          boxShadow: '0 8px 32px rgba(26,63,143,0.16), 0 2px 8px rgba(0,0,0,0.06)',
-          border: '1px solid rgba(59,158,245,0.15)',
-        }}
+      {/* Backdrop — tapping it snoozes */}
+      <div
+        className="np-backdrop fixed inset-0 z-[9998] bg-black/30"
+        onClick={() => dismiss(true)}
+      />
+
+      {/* Sheet — anchored to viewport bottom, full width, never clips content */}
+      <div
+        className="np-sheet fixed left-0 right-0 bottom-0 z-[9999] bg-white rounded-t-3xl overflow-hidden"
+        style={{ boxShadow: '0 -8px 40px rgba(0,0,0,0.18)' }}
       >
-        <div className="h-1" style={{ background: 'linear-gradient(90deg,#1a3f8f,#3b9ef5)' }} />
-        <div className="p-4">
-          <div className="flex items-start gap-3 mb-3">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bell-ring-anim"
-              style={{ background: 'linear-gradient(135deg,#1a3f8f,#3b9ef5)', boxShadow: '0 4px 12px rgba(26,63,143,0.3)' }}
+        {/* Gradient accent bar */}
+        <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg,#1a3f8f,#3b9ef5)' }} />
+
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 bg-gray-200 rounded-full" />
+        </div>
+
+        <div className="px-5 pt-2 pb-6" style={{ paddingBottom: 'calc(24px + max(env(safe-area-inset-bottom), 16px))' }}>
+
+          {/* Header row */}
+          <div className="flex items-start gap-3 mb-4">
+            <div
+              className="np-bell flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg,#1a3f8f,#3b9ef5)', boxShadow: '0 4px 14px rgba(26,63,143,0.35)' }}
             >
-              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
             </div>
+
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-gray-900 text-sm leading-tight">Stay in the loop 🔔</p>
-              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                Get notified about your orders, deliveries, and messages instantly.
+              <p className="font-bold text-gray-900 text-base leading-snug">Stay in the loop 🔔</p>
+              <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+                Get notified about your orders, deliveries, and messages — even when the app is closed.
               </p>
             </div>
+
             <button
-              onClick={handleSnooze}
-              className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors -mt-0.5 -mr-0.5"
+              onClick={() => dismiss(true)}
+              className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 text-gray-400 hover:bg-gray-200 transition-colors -mt-0.5 -mr-1"
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {['Order updates', 'Delivery alerts', 'New messages'].map((label) => (
-              <span key={label} className="text-[10px] font-medium px-2 py-1 rounded-full"
-                style={{ background: 'rgba(59,158,245,0.08)', color: '#1a3f8f' }}
+          {/* Benefit chips */}
+          <div className="flex flex-wrap gap-2 mb-5">
+            {[
+              { icon: '📦', text: 'Order updates' },
+              { icon: '🛵', text: 'Delivery alerts' },
+              { icon: '💬', text: 'New messages' },
+            ].map(({ icon, text }) => (
+              <span
+                key={text}
+                className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full"
+                style={{ background: 'rgba(59,158,245,0.09)', color: '#1a3f8f' }}
               >
-                ✓ {label}
+                {icon} {text}
               </span>
             ))}
           </div>
 
-          <div className="flex gap-2">
-            <button
-              onClick={handleEnable}
-              disabled={isLoading}
-              className="flex-1 py-2.5 rounded-xl text-white text-xs font-bold transition-opacity"
-              style={{
-                background: 'linear-gradient(135deg,#1a3f8f,#3b9ef5)',
-                boxShadow: '0 4px 12px rgba(26,63,143,0.3)',
-                opacity: isLoading ? 0.7 : 1,
-              }}
-            >
-              {isLoading ? 'Enabling…' : 'Enable Notifications'}
-            </button>
-            <button
-              onClick={handleSnooze}
-              className="px-3 py-2.5 rounded-xl text-xs font-medium text-gray-500 transition-colors"
-              style={{ background: '#f3f4f6' }}
-            >
-              Later
-            </button>
-          </div>
+          {/* Buttons */}
+          <button
+            onClick={handleEnable}
+            disabled={isLoading}
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-white text-sm font-bold transition-all disabled:opacity-60 active:scale-[0.98]"
+            style={{
+              background: 'linear-gradient(135deg,#1a3f8f,#3b9ef5)',
+              boxShadow: '0 4px 16px rgba(26,63,143,0.35)',
+              minHeight: '52px',
+            }}
+          >
+            {isLoading
+              ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg> Enabling…</>
+              : 'Enable Notifications'
+            }
+          </button>
+
+          <button
+            onClick={() => dismiss(true)}
+            className="w-full mt-2.5 py-3 rounded-2xl text-sm font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors active:scale-[0.98]"
+            style={{ minHeight: '44px' }}
+          >
+            Maybe Later
+          </button>
         </div>
       </div>
-    </div>
+    </>
   )
 }
