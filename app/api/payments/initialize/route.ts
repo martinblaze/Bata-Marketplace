@@ -1,4 +1,4 @@
-// app/api/payments/initialize/route.ts - FULLY CORRECTED WITH ORDER NOTES
+// app/api/payments/initialize/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth/auth'
 import { prisma } from '@/lib/prisma'
@@ -7,7 +7,9 @@ import { notifyOrderPlaced } from '@/lib/notification'
 export const dynamic = 'force-dynamic'
 
 // ============================================================
-// STANDARDIZED FEE STRUCTURE (used everywhere consistently)
+// STANDARDIZED FEE STRUCTURE
+// Keep in sync with the verify route — both import calculateFees
+// from here so fees are always computed identically.
 // ============================================================
 export function calculateFees(subtotal: number, deliveryFee: number = 800) {
   const PLATFORM_RATE = 0.05
@@ -43,7 +45,7 @@ export async function POST(request: NextRequest) {
     const { productId, cartItems, deliveryFee = 800 } = body
 
     // ── Build items list ──────────────────────────────────────
-    let items: {
+    type CartItem = {
       productId: string
       name: string
       price: number
@@ -52,7 +54,9 @@ export async function POST(request: NextRequest) {
       sellerId: string
       sellerName: string
       orderNote?: string
-    }[] = []
+    }
+
+    let items: CartItem[] = []
 
     if (cartItems && Array.isArray(cartItems) && cartItems.length > 0) {
       for (const item of cartItems) {
@@ -102,7 +106,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No products provided' }, { status: 400 })
     }
 
-    // Can't buy your own product
+    // Can't buy own product
     const ownProduct = items.find(i => i.sellerId === user.id)
     if (ownProduct) {
       return NextResponse.json({ error: 'You cannot buy your own product' }, { status: 400 })
@@ -117,46 +121,22 @@ export async function POST(request: NextRequest) {
       ...fees,
     })
 
-    // ── DEV MODE: skip Paystack, create orders directly ───────
-    const useDevMode = false // ← Set to false for production
-
-    if (useDevMode && process.env.NODE_ENV === 'development') {
-      console.log('🔧 DEV MODE: Creating orders without Paystack')
-      const createdOrders = await createOrders(items, user, fees)
-
-      return NextResponse.json({
-        success: true,
-        devMode: true,
-        message: 'Orders placed (Dev Mode)',
-        orders: createdOrders.map(o => ({
-          orderNumber: o.orderNumber,
-          orderId: o.id
-        })),
-        orderId: createdOrders[0].id,
-        orderNumber: createdOrders[0].orderNumber,
-        breakdown: fees,
-      })
-    }
-
     // ── PRODUCTION: Initialize Paystack ───────────────────────
-    console.log('💳 PROD MODE: Initializing Paystack payment')
-    const reference = `BATAMART-${Date.now()}-${user.id.substring(0, 8)}`
-
-    // ✅ FIX: Always use the real production URL for the callback.
-    // NEXT_PUBLIC_APP_URL must be set in Vercel environment variables.
-    // Never rely on a localhost fallback — if the env var is missing,
-    // throw a clear error instead of silently sending users to localhost.
+    // DEV MODE is intentionally disabled. Even in local development you should
+    // test with Paystack test keys so the full verify flow runs correctly.
     const APP_URL = process.env.NEXT_PUBLIC_APP_URL
     if (!APP_URL) {
-      console.error('❌ NEXT_PUBLIC_APP_URL is not set! Cannot initialize payment.')
+      console.error('❌ NEXT_PUBLIC_APP_URL is not set!')
       return NextResponse.json(
         { error: 'Server misconfiguration: NEXT_PUBLIC_APP_URL is not set.' },
         { status: 500 }
       )
     }
 
-    const callbackUrl = `${APP_URL}/api/payments/verify`
-    console.log('📍 Paystack callback_url:', callbackUrl)
+    const reference = `BATAMART-${Date.now()}-${user.id.substring(0, 8)}`
+    // Strip trailing slash from APP_URL just in case
+    const callbackUrl = `${APP_URL.replace(/\/$/, '')}/api/payments/verify`
+    console.log('💳 Initializing Paystack — callback:', callbackUrl)
 
     const paystackRes = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
@@ -165,7 +145,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        email: user.email || `${user.id}@BATAMART.app`,
+        email: user.email || `${user.id}@batamart.app`,
         amount: fees.totalAmount * 100, // kobo
         reference,
         callback_url: callbackUrl,
@@ -188,8 +168,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('✅ Paystack initialized:', reference)
+    console.log('✅ Paystack initialized — reference:', reference)
 
+    // ⚠️  IMPORTANT: We return the authorization_url to the frontend here and
+    // do NOT create the order yet. The order is only created in /verify after
+    // Paystack confirms the payment. The frontend is responsible for keeping
+    // the cart/session alive until the user is redirected to Paystack.
     return NextResponse.json({
       success: true,
       authorization_url: paystackData.data.authorization_url,
@@ -205,7 +189,8 @@ export async function POST(request: NextRequest) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// ✅ FIXED createOrders - WITH ORDER NOTES ADDED
+// createOrders — called ONLY from the verify route after
+// Paystack has confirmed the payment is successful.
 // ══════════════════════════════════════════════════════════════
 export async function createOrders(
   items: {
@@ -228,16 +213,17 @@ export async function createOrders(
   fees: ReturnType<typeof calculateFees>,
   paymentReference?: string
 ) {
-  console.log('📝 createOrders called')
+  console.log('📝 createOrders called — reference:', paymentReference)
 
-  // Group items by seller
+  // Group items by seller so each seller gets their own Order record
   const sellerGroups = items.reduce<Record<string, typeof items>>((acc, item) => {
     if (!acc[item.sellerId]) acc[item.sellerId] = []
     acc[item.sellerId].push(item)
     return acc
   }, {})
 
-  const createdOrders = []
+  const createdOrders: Awaited<ReturnType<typeof prisma.order.create>>[] = []
+
   const notificationQueue: Array<{
     orderId: string
     buyerId: string
@@ -251,10 +237,12 @@ export async function createOrders(
     const proportion = fees.subtotal > 0 ? orderSubtotal / fees.subtotal : 1
     const orderFees = calculateFees(orderSubtotal, Math.round(fees.deliveryFee * proportion))
 
+    // Ensure order numbers are unique even when multiple orders are created
+    // in rapid succession (timestamp alone can collide)
     const orderNumber = `BATAMART-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`
     const itemsList = sellerItems.map(i => `${i.name} (x${i.quantity})`).join(', ')
 
-    console.log('🔨 Creating order:', orderNumber)
+    console.log('🔨 Creating order:', orderNumber, 'for seller:', sellerId)
 
     try {
       const order = await prisma.$transaction(async (tx) => {
@@ -263,39 +251,48 @@ export async function createOrders(
           select: { pendingBalance: true, availableBalance: true },
         })
 
-        if (!seller) {
-          throw new Error(`Seller not found: ${sellerId}`)
-        }
+        if (!seller) throw new Error(`Seller not found: ${sellerId}`)
 
-        // Combine order notes from all items in this order
-        const orderNotes = sellerItems
+        // Merge all notes from items in this order into one field
+        const orderNote = sellerItems
           .map(item => item.orderNote?.trim())
-          .filter(note => note && note.length > 0)
-          .join(' | ')
+          .filter((note): note is string => Boolean(note && note.length > 0))
+          .join(' | ') || null
 
-        const orderData = {
-          orderNumber,
-          buyerId: user.id,
-          sellerId,
-          productId: sellerItems[0].productId,
-          productPrice: Number(orderSubtotal),
-          deliveryFee: Number(orderFees.deliveryFee),
-          totalAmount: Number(orderFees.totalAmount),
-          platformCommission: Number(orderFees.platformTotal),
-          quantity: Number(sellerItems.reduce((sum, i) => sum + i.quantity, 0)),
-          deliveryHostel: String(user.hostelName || ''),
-          deliveryRoom: String(user.roomNumber || ''),
-          deliveryPhone: String(user.phone || ''),
-          deliveryLandmark: String(user.landmark || ''),
-          isPaid: true,
-          paymentId: paymentReference || `dev_${Date.now()}`,
-          status: 'PENDING' as const,
-          orderNote: orderNotes || null,
-        }
+        const newOrder = await tx.order.create({
+          data: {
+            orderNumber,
+            buyerId: user.id,
+            sellerId,
+            productId: sellerItems[0].productId,
+            productPrice: Number(orderSubtotal),
+            deliveryFee: Number(orderFees.deliveryFee),
+            totalAmount: Number(orderFees.totalAmount),
+            platformCommission: Number(orderFees.platformTotal),
+            quantity: Number(sellerItems.reduce((sum, i) => sum + i.quantity, 0)),
+            deliveryHostel: String(user.hostelName ?? ''),
+            deliveryRoom: String(user.roomNumber ?? ''),
+            deliveryPhone: String(user.phone ?? ''),
+            deliveryLandmark: String(user.landmark ?? ''),
+            isPaid: true,
+            status: 'PENDING' as const,
+            orderNote,
+            // Create the Payment record (one-to-one relation) at the same time.
+            // This is how we track the Paystack reference for duplicate-payment
+            // detection in the verify route — Payment.transactionId = reference.
+            payment: paymentReference ? {
+              create: {
+                amount: Number(orderFees.totalAmount),
+                method: 'CARD' as const,
+                status: 'COMPLETED' as const,
+                transactionId: paymentReference,
+                paidAt: new Date(),
+              },
+            } : undefined,
+          },
+        })
 
-        const newOrder = await tx.order.create({ data: orderData })
-
-        // Reduce stock
+        // Decrement stock for each product in this order
         for (const item of sellerItems) {
           await tx.product.update({
             where: { id: item.productId },
@@ -303,16 +300,16 @@ export async function createOrders(
           })
         }
 
-        // Update balances
+        // Credit seller's pending (escrow) balance
         const sellerShare = Number(orderFees.sellerShare)
-        const sellerPendingBalance = Number(seller.pendingBalance || 0)
+        const sellerPendingBalance = Number(seller.pendingBalance ?? 0)
 
         await tx.user.update({
           where: { id: sellerId },
           data: { pendingBalance: { increment: sellerShare } },
         })
 
-        // Create transaction records
+        // Create transaction ledger entries
         await tx.transaction.createMany({
           data: [
             {
@@ -342,7 +339,7 @@ export async function createOrders(
               balanceBefore: 0,
               balanceAfter: 0,
             },
-          ]
+          ],
         })
 
         return newOrder
@@ -352,7 +349,6 @@ export async function createOrders(
       })
 
       createdOrders.push(order)
-
       notificationQueue.push({
         orderId: order.id,
         buyerId: user.id,
@@ -364,28 +360,18 @@ export async function createOrders(
       console.log('✅ Order created:', orderNumber)
 
     } catch (orderError) {
-      console.error('❌ Failed to create order:', orderNumber, orderError)
+      console.error('❌ Failed to create order for seller', sellerId, orderError)
       throw orderError
     }
   }
 
-  // ═══════════════════════════════════════════════════════
-  // ✅ SEND NOTIFICATIONS AFTER ALL ORDERS CREATED
-  // ═══════════════════════════════════════════════════════
-  console.log(`📧 Sending ${notificationQueue.length} notifications...`)
-
-  for (const notification of notificationQueue) {
-    notifyOrderPlaced(
-      notification.orderId,
-      notification.buyerId,
-      notification.sellerId,
-      notification.orderNumber,
-      notification.itemsList
-    )
-      .then(() => console.log(`✅ Notification sent for ${notification.orderNumber}`))
-      .catch(err => console.error(`⚠️ Notification failed:`, err))
+  // Fire in-app notifications for each order — non-blocking
+  for (const n of notificationQueue) {
+    notifyOrderPlaced(n.orderId, n.buyerId, n.sellerId, n.orderNumber, n.itemsList)
+      .then(() => console.log(`✅ Notification sent for ${n.orderNumber}`))
+      .catch(err => console.error(`⚠️  Notification failed for ${n.orderNumber}:`, err))
   }
 
-  console.log('🎉 All orders created successfully:', createdOrders.length)
+  console.log('🎉 All orders created:', createdOrders.length)
   return createdOrders
 }

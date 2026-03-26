@@ -2,14 +2,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createOrders, calculateFees } from '../initialize/route'
-import { notifyOrderPlaced } from '@/lib/push/sendPushNotification'
+
+// ⚠️  REMOVED the top-level import of @/lib/push/sendPushNotification.
+//     That import was causing the ENTIRE module to fail to load whenever
+//     the push notification env vars (VAPID keys etc.) were missing or
+//     the module had any runtime error — which crashes the verify route
+//     before a single line of code runs, sending every user to the
+//     catch block → /checkout?error=verification_failed → /marketplace.
+//     All push/notification calls are now done with dynamic imports inside
+//     a fire-and-forget Promise.allSettled so they NEVER block the redirect.
 
 export const dynamic = 'force-dynamic'
 
-// ── Helper: always use the public app URL for redirects ──────────────────────
+// ── Helper: redirect to the correct app domain ──────────────────────────────
 function appRedirect(path: string) {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bata-mart.vercel.app'
-  return NextResponse.redirect(`${base}${path}`)
+  const base = process.env.NEXT_PUBLIC_APP_URL
+  if (!base) {
+    // Hard-fail loudly rather than silently redirecting to the wrong place
+    console.error('❌ CRITICAL: NEXT_PUBLIC_APP_URL is not set in environment variables!')
+    // Still fall back so the user is not left on a blank Paystack page
+    return NextResponse.redirect(`https://bata-mart.vercel.app${path}`)
+  }
+  // Strip any accidental trailing slash from the env var before building URL
+  return NextResponse.redirect(`${base.replace(/\/$/, '')}${path}`)
 }
 
 export async function GET(request: NextRequest) {
@@ -21,6 +36,7 @@ export async function GET(request: NextRequest) {
   console.log('═'.repeat(70))
   console.log('📍 Reference:', reference)
   console.log('📍 Timestamp:', new Date().toISOString())
+  console.log('📍 APP_URL:', process.env.NEXT_PUBLIC_APP_URL ?? '⚠️  NOT SET')
 
   if (!reference) {
     console.error('❌ ERROR: No reference in URL')
@@ -28,86 +44,95 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // ── STEP 1: Verify with Paystack ───────────────────────────────────────
     console.log('\n📞 STEP 1: Verifying with Paystack')
 
-    const verifyRes = await fetch(
-      `https://api.paystack.co/transaction/verify/${reference}`,
-      { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` } }
-    )
-
-    console.log('HTTP Status:', verifyRes.status)
-    const verifyData = await verifyRes.json()
-    console.log('📦 Paystack Response status:', verifyData?.status, '| tx status:', verifyData?.data?.status)
-
-    if (!verifyData.status) {
-      console.error('❌ Paystack status is false')
+    let verifyData: any
+    try {
+      const verifyRes = await fetch(
+        `https://api.paystack.co/transaction/verify/${reference}`,
+        { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` } }
+      )
+      console.log('HTTP Status:', verifyRes.status)
+      verifyData = await verifyRes.json()
+    } catch (fetchErr) {
+      console.error('❌ Network error calling Paystack:', fetchErr)
       return appRedirect('/checkout?error=payment_failed')
     }
 
-    if (verifyData.data.status !== 'success') {
-      console.error('❌ Payment status not success:', verifyData.data.status)
+    console.log('📦 Paystack Response status:', verifyData?.status, '| tx status:', verifyData?.data?.status)
+
+    if (!verifyData?.status) {
+      console.error('❌ Paystack returned status=false:', verifyData?.message)
+      return appRedirect('/checkout?error=payment_failed')
+    }
+
+    if (verifyData.data?.status !== 'success') {
+      console.error('❌ Payment not successful. Status:', verifyData.data?.status)
       return appRedirect('/checkout?error=payment_failed')
     }
 
     console.log('✅ Payment verified with Paystack')
 
-    // ── Duplicate check via Payment model ──────────────────────────────────
-    // Check if a payment with this transaction reference already exists
-    console.log('\n🔄 STEP 2: Checking for Duplicate Payment')
+    // ── STEP 2: Duplicate-payment guard ───────────────────────────────────
+    // The Payment model stores the Paystack reference in transactionId.
+    // The Order model has NO paymentId field — it has a `payment` relation.
+    // So we query Payment by transactionId and navigate to the order through
+    // the relation. This correctly prevents double-processing the same webhook.
+    console.log('\n🔄 STEP 2: Duplicate-payment guard')
+
     const existingPayment = await prisma.payment.findFirst({
-      where: { 
-        transactionId: reference 
-      },
+      where: { transactionId: reference },
       include: {
-        order: {
-          select: {
-            id: true,
-            orderNumber: true
-          }
-        }
-      }
+        order: { select: { id: true, orderNumber: true } },
+      },
     })
 
-    if (existingPayment && existingPayment.order) {
-      console.log('⚠️ Payment already exists for this reference. Order:', existingPayment.order.orderNumber)
+    if (existingPayment?.order) {
+      console.log('⚠️  Payment already processed — idempotent redirect')
+      console.log('   Order:', existingPayment.order.orderNumber)
       return appRedirect(`/orders?payment=success&order=${existingPayment.order.orderNumber}`)
     }
 
-    console.log('✅ No duplicate found — proceeding to create order')
+    console.log('✅ No duplicate found — safe to create order')
 
-    // ── Metadata ───────────────────────────────────────────────────────────
+    // ── STEP 3: Extract metadata ───────────────────────────────────────────
     console.log('\n📋 STEP 3: Extracting Metadata')
+
+    type CartItem = {
+      productId: string
+      name: string
+      price: number
+      quantity: number
+      category: string
+      sellerId: string
+      sellerName: string
+      orderNote?: string
+    }
+
     const meta = verifyData.data.metadata as {
       userId: string
-      cartItems: {
-        productId: string
-        name: string
-        price: number
-        quantity: number
-        category: string
-        sellerId: string
-        sellerName: string
-        orderNote?: string
-      }[]
+      cartItems: CartItem[]
       deliveryFee: number
       fees: ReturnType<typeof calculateFees>
     }
 
-    console.log('📋 Metadata received:', JSON.stringify({
+    console.log('📋 Metadata snapshot:', JSON.stringify({
       userId: meta?.userId,
       itemCount: meta?.cartItems?.length,
       deliveryFee: meta?.deliveryFee,
     }))
 
-    if (!meta || !meta.userId || !meta.cartItems || meta.cartItems.length === 0) {
-      console.error('❌ Invalid or missing metadata:', JSON.stringify(meta))
+    if (!meta?.userId || !Array.isArray(meta?.cartItems) || meta.cartItems.length === 0) {
+      console.error('❌ Invalid/missing metadata:', JSON.stringify(meta))
       return appRedirect('/checkout?error=invalid_metadata')
     }
 
-    console.log('✅ Metadata valid — User:', meta.userId, '| Items:', meta.cartItems.length)
+    console.log('✅ Metadata OK — User:', meta.userId, '| Items:', meta.cartItems.length)
 
-    // ── Fetch buyer ────────────────────────────────────────────────────────
+    // ── STEP 4: Fetch buyer ────────────────────────────────────────────────
     console.log('\n👤 STEP 4: Fetching Buyer')
+
     const buyer = await prisma.user.findUnique({
       where: { id: meta.userId },
       select: {
@@ -124,8 +149,9 @@ export async function GET(request: NextRequest) {
 
     console.log('✅ Buyer found:', buyer.name)
 
-    // ── Validate products ──────────────────────────────────────────────────
+    // ── STEP 5: Validate products are still in stock ───────────────────────
     console.log('\n📦 STEP 5: Validating Products')
+
     for (const item of meta.cartItems) {
       const product = await prisma.product.findUnique({
         where: { id: item.productId },
@@ -141,16 +167,17 @@ export async function GET(request: NextRequest) {
         return appRedirect(`/checkout?error=product_inactive&product=${encodeURIComponent(item.name)}`)
       }
       if (product.quantity < item.quantity) {
-        console.error('❌ Insufficient stock for:', item.name, '| has:', product.quantity, '| needs:', item.quantity)
+        console.error('❌ Insufficient stock:', item.name, '| has:', product.quantity, '| needs:', item.quantity)
         return appRedirect(`/checkout?error=out_of_stock&product=${encodeURIComponent(item.name)}`)
       }
       console.log(`✅ ${item.name}: OK (stock: ${product.quantity})`)
     }
 
-    // ── Create orders ──────────────────────────────────────────────────────
+    // ── STEP 6: Create orders ──────────────────────────────────────────────
     console.log('\n💰 STEP 6: Creating Orders')
+
     const subtotal = meta.cartItems.reduce((sum, i) => sum + i.price * i.quantity, 0)
-    const fees = meta.fees || calculateFees(subtotal, meta.deliveryFee)
+    const fees = meta.fees ?? calculateFees(subtotal, meta.deliveryFee ?? 800)
 
     console.log('💰 Fees:', JSON.stringify(fees))
 
@@ -161,11 +188,12 @@ export async function GET(request: NextRequest) {
       return appRedirect('/checkout?error=order_creation_failed')
     }
 
-    console.log('✅ Orders created:', orders.map(o => o.orderNumber))
+    console.log('✅ Orders created:', orders.map(o => o.orderNumber).join(', '))
 
-    // ── Fire notifications (non-blocking) ─────────────────────────────────
-    console.log('\n🔔 STEP 7: Sending Notifications')
+    // ── STEP 7: Fire notifications (non-blocking — NEVER delay the redirect) ─
+    console.log('\n🔔 STEP 7: Queueing Notifications (fire-and-forget)')
 
+    // Build a map of sellerId → order info for per-seller notifications
     const sellerMap = new Map<string, {
       orderId: string
       orderNumber: string
@@ -175,67 +203,81 @@ export async function GET(request: NextRequest) {
 
     for (const order of orders) {
       if (order.sellerId && !sellerMap.has(order.sellerId)) {
-        const matchingItem = meta.cartItems.find(i => i.sellerId === order.sellerId)
         const sellerItems = meta.cartItems.filter(i => i.sellerId === order.sellerId)
-        const itemsList = sellerItems.map(i => `${i.name} (x${i.quantity})`).join(', ')
+        const matchingItem = sellerItems[0]
         sellerMap.set(order.sellerId, {
           orderId: order.id,
           orderNumber: order.orderNumber,
           orderNote: matchingItem?.orderNote,
-          itemsList,
+          itemsList: sellerItems.map(i => `${i.name} (x${i.quantity})`).join(', '),
         })
       }
     }
 
-    // Fire without await — never block the redirect
+    // All notification work happens inside a fire-and-forget block.
+    // If ANY of these fail they log an error but DO NOT affect the redirect.
     Promise.allSettled([
-
-      // 1. In-app bell notification for buyer
-      import('@/lib/notification').then(({ notifyOrderPlaced: createBuyerNotif }) =>
-        createBuyerNotif(
-          orders[0].id,
-          buyer.id,
-          orders[0].sellerId,
-          orders[0].orderNumber,
-          meta.cartItems.map(i => i.name).join(', ')
+      // 1. In-app bell for buyer
+      import('@/lib/notification')
+        .then(({ notifyOrderPlaced: createBuyerNotif }) =>
+          createBuyerNotif(
+            orders[0].id,
+            buyer.id,
+            orders[0].sellerId,
+            orders[0].orderNumber,
+            meta.cartItems.map(i => i.name).join(', ')
+          )
         )
-      ),
+        .catch(err => console.error('⚠️  Buyer bell notification failed:', err)),
 
       // 2. Push notification for buyer
-      notifyOrderPlaced(buyer.id, orders[0].orderNumber),
+      import('@/lib/push/sendPushNotification')
+        .then(({ notifyOrderPlaced: pushBuyer }) => pushBuyer(buyer.id, orders[0].orderNumber))
+        .catch(err => console.error('⚠️  Buyer push notification failed:', err)),
 
-      // 3. Notify each seller
-      ...Array.from(sellerMap.entries()).map(([sellerId, { orderId, orderNumber, orderNote, itemsList }]) =>
-        notifyNewOrderWithNote(sellerId, orderId, orderNumber, orderNote, buyer.name, itemsList)
+      // 3. Per-seller notifications
+      ...Array.from(sellerMap.entries()).map(([sellerId, info]) =>
+        notifySellerOfNewOrder(
+          sellerId,
+          info.orderId,
+          info.orderNumber,
+          info.orderNote,
+          buyer.name ?? 'A buyer',
+          info.itemsList,
+        ).catch(err => console.error(`⚠️  Seller notification failed for ${sellerId}:`, err))
       ),
-
     ]).then(results => {
       results.forEach((r, i) => {
-        if (r.status === 'rejected') console.error(`Notification ${i} failed:`, r.reason)
-        else console.log(`✅ Notification ${i} sent`)
+        if (r.status === 'rejected') {
+          console.error(`Notification slot ${i} rejected:`, r.reason)
+        }
       })
     })
 
-    const firstOrderNumber = orders[0]?.orderNumber || orders[0]?.id
+    // ── SUCCESS ────────────────────────────────────────────────────────────
+    const firstOrderNumber = orders[0]?.orderNumber ?? orders[0]?.id
+    const redirectUrl = `/orders?payment=success&order=${firstOrderNumber}&count=${orders.length}`
 
-    console.log('\n🎉 SUCCESS — Redirecting to Orders Page')
-    console.log('Order:', firstOrderNumber, '| Total orders:', orders.length)
+    console.log('\n🎉 SUCCESS — Redirecting to:', redirectUrl)
     console.log('═'.repeat(70))
 
-    return appRedirect(`/orders?payment=success&order=${firstOrderNumber}&count=${orders.length}`)
+    return appRedirect(redirectUrl)
 
   } catch (error) {
     console.error('\n💥 FATAL ERROR in payment verification:')
     console.error(error instanceof Error ? error.message : error)
     if (error instanceof Error) console.error(error.stack)
+    // Redirect to checkout with error flag — checkout page will display the
+    // "verification failed, contact support" message.
     return appRedirect('/checkout?error=verification_failed&reason=exception')
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Seller notification: 2 separate in-app bells + push + email
+// Seller notification helper (all imports are dynamic so a missing module
+// never crashes the verify route)
 // ─────────────────────────────────────────────────────────────────────────────
-async function notifyNewOrderWithNote(
+async function notifySellerOfNewOrder(
   sellerId: string,
   orderId: string,
   orderNumber: string,
@@ -243,57 +285,72 @@ async function notifyNewOrderWithNote(
   buyerName: string,
   itemsList: string,
 ) {
-  const hasNote = orderNote && orderNote.trim().length > 0
+  const hasNote = Boolean(orderNote?.trim())
 
-  const { subject, html } = buildSellerOrderEmail(orderNumber, buyerName, orderNote)
+  const [notifMod, pushMod, emailMod, prismaMod] = await Promise.all([
+    import('@/lib/notification').catch(() => null),
+    import('@/lib/push/sendPushNotification').catch(() => null),
+    import('@/lib/email/sendEmail').catch(() => null),
+    import('@/lib/prisma').catch(() => null),
+  ])
 
-  const { notifyNewOrder } = await import('@/lib/push/sendPushNotification')
-  const { sendEmail } = await import('@/lib/email/sendEmail')
-  const { prisma: db } = await import('@/lib/prisma')
-  const { createNotification } = await import('@/lib/notification')
+  const seller = prismaMod
+    ? await prismaMod.prisma.user.findUnique({
+        where: { id: sellerId },
+        select: { email: true },
+      }).catch(() => null)
+    : null
 
-  const seller = await db.user.findUnique({
-    where: { id: sellerId },
-    select: { email: true },
-  })
+  const tasks: Promise<any>[] = []
 
-  await Promise.allSettled([
-
-    createNotification({
-      userId: sellerId,
-      type: 'ORDER_PLACED',
-      title: '🛒 New Order Received!',
-      message: `You have a new order (#${orderNumber}) for ${itemsList}`,
-      orderId,
-      metadata: { orderNumber, buyerName, itemsList },
-    }),
-
-    ...(hasNote ? [
-      createNotification({
+  // In-app bell: new order
+  if (notifMod?.createNotification) {
+    tasks.push(
+      notifMod.createNotification({
         userId: sellerId,
         type: 'ORDER_PLACED',
-        title: '📝 Note from Buyer',
-        message: `For order #${orderNumber}: "${orderNote}"`,
+        title: '🛒 New Order Received!',
+        message: `You have a new order (#${orderNumber}) for ${itemsList}`,
         orderId,
-        metadata: { orderNumber, orderNote },
-      }),
-    ] : []),
+        metadata: { orderNumber, buyerName, itemsList },
+      })
+    )
 
-    notifyNewOrder(sellerId, orderNumber),
+    // In-app bell: buyer note (separate notification so it stands out)
+    if (hasNote) {
+      tasks.push(
+        notifMod.createNotification({
+          userId: sellerId,
+          type: 'ORDER_PLACED',
+          title: '📝 Note from Buyer',
+          message: `For order #${orderNumber}: "${orderNote}"`,
+          orderId,
+          metadata: { orderNumber, orderNote },
+        })
+      )
+    }
+  }
 
-    ...(hasNote && seller?.email ? [
-      sendEmail({ to: seller.email, subject, html })
-    ] : []),
+  // Push notification
+  if (pushMod?.notifyNewOrder) {
+    tasks.push(pushMod.notifyNewOrder(sellerId, orderNumber))
+  }
 
-  ])
+  // Email to seller (only when there is a buyer note — keeps inbox clean)
+  if (hasNote && seller?.email && emailMod?.sendEmail) {
+    const { subject, html } = buildSellerOrderEmail(orderNumber, buyerName, orderNote)
+    tasks.push(emailMod.sendEmail({ to: seller.email, subject, html }))
+  }
+
+  await Promise.allSettled(tasks)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Email template for seller
+// Seller email template
 // ─────────────────────────────────────────────────────────────────────────────
 function buildSellerOrderEmail(orderNumber: string, buyerName: string, orderNote?: string) {
-  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bata-mart.vercel.app'
-  const hasNote = orderNote && orderNote.trim().length > 0
+  const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://bata-mart.vercel.app').replace(/\/$/, '')
+  const hasNote = Boolean(orderNote?.trim())
 
   const noteBlock = hasNote
     ? `
@@ -316,7 +373,7 @@ function buildSellerOrderEmail(orderNumber: string, buyerName: string, orderNote
 <head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head>
 <body style="margin:0;padding:0;background:#f4f4f5;font-family:'Segoe UI',Helvetica,Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
-     <tr>
+    <tr>
       <td align="center">
         <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
           <tr>

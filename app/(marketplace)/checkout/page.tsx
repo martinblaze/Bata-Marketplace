@@ -26,14 +26,27 @@ export default function CheckoutPage() {
     const token = localStorage.getItem('token')
     if (!token) { router.push('/login'); return }
 
+    // ── Show error messages from payment callback ──────────────
     const searchParams = new URLSearchParams(window.location.search)
     const urlError = searchParams.get('error')
     const productName = searchParams.get('product')
 
-    if (urlError === 'payment_failed') setError('Payment verification failed. Please try again.')
-    else if (urlError === 'out_of_stock' && productName) setError(`Sorry, ${decodeURIComponent(productName)} is now out of stock.`)
-    else if (urlError === 'verification_failed') setError('Payment verification failed. Please contact support if you were charged.')
+    if (urlError === 'payment_failed') {
+      setError('Payment was not successful. Please try again.')
+    } else if (urlError === 'out_of_stock' && productName) {
+      setError(`Sorry, "${decodeURIComponent(productName)}" went out of stock just before your payment was confirmed. You have not been charged — please try a different item.`)
+    } else if (urlError === 'verification_failed' || urlError === 'order_creation_failed') {
+      setError('Your payment went through but something went wrong on our end. Please contact support — do NOT pay again.')
+    } else if (urlError === 'invalid_metadata' || urlError === 'user_not_found') {
+      setError('There was a problem processing your payment. Please contact support.')
+    } else if (urlError === 'product_not_found' || urlError === 'product_inactive') {
+      const name = productName ? `"${decodeURIComponent(productName)}"` : 'one of the products'
+      setError(`${name} is no longer available. You have not been charged.`)
+    } else if (urlError === 'no_reference') {
+      setError('Payment session expired. Please try again.')
+    }
 
+    // ── Load cart items ────────────────────────────────────────
     const cartData = sessionStorage.getItem('checkout_cart')
     if (cartData) {
       setCartItems(JSON.parse(cartData))
@@ -65,12 +78,14 @@ export default function CheckoutPage() {
       const response = await fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } })
       const data = await response.json()
       if (response.ok) setUser(data.user)
-    } catch (error) { console.error('Error fetching profile:', error) }
+    } catch (error) {
+      console.error('Error fetching profile:', error)
+    }
   }
 
   const handlePayment = async () => {
     if (!user?.hostelName) {
-      alert('Please complete your profile first!')
+      alert('Please complete your profile (hostel address) before checking out.')
       router.push('/profile/setup')
       return
     }
@@ -81,7 +96,6 @@ export default function CheckoutPage() {
     try {
       const token = localStorage.getItem('token')
 
-      // Attach per-item notes to cart items before sending
       const cartItemsWithNotes = cartItems.map(item => ({
         ...item,
         orderNote: orderNotes[item.productId]?.trim() || '',
@@ -95,22 +109,47 @@ export default function CheckoutPage() {
 
       const data = await response.json()
 
-      if (response.ok) {
+      if (!response.ok) {
+        // Server returned an error — keep cart intact so user can retry
+        setError(data.error || 'Payment initialisation failed. Please try again.')
+        return
+      }
+
+      // ── Redirect to Paystack ───────────────────────────────────
+      // FIX: Cart/session is only cleared HERE — after we are certain
+      // we have a valid Paystack URL and are about to redirect.
+      // Previously the clearCart() ran before the if-check, meaning if
+      // we got an error response the cart was already wiped and the user
+      // couldn't retry without going back to the marketplace.
+      if (data.authorization_url) {
+        // Clear cart now — the order will be created in the verify route
+        // after Paystack calls back. If payment fails, Paystack redirects
+        // to /checkout?error=payment_failed and the user can start fresh.
         sessionStorage.removeItem('checkout_product')
         sessionStorage.removeItem('checkout_cart')
         clearCart()
 
-        if (data.devMode || data.orderId) {
-          router.push(`/orders?payment=success&order=${data.orderNumber || data.orderId}`)
-        } else if (data.authorization_url) {
-          window.location.href = data.authorization_url
-        }
-      } else {
-        setError(data.error || 'Payment failed')
+        // Hard-navigate (not router.push) so the browser actually leaves
+        // the page and Paystack gets a clean load
+        window.location.href = data.authorization_url
+        return
       }
+
+      // devMode path (should only be reached in local dev with useDevMode=true)
+      if (data.devMode || data.orderId) {
+        sessionStorage.removeItem('checkout_product')
+        sessionStorage.removeItem('checkout_cart')
+        clearCart()
+        router.push(`/orders?payment=success&order=${data.orderNumber || data.orderId}`)
+        return
+      }
+
+      // Unexpected response shape
+      setError('Unexpected response from payment server. Please try again.')
+
     } catch (err) {
       console.error('Payment error:', err)
-      setError('Network error. Please try again.')
+      setError('Network error. Please check your connection and try again.')
     } finally {
       setLoading(false)
     }
@@ -235,7 +274,7 @@ export default function CheckoutPage() {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-black text-amber-900">Note to Seller</p>
                           <p className="text-xs text-amber-700 mt-0.5">
-                            Let the seller know your preferences — size, color, variation, or any special request.
+                            Let the seller know your preferences — size, colour, variation, or any special request.
                             This will be sent directly to their notification.
                           </p>
                         </div>
@@ -287,7 +326,7 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Error */}
+            {/* Error banner */}
             {error && (
               <div className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3.5 rounded-xl">
                 <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />

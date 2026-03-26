@@ -20643,7 +20643,7 @@ export const dynamic = 'force-dynamic'
 
 // ── Helper: always use the public app URL for redirects ──────────────────────
 function appRedirect(path: string) {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bata-mart.vercel.app'
   return NextResponse.redirect(`${base}${path}`)
 }
 
@@ -20672,7 +20672,7 @@ export async function GET(request: NextRequest) {
 
     console.log('HTTP Status:', verifyRes.status)
     const verifyData = await verifyRes.json()
-    console.log('📦 Paystack Data:', JSON.stringify(verifyData, null, 2))
+    console.log('📦 Paystack Response status:', verifyData?.status, '| tx status:', verifyData?.data?.status)
 
     if (!verifyData.status) {
       console.error('❌ Paystack status is false')
@@ -20680,26 +20680,35 @@ export async function GET(request: NextRequest) {
     }
 
     if (verifyData.data.status !== 'success') {
-      console.error('❌ Payment status not success')
+      console.error('❌ Payment status not success:', verifyData.data.status)
       return appRedirect('/checkout?error=payment_failed')
     }
 
     console.log('✅ Payment verified with Paystack')
 
-    // ── Duplicate check ────────────────────────────────────────────────────
-    console.log('\n🔄 STEP 2: Checking for Duplicate')
+    // ── Duplicate check via Payment model ──────────────────────────────────
+    // Check if a payment with this transaction reference already exists
+    console.log('\n🔄 STEP 2: Checking for Duplicate Payment')
     const existingPayment = await prisma.payment.findFirst({
-      where: { transactionId: reference },
-      include: { order: true }
+      where: { 
+        transactionId: reference 
+      },
+      include: {
+        order: {
+          select: {
+            id: true,
+            orderNumber: true
+          }
+        }
+      }
     })
-    const existingOrder = existingPayment?.order ?? null
 
-    if (existingOrder) {
-      console.log('⚠️ Order already exists:', existingOrder.orderNumber)
-      return appRedirect(`/orders?payment=success&amp;order=${existingOrder.orderNumber}`)
+    if (existingPayment &amp;&amp; existingPayment.order) {
+      console.log('⚠️ Payment already exists for this reference. Order:', existingPayment.order.orderNumber)
+      return appRedirect(`/orders?payment=success&amp;order=${existingPayment.order.orderNumber}`)
     }
 
-    console.log('✅ No duplicate found')
+    console.log('✅ No duplicate found — proceeding to create order')
 
     // ── Metadata ───────────────────────────────────────────────────────────
     console.log('\n📋 STEP 3: Extracting Metadata')
@@ -20719,8 +20728,14 @@ export async function GET(request: NextRequest) {
       fees: ReturnType&lt;typeof calculateFees&gt;
     }
 
+    console.log('📋 Metadata received:', JSON.stringify({
+      userId: meta?.userId,
+      itemCount: meta?.cartItems?.length,
+      deliveryFee: meta?.deliveryFee,
+    }))
+
     if (!meta || !meta.userId || !meta.cartItems || meta.cartItems.length === 0) {
-      console.error('❌ Invalid metadata')
+      console.error('❌ Invalid or missing metadata:', JSON.stringify(meta))
       return appRedirect('/checkout?error=invalid_metadata')
     }
 
@@ -20738,7 +20753,7 @@ export async function GET(request: NextRequest) {
     })
 
     if (!buyer) {
-      console.error('❌ Buyer not found')
+      console.error('❌ Buyer not found for userId:', meta.userId)
       return appRedirect('/checkout?error=user_not_found')
     }
 
@@ -20753,15 +20768,18 @@ export async function GET(request: NextRequest) {
       })
 
       if (!product) {
+        console.error('❌ Product not found:', item.productId)
         return appRedirect(`/checkout?error=product_not_found&amp;product=${encodeURIComponent(item.name)}`)
       }
       if (!product.isActive) {
+        console.error('❌ Product inactive:', item.name)
         return appRedirect(`/checkout?error=product_inactive&amp;product=${encodeURIComponent(item.name)}`)
       }
       if (product.quantity &lt; item.quantity) {
+        console.error('❌ Insufficient stock for:', item.name, '| has:', product.quantity, '| needs:', item.quantity)
         return appRedirect(`/checkout?error=out_of_stock&amp;product=${encodeURIComponent(item.name)}`)
       }
-      console.log(`✅ ${item.name}: OK`)
+      console.log(`✅ ${item.name}: OK (stock: ${product.quantity})`)
     }
 
     // ── Create orders ──────────────────────────────────────────────────────
@@ -20769,11 +20787,18 @@ export async function GET(request: NextRequest) {
     const subtotal = meta.cartItems.reduce((sum, i) =&gt; sum + i.price * i.quantity, 0)
     const fees = meta.fees || calculateFees(subtotal, meta.deliveryFee)
 
+    console.log('💰 Fees:', JSON.stringify(fees))
+
     const orders = await createOrders(meta.cartItems, buyer, fees, reference)
+
+    if (!orders || orders.length === 0) {
+      console.error('❌ createOrders returned empty result')
+      return appRedirect('/checkout?error=order_creation_failed')
+    }
 
     console.log('✅ Orders created:', orders.map(o =&gt; o.orderNumber))
 
-    // ── Fire notifications ─────────────────────────────────────────────────
+    // ── Fire notifications (non-blocking) ─────────────────────────────────
     console.log('\n🔔 STEP 7: Sending Notifications')
 
     const sellerMap = new Map&lt;string, {
@@ -20828,13 +20853,14 @@ export async function GET(request: NextRequest) {
 
     const firstOrderNumber = orders[0]?.orderNumber || orders[0]?.id
 
-    console.log('\n🎉 Redirecting to Orders Page')
+    console.log('\n🎉 SUCCESS — Redirecting to Orders Page')
+    console.log('Order:', firstOrderNumber, '| Total orders:', orders.length)
     console.log('═'.repeat(70))
 
     return appRedirect(`/orders?payment=success&amp;order=${firstOrderNumber}&amp;count=${orders.length}`)
 
   } catch (error) {
-    console.error('\n💥 FATAL ERROR')
+    console.error('\n💥 FATAL ERROR in payment verification:')
     console.error(error instanceof Error ? error.message : error)
     if (error instanceof Error) console.error(error.stack)
     return appRedirect('/checkout?error=verification_failed&amp;reason=exception')
@@ -20856,7 +20882,6 @@ async function notifyNewOrderWithNote(
 
   const { subject, html } = buildSellerOrderEmail(orderNumber, buyerName, orderNote)
 
-  // Use exported functions only
   const { notifyNewOrder } = await import('@/lib/push/sendPushNotification')
   const { sendEmail } = await import('@/lib/email/sendEmail')
   const { prisma: db } = await import('@/lib/prisma')
@@ -20869,7 +20894,6 @@ async function notifyNewOrderWithNote(
 
   await Promise.allSettled([
 
-    // In-app bell 1 — new order notification
     createNotification({
       userId: sellerId,
       type: 'ORDER_PLACED',
@@ -20879,7 +20903,6 @@ async function notifyNewOrderWithNote(
       metadata: { orderNumber, buyerName, itemsList },
     }),
 
-    // In-app bell 2 — buyer note (only if note exists)
     ...(hasNote ? [
       createNotification({
         userId: sellerId,
@@ -20891,10 +20914,8 @@ async function notifyNewOrderWithNote(
       }),
     ] : []),
 
-    // Push notification + email fallback (uses exported notifyNewOrder)
     notifyNewOrder(sellerId, orderNumber),
 
-    // Extra email with buyer note (only if note exists)
     ...(hasNote &amp;&amp; seller?.email ? [
       sendEmail({ to: seller.email, subject, html })
     ] : []),
@@ -20906,7 +20927,7 @@ async function notifyNewOrderWithNote(
 // Email template for seller
 // ─────────────────────────────────────────────────────────────────────────────
 function buildSellerOrderEmail(orderNumber: string, buyerName: string, orderNote?: string) {
-  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bata-mart.vercel.app'
   const hasNote = orderNote &amp;&amp; orderNote.trim().length &gt; 0
 
   const noteBlock = hasNote
@@ -20930,45 +20951,47 @@ function buildSellerOrderEmail(orderNumber: string, buyerName: string, orderNote
 &lt;head&gt;&lt;meta charset="UTF-8"/&gt;&lt;meta name="viewport" content="width=device-width,initial-scale=1.0"/&gt;&lt;/head&gt;
 &lt;body style="margin:0;padding:0;background:#f4f4f5;font-family:'Segoe UI',Helvetica,Arial,sans-serif;"&gt;
   &lt;table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;"&gt;
-    &lt;tr&gt;&lt;td align="center"&gt;
-      &lt;table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;"&gt;
-        &lt;tr&gt;
-          &lt;td align="center" style="padding-bottom:24px;"&gt;
-            &lt;span style="font-size:28px;font-weight:800;color:#111827;letter-spacing:-1px;"&gt;BATAMART&lt;/span&gt;
-            &lt;span style="font-size:12px;color:#6b7280;display:block;margin-top:2px;"&gt;UNIZIK Campus Marketplace&lt;/span&gt;
-          &lt;/td&gt;
-        &lt;/tr&gt;
-        &lt;tr&gt;
-          &lt;td style="background:#ffffff;border-radius:16px;padding:40px;box-shadow:0 1px 3px rgba(0,0,0,0.08);"&gt;
-            &lt;p style="font-size:32px;margin:0 0 8px;"&gt;🎉&lt;/p&gt;
-            &lt;h2 style="font-size:22px;font-weight:700;color:#111827;margin:0 0 8px;"&gt;New Order Received!&lt;/h2&gt;
-            &lt;p style="font-size:15px;color:#6b7280;margin:0 0 4px;"&gt;
-              &lt;strong style="color:#111827;"&gt;${buyerName}&lt;/strong&gt; just placed order
-              &lt;strong style="color:#111827;"&gt;#${orderNumber}&lt;/strong&gt;.
-            &lt;/p&gt;
-            &lt;p style="font-size:14px;color:#6b7280;margin:0 0 20px;"&gt;
-              Please confirm it as soon as possible so a rider can be assigned.
-            &lt;/p&gt;
-            ${noteBlock}
-            &lt;hr style="border:none;border-top:1px solid #f3f4f6;margin:24px 0;"/&gt;
-            &lt;p style="font-size:13px;color:#9ca3af;margin:0 0 20px;"&gt;
-              ⚠️ Orders not confirmed within 30 minutes may be auto-cancelled.
-            &lt;/p&gt;
-            &lt;a href="${APP_URL}/orders/sales"
-               style="display:inline-block;padding:14px 28px;background:#2563eb;color:#ffffff;font-size:15px;font-weight:600;border-radius:10px;text-decoration:none;"&gt;
-              Confirm Order Now →
-            &lt;/a&gt;
-          &lt;/td&gt;
-        &lt;/tr&gt;
-        &lt;tr&gt;
-          &lt;td align="center" style="padding-top:24px;"&gt;
-            &lt;p style="font-size:12px;color:#9ca3af;margin:0;"&gt;
-              BATAMART — UNIZIK Campus Marketplace · Awka, Anambra State
-            &lt;/p&gt;
-          &lt;/td&gt;
-        &lt;/tr&gt;
-      &lt;/table&gt;
-    &lt;/td&gt;&lt;/tr&gt;
+     &lt;tr&gt;
+      &lt;td align="center"&gt;
+        &lt;table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;"&gt;
+          &lt;tr&gt;
+            &lt;td align="center" style="padding-bottom:24px;"&gt;
+              &lt;span style="font-size:28px;font-weight:800;color:#111827;letter-spacing:-1px;"&gt;BATAMART&lt;/span&gt;
+              &lt;span style="font-size:12px;color:#6b7280;display:block;margin-top:2px;"&gt;UNIZIK Campus Marketplace&lt;/span&gt;
+            &lt;/td&gt;
+          &lt;/tr&gt;
+          &lt;tr&gt;
+            &lt;td style="background:#ffffff;border-radius:16px;padding:40px;box-shadow:0 1px 3px rgba(0,0,0,0.08);"&gt;
+              &lt;p style="font-size:32px;margin:0 0 8px;"&gt;🎉&lt;/p&gt;
+              &lt;h2 style="font-size:22px;font-weight:700;color:#111827;margin:0 0 8px;"&gt;New Order Received!&lt;/h2&gt;
+              &lt;p style="font-size:15px;color:#6b7280;margin:0 0 4px;"&gt;
+                &lt;strong style="color:#111827;"&gt;${buyerName}&lt;/strong&gt; just placed order
+                &lt;strong style="color:#111827;"&gt;#${orderNumber}&lt;/strong&gt;.
+              &lt;/p&gt;
+              &lt;p style="font-size:14px;color:#6b7280;margin:0 0 20px;"&gt;
+                Please confirm it as soon as possible so a rider can be assigned.
+              &lt;/p&gt;
+              ${noteBlock}
+              &lt;hr style="border:none;border-top:1px solid #f3f4f6;margin:24px 0;"/&gt;
+              &lt;p style="font-size:13px;color:#9ca3af;margin:0 0 20px;"&gt;
+                ⚠️ Orders not confirmed within 30 minutes may be auto-cancelled.
+              &lt;/p&gt;
+              &lt;a href="${APP_URL}/orders/sales"
+                 style="display:inline-block;padding:14px 28px;background:#2563eb;color:#ffffff;font-size:15px;font-weight:600;border-radius:10px;text-decoration:none;"&gt;
+                Confirm Order Now →
+              &lt;/a&gt;
+            &lt;/td&gt;
+          &lt;/tr&gt;
+          &lt;tr&gt;
+            &lt;td align="center" style="padding-top:24px;"&gt;
+              &lt;p style="font-size:12px;color:#9ca3af;margin:0;"&gt;
+                BATAMART — UNIZIK Campus Marketplace · Awka, Anambra State
+              &lt;/p&gt;
+            &lt;/td&gt;
+          &lt;/tr&gt;
+        &lt;/table&gt;
+      &lt;/td&gt;
+    &lt;/tr&gt;
   &lt;/table&gt;
 &lt;/body&gt;
 &lt;/html&gt;
@@ -24928,7 +24951,7 @@ export function cn(...inputs: ClassValue[]) {
 <div class='file-block'><div class='file-header'>lib/email/emailTemplates.ts</div><pre>// lib/email/emailTemplates.ts
 // All email templates for BATAMART notifications
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bata-mart.vercel.app'
 
 // ─── Base layout wrapper ──────────────────────────────────────────────────────
 function baseTemplate(content: string) {
