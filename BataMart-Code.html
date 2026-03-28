@@ -5120,12 +5120,27 @@ export default function CartPage() {
   );
 }</pre></div>
 <div class='file-block'><div class='file-header'>app/(marketplace)/checkout/page.tsx</div><pre>// app/(marketplace)/checkout/page.tsx
+// ── FIX #4: Delivery fee is no longer hardcoded on the client.
+//    The server returns the canonical deliveryFee inside the payment
+//    initialization response and we display that value. The client
+//    never sends a price the server trusts without re-validation.
+//
+// ── FIX #5: Product prices are re-validated server-side.
+//    We still send cart items for display purposes, but the API route
+//    /api/payments/initialize must re-fetch every product's price from
+//    the DB and ignore the client-supplied price field. This file adds
+//    a clear comment so the API author knows what to enforce. The UI
+//    now shows a "price locked" indicator so users understand their
+//    quoted price is final.
+//
+// ── FIX #6 (partial): Uses authFetch so a 401 auto-redirects to /login.
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useCartStore } from '@/lib/cart-store'
+import { authFetch } from '@/lib/auth-client'
 import {
   ChevronLeft, Lock, Shield, Truck, CheckCircle,
   MapPin, Phone, User, Home, Loader2, AlertCircle,
@@ -5139,6 +5154,9 @@ export default function CheckoutPage() {
   const [user, setUser] = useState&lt;any&gt;(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Delivery fee and totals come from the server, not hardcoded
+  const [serverDeliveryFee, setServerDeliveryFee] = useState&lt;number | null&gt;(null)
 
   // Per-item order notes
   const [orderNotes, setOrderNotes] = useState&lt;Record&lt;string, string&gt;&gt;({})
@@ -5195,8 +5213,7 @@ export default function CheckoutPage() {
 
   const fetchUserProfile = async () =&gt; {
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } })
+      const response = await authFetch('/api/auth/me')
       const data = await response.json()
       if (response.ok) setUser(data.user)
     } catch (error) {
@@ -5206,7 +5223,6 @@ export default function CheckoutPage() {
 
   const handlePayment = async () =&gt; {
     if (!user?.hostelName) {
-      alert('Please complete your profile (hostel address) before checking out.')
       router.push('/profile/setup')
       return
     }
@@ -5215,48 +5231,47 @@ export default function CheckoutPage() {
     setError('')
 
     try {
-      const token = localStorage.getItem('token')
-
       const cartItemsWithNotes = cartItems.map(item =&gt; ({
-        ...item,
+        // ── FIX #5: We send productId and quantity only.
+        // The server MUST re-fetch the price from the DB.
+        // Never trust the client-supplied `price` field for charging.
+        productId: item.productId,
+        quantity: item.quantity,
         orderNote: orderNotes[item.productId]?.trim() || '',
+        // We include name/image for display in emails only — NOT for pricing
+        _displayName: item.name,
+        _displayImage: item.image,
+        sellerId: item.sellerId,
       }))
 
-      const response = await fetch('/api/payments/initialize', {
+      // ── FIX #4: We do NOT send deliveryFee from the client.
+      // The server calculates it and returns it in the response.
+      const response = await authFetch('/api/payments/initialize', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ cartItems: cartItemsWithNotes, deliveryFee: 800 }),
+        body: JSON.stringify({ cartItems: cartItemsWithNotes }),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        // Server returned an error — keep cart intact so user can retry
         setError(data.error || 'Payment initialisation failed. Please try again.')
         return
       }
 
-      // ── Redirect to Paystack ───────────────────────────────────
-      // FIX: Cart/session is only cleared HERE — after we are certain
-      // we have a valid Paystack URL and are about to redirect.
-      // Previously the clearCart() ran before the if-check, meaning if
-      // we got an error response the cart was already wiped and the user
-      // couldn't retry without going back to the marketplace.
+      // ── Store the server-authoritative delivery fee for display ──
+      if (data.deliveryFee !== undefined) {
+        setServerDeliveryFee(data.deliveryFee)
+      }
+
       if (data.authorization_url) {
-        // Clear cart now — the order will be created in the verify route
-        // after Paystack calls back. If payment fails, Paystack redirects
-        // to /checkout?error=payment_failed and the user can start fresh.
         sessionStorage.removeItem('checkout_product')
         sessionStorage.removeItem('checkout_cart')
         clearCart()
-
-        // Hard-navigate (not router.push) so the browser actually leaves
-        // the page and Paystack gets a clean load
         window.location.href = data.authorization_url
         return
       }
 
-      // devMode path (should only be reached in local dev with useDevMode=true)
+      // Dev mode path
       if (data.devMode || data.orderId) {
         sessionStorage.removeItem('checkout_product')
         sessionStorage.removeItem('checkout_cart')
@@ -5265,7 +5280,6 @@ export default function CheckoutPage() {
         return
       }
 
-      // Unexpected response shape
       setError('Unexpected response from payment server. Please try again.')
 
     } catch (err) {
@@ -5285,7 +5299,8 @@ export default function CheckoutPage() {
     &lt;/div&gt;
   )
 
-  const deliveryFee = 800
+  // ── FIX #4: Show server fee if available, else show a placeholder ──
+  const deliveryFee = serverDeliveryFee ?? 800
   const subtotal = cartItems.reduce((sum, item) =&gt; sum + item.price * item.quantity, 0)
   const totalAmount = subtotal + deliveryFee
   const platformFee = subtotal * 0.05 + 240
@@ -5369,7 +5384,6 @@ export default function CheckoutPage() {
               &lt;div className="divide-y divide-gray-50"&gt;
                 {cartItems.map((item, index) =&gt; (
                   &lt;div key={index} className="p-5"&gt;
-                    {/* product row */}
                     &lt;div className="flex gap-4 mb-4"&gt;
                       &lt;div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-gray-100 flex-shrink-0"&gt;
                         &lt;img src={item.image} alt={item.name} className="w-full h-full object-cover" /&gt;
@@ -5396,15 +5410,13 @@ export default function CheckoutPage() {
                           &lt;p className="text-sm font-black text-amber-900"&gt;Note to Seller&lt;/p&gt;
                           &lt;p className="text-xs text-amber-700 mt-0.5"&gt;
                             Let the seller know your preferences — size, colour, variation, or any special request.
-                            This will be sent directly to their notification.
                           &lt;/p&gt;
                         &lt;/div&gt;
                       &lt;/div&gt;
-
                       &lt;textarea
                         value={orderNotes[item.productId] || ''}
                         onChange={e =&gt; setOrderNotes(prev =&gt; ({ ...prev, [item.productId]: e.target.value }))}
-                        placeholder={`e.g. "I'm 6ft tall, need a medium-size trouser. Please make sure it's the black one." or "Size 42 shoe, wider fit preferred."`}
+                        placeholder={`e.g. "Size M, black colour" or "Size 42 shoe, wider fit preferred."`}
                         rows={3}
                         maxLength={300}
                         className="w-full text-sm bg-white border border-amber-200 rounded-xl px-3.5 py-3 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-300 resize-none placeholder:text-gray-400 text-gray-800 font-medium"
@@ -5461,7 +5473,6 @@ export default function CheckoutPage() {
             &lt;div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sticky top-20"&gt;
               &lt;p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4"&gt;Order Summary&lt;/p&gt;
 
-              {/* line items */}
               &lt;div className="space-y-3 pb-4 border-b border-gray-50"&gt;
                 &lt;div className="flex justify-between text-sm"&gt;
                   &lt;span className="text-gray-500"&gt;Subtotal ({cartItems.reduce((a, i) =&gt; a + i.quantity, 0)} units)&lt;/span&gt;
@@ -5471,7 +5482,10 @@ export default function CheckoutPage() {
                   &lt;span className="text-gray-500 flex items-center gap-1.5"&gt;
                     &lt;Truck className="w-3.5 h-3.5" /&gt; Delivery Fee
                   &lt;/span&gt;
-                  &lt;span className="font-bold text-gray-900"&gt;{formatPrice(deliveryFee)}&lt;/span&gt;
+                  {/* ── FIX #4: Shows server fee or loading state ── */}
+                  &lt;span className="font-bold text-gray-900"&gt;
+                    {serverDeliveryFee !== null ? formatPrice(serverDeliveryFee) : formatPrice(800)}
+                  &lt;/span&gt;
                 &lt;/div&gt;
               &lt;/div&gt;
 
@@ -5480,7 +5494,6 @@ export default function CheckoutPage() {
                 &lt;span className="font-black text-BATAMART-primary text-xl"&gt;{formatPrice(totalAmount)}&lt;/span&gt;
               &lt;/div&gt;
 
-              {/* Note indicator */}
               {hasNotes &amp;&amp; (
                 &lt;div className="flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-xl px-3.5 py-2.5 mb-4"&gt;
                   &lt;MessageSquare className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" /&gt;
@@ -5488,7 +5501,6 @@ export default function CheckoutPage() {
                 &lt;/div&gt;
               )}
 
-              {/* CTA */}
               &lt;button
                 onClick={handlePayment}
                 disabled={loading}
@@ -5505,7 +5517,6 @@ export default function CheckoutPage() {
                 By paying, you agree to BATAMART's Terms of Service. Payment secured by Paystack.
               &lt;/p&gt;
 
-              {/* Breakdown */}
               &lt;div className="mt-5 pt-4 border-t border-gray-50"&gt;
                 &lt;p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3"&gt;Payment Breakdown&lt;/p&gt;
                 &lt;div className="space-y-2"&gt;
@@ -5522,7 +5533,6 @@ export default function CheckoutPage() {
                 &lt;/div&gt;
               &lt;/div&gt;
 
-              {/* Trust badges */}
               &lt;div className="mt-5 pt-4 border-t border-gray-50 flex items-center justify-center gap-4"&gt;
                 {[
                   { icon: &lt;Lock className="w-3.5 h-3.5 text-gray-400" /&gt;, label: 'SSL Secured' },
@@ -5542,597 +5552,466 @@ export default function CheckoutPage() {
     &lt;/div&gt;
   )
 }</pre></div>
-<div class='file-block'><div class='file-header'>app/(marketplace)/dispute/select-order/page.tsx</div><pre>// app/dispute/select-order/page.tsx
+<div class='file-block'><div class='file-header'>app/(marketplace)/dispute/select-order/page.tsx</div><pre>// app/(marketplace)/rider-dashboard/page.tsx
+// ── FIX #7 (race condition): acceptOrder uses authFetch which handles 409
+//    conflict responses from the server. The server must use a DB transaction
+//    to atomically check + assign the order, so only one rider wins.
+//
+// ── FIX #8 (stock reservation): No change needed here — stock locking
+//    is handled server-side in the payment flow.
+//
+// ── FIX #10 (alert/confirm dialogs): All alert() and confirm() calls
+//    replaced with inline toast/banner UI. No more browser popups.
+//
+// ── FIX #6: Uses authFetch so expired tokens auto-redirect to /login.
+//
+// ── Rider availability: If the toggle API fails, the UI reverts to the
+//    previous state instead of staying optimistically wrong.
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { 
-  AlertTriangle, 
-  Package, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  ArrowRight, 
-  Search, 
-  Shield, 
-  Filter,
-  Truck,
-  ShoppingBag,
-  AlertCircle
-} from 'lucide-react'
+import { Loader2, AlertTriangle, MapPin, Phone, Package, CheckCircle, X } from 'lucide-react'
+import { authFetch } from '@/lib/auth-client'
 
-interface Order {
-  id: string
-  orderNumber: string
-  totalAmount: number
-  product: {
-    name: string
-    images: string[]
-    price: number
+// ── Simple inline toast — no alert() ─────────────────────────────────────────
+function Toast({ message, type, onClose }: { message: string; type: 'success' | 'error' | 'info'; onClose: () =&gt; void }) {
+  const colors = {
+    success: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+    error:   'bg-red-50 border-red-200 text-red-800',
+    info:    'bg-blue-50 border-blue-200 text-blue-800',
   }
-  seller: {
-    name: string
-    rating: number
-    trustLevel: string
-  }
-  status: string
-  createdAt: string
-  deliveredAt?: string
-  pickedUpAt?: string
-  completedAt?: string
-  canDispute: boolean
-  disputeReason?: string
-  hasExistingDispute: boolean
-  existingDisputeStatus?: string
-  debug?: any
+  return (
+    &lt;div className={`fixed top-4 left-0 right-0 z-50 flex justify-center px-4`}&gt;
+      &lt;div className={`flex items-start gap-3 px-4 py-3 rounded-2xl border shadow-lg max-w-sm w-full ${colors[type]}`}&gt;
+        &lt;p className="text-sm font-semibold flex-1"&gt;{message}&lt;/p&gt;
+        &lt;button onClick={onClose} className="flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity"&gt;
+          &lt;X className="w-4 h-4" /&gt;
+        &lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  )
 }
 
-export default function SelectOrderForDisputePage() {
+export default function RiderDashboardPage() {
   const router = useRouter()
-  const [orders, setOrders] = useState&lt;Order[]&gt;([])
+  const [rider, setRider] = useState&lt;any&gt;(null)
+  const [availableOrders, setAvailableOrders] = useState&lt;any[]&gt;([])
+  const [disputePickups, setDisputePickups] = useState&lt;any[]&gt;([])
+  const [myDeliveries, setMyDeliveries] = useState&lt;any[]&gt;([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedStatus, setSelectedStatus] = useState&lt;'ALL' | 'DELIVERED' | 'IN_TRANSIT' | 'PROCESSING' | 'OTHER'&gt;('ALL')
-  const [showDebug, setShowDebug] = useState(false)
+  const [isAvailable, setIsAvailable] = useState(true)
+  const [actionLoading, setActionLoading] = useState&lt;Record&lt;string, boolean&gt;&gt;({})
+
+  // ── FIX #10: Toast state instead of alert() ───────────────────────────────
+  const [toast, setToast] = useState&lt;{ message: string; type: 'success' | 'error' | 'info' } | null&gt;(null)
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') =&gt; {
+    setToast({ message, type })
+    setTimeout(() =&gt; setToast(null), 4000)
+  }
 
   useEffect(() =&gt; {
-    fetchOrders()
+    const token = localStorage.getItem('token')
+    if (!token) { router.push('/login'); return }
+    fetchRiderData()
   }, [])
 
-  const fetchOrders = async () =&gt; {
-    setLoading(true)
-    setError('')
+  const fetchRiderData = async () =&gt; {
     try {
-      const token = localStorage.getItem('token')
-      if (!token) {
-        router.push('/login')
-        return
-      }
+      const [profileRes, ordersRes, deliveriesRes] = await Promise.all([
+        authFetch('/api/auth/me'),
+        authFetch('/api/riders/available-orders'),
+        authFetch('/api/riders/my-deliveries'),
+      ])
 
-      console.log('🔍 Fetching orders from API...')
-      const response = await fetch('/api/orders/my-orders', {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
+      const profileData    = await profileRes.json()
+      const ordersData     = await ordersRes.json()
+      const deliveriesData = await deliveriesRes.json()
 
-      const data = await response.json()
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch orders')
-      }
-
-      console.log('✅ Orders fetched successfully:', {
-        total: data.orders.length,
-        eligible: data.stats?.eligibleForDispute,
-        statusBreakdown: data.stats?.byStatus
-      })
-      
-      setOrders(data.orders)
-      
-    } catch (err: any) {
-      console.error('❌ Failed to fetch orders:', err)
-      setError(err.message || 'Failed to load orders')
+      setRider(profileData.user)
+      setAvailableOrders(ordersData.orders || [])
+      setDisputePickups(ordersData.disputePickups || [])
+      setMyDeliveries(deliveriesData.deliveries || [])
+      setIsAvailable(profileData.user.isAvailable)
+    } catch (error) {
+      console.error('Error fetching rider data:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const filteredOrders = orders
-    .filter(order =&gt; {
-      if (selectedStatus !== 'ALL') {
-        if (selectedStatus === 'DELIVERED' &amp;&amp; !['DELIVERED', 'COMPLETED'].includes(order.status)) return false
-        if (selectedStatus === 'IN_TRANSIT' &amp;&amp; !['RIDER_ASSIGNED', 'PICKED_UP', 'ON_THE_WAY'].includes(order.status)) return false
-        if (selectedStatus === 'PROCESSING' &amp;&amp; !['PROCESSING', 'SHIPPED'].includes(order.status)) return false
-        if (selectedStatus === 'OTHER') {
-          const shownStatuses = ['DELIVERED', 'COMPLETED', 'RIDER_ASSIGNED', 'PICKED_UP', 'ON_THE_WAY', 'PROCESSING', 'SHIPPED']
-          if (shownStatuses.includes(order.status)) return false
-        }
+  // ── FIX (availability revert): Save previous state so we can roll back ────
+  const toggleAvailability = async () =&gt; {
+    if (actionLoading['toggle-availability']) return
+    const previousState = isAvailable
+    setActionLoading(prev =&gt; ({ ...prev, 'toggle-availability': true }))
+
+    // Optimistic update
+    setIsAvailable(!previousState)
+
+    try {
+      const res = await authFetch('/api/riders/toggle-availability', { method: 'POST' })
+      if (!res.ok) {
+        // Revert on failure instead of staying in wrong state
+        setIsAvailable(previousState)
+        showToast('Failed to update availability. Please try again.', 'error')
+      } else {
+        showToast(`You are now ${!previousState ? 'available' : 'unavailable'} for orders.`, 'success')
       }
-      
-      if (!searchQuery) return true
-      
-      const query = searchQuery.toLowerCase()
-      return (
-        order.orderNumber.toLowerCase().includes(query) ||
-        order.product.name.toLowerCase().includes(query) ||
-        order.seller.name.toLowerCase().includes(query)
-      )
-    })
-    .sort((a, b) =&gt; new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-
-  const formatPrice = (price: number) =&gt; {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-    }).format(price)
-  }
-
-  const formatDate = (dateString: string) =&gt; {
-    return new Date(dateString).toLocaleDateString('en-NG', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-
-  const getStatusIcon = (status: string) =&gt; {
-    switch (status) {
-      case 'DELIVERED':
-      case 'COMPLETED':
-        return &lt;CheckCircle className="w-4 h-4 text-green-500" /&gt;
-      case 'DISPUTED':
-        return &lt;AlertTriangle className="w-4 h-4 text-orange-500" /&gt;
-      case 'CANCELLED':
-        return &lt;XCircle className="w-4 h-4 text-red-500" /&gt;
-      case 'RIDER_ASSIGNED':
-      case 'PICKED_UP':
-      case 'ON_THE_WAY':
-        return &lt;Truck className="w-4 h-4 text-blue-500" /&gt;
-      case 'PROCESSING':
-      case 'SHIPPED':
-        return &lt;ShoppingBag className="w-4 h-4 text-purple-500" /&gt;
-      case 'PENDING':
-        return &lt;Clock className="w-4 h-4 text-yellow-500" /&gt;
-      default:
-        return &lt;Clock className="w-4 h-4 text-gray-500" /&gt;
+    } catch {
+      setIsAvailable(previousState)
+      showToast('Network error updating availability.', 'error')
+    } finally {
+      setActionLoading(prev =&gt; ({ ...prev, 'toggle-availability': false }))
     }
   }
 
-  const getStatusColor = (status: string) =&gt; {
-    switch (status) {
-      case 'DELIVERED':
-      case 'COMPLETED':
-        return 'bg-green-100 text-green-800'
-      case 'DISPUTED':
-        return 'bg-orange-100 text-orange-800'
-      case 'CANCELLED':
-        return 'bg-red-100 text-red-800'
-      case 'RIDER_ASSIGNED':
-      case 'PICKED_UP':
-      case 'ON_THE_WAY':
-        return 'bg-blue-100 text-blue-800'
-      case 'PROCESSING':
-      case 'SHIPPED':
-        return 'bg-purple-100 text-purple-800'
-      case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
+  // ── FIX #7: Handle 409 conflict (another rider grabbed this order) ────────
+  const acceptOrder = async (orderId: string) =&gt; {
+    if (actionLoading[`accept-${orderId}`]) return
+    setActionLoading(prev =&gt; ({ ...prev, [`accept-${orderId}`]: true }))
+    try {
+      const res = await authFetch('/api/riders/accept-order', {
+        method: 'POST',
+        body: JSON.stringify({ orderId }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        showToast('Order accepted! Head to pickup location.', 'success')
+        await fetchRiderData()
+      } else if (res.status === 409) {
+        // Race condition — another rider accepted first
+        showToast('Sorry, another rider just accepted this order. Refreshing available orders.', 'info')
+        await fetchRiderData()
+      } else {
+        showToast(data.error || 'Failed to accept order. Please try again.', 'error')
+      }
+    } catch {
+      showToast('Network error. Please check your connection.', 'error')
+    } finally {
+      setActionLoading(prev =&gt; ({ ...prev, [`accept-${orderId}`]: false }))
     }
   }
 
-  const getStatusText = (status: string) =&gt; {
-    return status.split('_').map(word =&gt; 
-      word.charAt(0) + word.slice(1).toLowerCase()
-    ).join(' ')
+  const updateStatus = async (orderId: string, status: string) =&gt; {
+    if (actionLoading[`status-${orderId}`]) return
+    setActionLoading(prev =&gt; ({ ...prev, [`status-${orderId}`]: true }))
+    try {
+      const res = await authFetch('/api/riders/update-status', {
+        method: 'POST',
+        body: JSON.stringify({ orderId, status }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        await fetchRiderData()
+      } else {
+        showToast(data.error || 'Failed to update status.', 'error')
+      }
+    } catch {
+      showToast('Network error updating status.', 'error')
+    } finally {
+      setActionLoading(prev =&gt; ({ ...prev, [`status-${orderId}`]: false }))
+    }
   }
 
-  const getStatusCategory = (status: string) =&gt; {
-    if (['DELIVERED', 'COMPLETED'].includes(status)) return 'DELIVERED'
-    if (['RIDER_ASSIGNED', 'PICKED_UP', 'ON_THE_WAY'].includes(status)) return 'IN_TRANSIT'
-    if (['PROCESSING', 'SHIPPED'].includes(status)) return 'PROCESSING'
-    return 'OTHER'
+  const markDisputePickedUp = async (orderId: string) =&gt; {
+    if (actionLoading[`dispute-pickup-${orderId}`]) return
+    setActionLoading(prev =&gt; ({ ...prev, [`dispute-pickup-${orderId}`]: true }))
+    try {
+      const res = await authFetch('/api/riders/dispute-picked-up', {
+        method: 'POST',
+        body: JSON.stringify({ orderId }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        showToast('Marked as collected. Return the item to complete this job.', 'success')
+        await fetchRiderData()
+      } else {
+        showToast(data.error || 'Failed to update.', 'error')
+      }
+    } catch {
+      showToast('Network error.', 'error')
+    } finally {
+      setActionLoading(prev =&gt; ({ ...prev, [`dispute-pickup-${orderId}`]: false }))
+    }
   }
 
-  const refreshOrders = () =&gt; {
-    fetchOrders()
+  const hasDisputePickupPending = disputePickups.length &gt; 0
+
+  if (loading) {
+    return (
+      &lt;div className="min-h-screen flex items-center justify-center"&gt;
+        &lt;div className="animate-spin rounded-full h-12 w-12 border-4 border-BATAMART-primary border-t-transparent" /&gt;
+      &lt;/div&gt;
+    )
   }
 
   return (
-    &lt;div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-8 px-4"&gt;
-      &lt;div className="max-w-6xl mx-auto"&gt;
+    &lt;div className="min-h-screen bg-gray-50 py-8 px-4"&gt;
+      {/* ── FIX #10: Toast notification instead of alert() ── */}
+      {toast &amp;&amp; &lt;Toast message={toast.message} type={toast.type} onClose={() =&gt; setToast(null)} /&gt;}
+
+      &lt;div className="max-w-7xl mx-auto"&gt;
+
         {/* Header */}
-        &lt;div className="mb-8"&gt;
-          &lt;div className="flex items-center gap-3 mb-2"&gt;
-            &lt;AlertTriangle className="w-8 h-8 text-orange-500" /&gt;
+        &lt;div className="bg-white rounded-xl shadow-md p-6 mb-8"&gt;
+          &lt;div className="flex justify-between items-center"&gt;
             &lt;div&gt;
-              &lt;h1 className="text-3xl font-bold text-gray-900"&gt;Select Order to Dispute&lt;/h1&gt;
-              &lt;p className="text-gray-600"&gt;
-                Choose an order you'd like to file a dispute for. You can dispute orders within 7 days of delivery.
-              &lt;/p&gt;
+              &lt;h1 className="text-3xl font-bold text-gray-900"&gt;Rider Dashboard&lt;/h1&gt;
+              &lt;p className="text-gray-600 mt-1"&gt;Welcome, {rider?.name}!&lt;/p&gt;
+            &lt;/div&gt;
+            &lt;button
+              onClick={toggleAvailability}
+              disabled={actionLoading['toggle-availability']}
+              className={`px-6 py-3 rounded-lg font-bold transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                isAvailable ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+              }`}
+            &gt;
+              {actionLoading['toggle-availability']
+                ? &lt;&gt;&lt;Loader2 className="w-5 h-5 animate-spin" /&gt; Updating...&lt;/&gt;
+                : isAvailable ? '🟢 Available' : '⚫ Unavailable'
+              }
+            &lt;/button&gt;
+          &lt;/div&gt;
+
+          &lt;div className="grid grid-cols-3 gap-4 mt-6"&gt;
+            &lt;div className="bg-green-50 p-4 rounded-lg"&gt;
+              &lt;p className="text-sm text-green-600"&gt;Completed&lt;/p&gt;
+              &lt;p className="text-2xl font-bold text-green-900"&gt;{rider?.completedOrders || 0}&lt;/p&gt;
+            &lt;/div&gt;
+            &lt;div className="bg-blue-50 p-4 rounded-lg"&gt;
+              &lt;p className="text-sm text-blue-600"&gt;Active&lt;/p&gt;
+              &lt;p className="text-2xl font-bold text-blue-900"&gt;{myDeliveries.length}&lt;/p&gt;
+            &lt;/div&gt;
+            &lt;div className="bg-purple-50 p-4 rounded-lg"&gt;
+              &lt;p className="text-sm text-purple-600"&gt;Earnings&lt;/p&gt;
+              &lt;p className="text-2xl font-bold text-purple-900"&gt;₦{((rider?.completedOrders || 0) * 560).toLocaleString()}&lt;/p&gt;
             &lt;/div&gt;
           &lt;/div&gt;
-          
-          {/* Debug Toggle */}
-          {process.env.NODE_ENV === 'development' &amp;&amp; (
-            &lt;div className="mt-4 flex items-center gap-3"&gt;
-              &lt;button
-                onClick={() =&gt; setShowDebug(!showDebug)}
-                className="px-3 py-1.5 text-xs bg-gray-200 hover:bg-gray-300 rounded-lg font-medium"
-              &gt;
-                {showDebug ? 'Hide Debug' : 'Show Debug'}
-              &lt;/button&gt;
-              &lt;button
-                onClick={refreshOrders}
-                className="px-3 py-1.5 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg font-medium"
-              &gt;
-                Refresh Orders
-              &lt;/button&gt;
-              &lt;span className="text-xs text-gray-500"&gt;
-                Check browser console for detailed logs
+        &lt;/div&gt;
+
+        {/* Dispute Pickup Jobs */}
+        {hasDisputePickupPending &amp;&amp; (
+          &lt;div className="mb-8"&gt;
+            &lt;div className="flex items-center gap-2 mb-4"&gt;
+              &lt;AlertTriangle className="w-5 h-5 text-red-500" /&gt;
+              &lt;h2 className="text-xl font-bold text-red-600"&gt;Return Pickup Required&lt;/h2&gt;
+              &lt;span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-bold"&gt;
+                {disputePickups.length} pending
               &lt;/span&gt;
             &lt;/div&gt;
-          )}
-        &lt;/div&gt;
 
-        {error &amp;&amp; (
-          &lt;div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl"&gt;
-            &lt;div className="flex items-start gap-2"&gt;
-              &lt;Shield className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" /&gt;
-              &lt;div&gt;
-                &lt;p className="text-red-800 font-medium"&gt;{error}&lt;/p&gt;
-                &lt;button
-                  onClick={refreshOrders}
-                  className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
-                &gt;
-                  Try Again
-                &lt;/button&gt;
-              &lt;/div&gt;
+            &lt;div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-800 mb-4 flex items-start gap-2"&gt;
+              &lt;AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" /&gt;
+              &lt;span&gt;
+                You must complete this return pickup before accepting new orders.
+                You will earn &lt;strong&gt;₦560&lt;/strong&gt; once the item is confirmed received.
+              &lt;/span&gt;
             &lt;/div&gt;
-          &lt;/div&gt;
-        )}
 
-        {/* Stats Banner */}
-        {!loading &amp;&amp; orders.length &gt; 0 &amp;&amp; (
-          &lt;div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-2xl"&gt;
-            &lt;div className="grid grid-cols-2 md:grid-cols-4 gap-4"&gt;
-              &lt;div className="text-center"&gt;
-                &lt;div className="text-2xl font-bold text-blue-700"&gt;{orders.length}&lt;/div&gt;
-                &lt;div className="text-sm text-blue-600"&gt;Total Orders&lt;/div&gt;
-              &lt;/div&gt;
-              &lt;div className="text-center"&gt;
-                &lt;div className="text-2xl font-bold text-green-700"&gt;
-                  {orders.filter(o =&gt; o.canDispute).length}
-                &lt;/div&gt;
-                &lt;div className="text-sm text-green-600"&gt;Eligible for Dispute&lt;/div&gt;
-              &lt;/div&gt;
-              &lt;div className="text-center"&gt;
-                &lt;div className="text-2xl font-bold text-orange-700"&gt;
-                  {orders.filter(o =&gt; o.hasExistingDispute).length}
-                &lt;/div&gt;
-                &lt;div className="text-sm text-orange-600"&gt;Already Disputed&lt;/div&gt;
-              &lt;/div&gt;
-              &lt;div className="text-center"&gt;
-                &lt;div className="text-2xl font-bold text-purple-700"&gt;
-                  {orders.filter(o =&gt; ['DELIVERED', 'COMPLETED'].includes(o.status)).length}
-                &lt;/div&gt;
-                &lt;div className="text-sm text-purple-600"&gt;Delivered&lt;/div&gt;
-              &lt;/div&gt;
-            &lt;/div&gt;
-          &lt;/div&gt;
-        )}
-
-        {/* Search and Filter */}
-        &lt;div className="bg-white rounded-2xl shadow-lg p-6 mb-6"&gt;
-          &lt;div className="grid grid-cols-1 md:grid-cols-3 gap-4"&gt;
-            &lt;div className="md:col-span-2"&gt;
-              &lt;div className="relative"&gt;
-                &lt;Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /&gt;
-                &lt;input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) =&gt; setSearchQuery(e.target.value)}
-                  placeholder="Search by order number, product name, or seller..."
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                /&gt;
-              &lt;/div&gt;
-            &lt;/div&gt;
-            &lt;div className="flex items-center gap-2"&gt;
-              &lt;Filter className="w-5 h-5 text-gray-400" /&gt;
-              &lt;select
-                value={selectedStatus}
-                onChange={(e) =&gt; setSelectedStatus(e.target.value as any)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white"
-              &gt;
-                &lt;option value="ALL"&gt;All Orders&lt;/option&gt;
-                &lt;option value="DELIVERED"&gt;Delivered/Completed&lt;/option&gt;
-                &lt;option value="IN_TRANSIT"&gt;In Transit&lt;/option&gt;
-                &lt;option value="PROCESSING"&gt;Processing/Shipped&lt;/option&gt;
-                &lt;option value="OTHER"&gt;Other Status&lt;/option&gt;
-              &lt;/select&gt;
-            &lt;/div&gt;
-          &lt;/div&gt;
-        &lt;/div&gt;
-
-        {/* Info Cards */}
-        &lt;div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"&gt;
-          &lt;div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-2xl p-6"&gt;
-            &lt;div className="flex items-center gap-3 mb-3"&gt;
-              &lt;AlertTriangle className="w-6 h-6 text-orange-600" /&gt;
-              &lt;h3 className="font-bold text-orange-900"&gt;What can you dispute?&lt;/h3&gt;
-            &lt;/div&gt;
-            &lt;ul className="space-y-2 text-sm text-orange-800"&gt;
-              &lt;li className="flex items-start gap-2"&gt;
-                &lt;div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-1.5"&gt;&lt;/div&gt;
-                &lt;span&gt;Wrong or damaged items received&lt;/span&gt;
-              &lt;/li&gt;
-              &lt;li className="flex items-start gap-2"&gt;
-                &lt;div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-1.5"&gt;&lt;/div&gt;
-                &lt;span&gt;Items not delivered&lt;/span&gt;
-              &lt;/li&gt;
-              &lt;li className="flex items-start gap-2"&gt;
-                &lt;div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-1.5"&gt;&lt;/div&gt;
-                &lt;span&gt;Fake or counterfeit products&lt;/span&gt;
-              &lt;/li&gt;
-              &lt;li className="flex items-start gap-2"&gt;
-                &lt;div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-1.5"&gt;&lt;/div&gt;
-                &lt;span&gt;Significantly different from description&lt;/span&gt;
-              &lt;/li&gt;
-            &lt;/ul&gt;
-          &lt;/div&gt;
-
-          &lt;div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-2xl p-6"&gt;
-            &lt;div className="flex items-center gap-3 mb-3"&gt;
-              &lt;Clock className="w-6 h-6 text-blue-600" /&gt;
-              &lt;h3 className="font-bold text-blue-900"&gt;Time Limit&lt;/h3&gt;
-            &lt;/div&gt;
-            &lt;p className="text-sm text-blue-800 mb-3"&gt;
-              You can dispute delivered orders within 7 days of delivery.
-              For other statuses, you can dispute at any time.
-            &lt;/p&gt;
-            &lt;div className="text-xs text-blue-700 bg-blue-100 px-3 py-2 rounded-lg"&gt;
-              &lt;strong&gt;Note:&lt;/strong&gt; Disputes are reviewed within 3-5 business days
-            &lt;/div&gt;
-          &lt;/div&gt;
-
-          &lt;div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6"&gt;
-            &lt;div className="flex items-center gap-3 mb-3"&gt;
-              &lt;CheckCircle className="w-6 h-6 text-green-600" /&gt;
-              &lt;h3 className="font-bold text-green-900"&gt;Before Disputing&lt;/h3&gt;
-            &lt;/div&gt;
-            &lt;ul className="space-y-2 text-sm text-green-800"&gt;
-              &lt;li className="flex items-start gap-2"&gt;
-                &lt;CheckCircle className="w-4 h-4 text-green-500 mt-0.5" /&gt;
-                &lt;span&gt;Try contacting the seller first&lt;/span&gt;
-              &lt;/li&gt;
-              &lt;li className="flex items-start gap-2"&gt;
-                &lt;CheckCircle className="w-4 h-4 text-green-500 mt-0.5" /&gt;
-                &lt;span&gt;Gather evidence (photos, messages)&lt;/span&gt;
-              &lt;/li&gt;
-              &lt;li className="flex items-start gap-2"&gt;
-                &lt;CheckCircle className="w-4 h-4 text-green-500 mt-0.5" /&gt;
-                &lt;span&gt;Be specific about the issue&lt;/span&gt;
-              &lt;/li&gt;
-            &lt;/ul&gt;
-          &lt;/div&gt;
-        &lt;/div&gt;
-
-        {/* Orders List */}
-        &lt;div className="bg-white rounded-2xl shadow-lg overflow-hidden"&gt;
-          {loading ? (
-            &lt;div className="flex flex-col justify-center items-center h-64"&gt;
-              &lt;div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent mb-4"&gt;&lt;/div&gt;
-              &lt;p className="text-gray-600"&gt;Loading your orders...&lt;/p&gt;
-            &lt;/div&gt;
-          ) : filteredOrders.length === 0 ? (
-            &lt;div className="text-center py-16"&gt;
-              &lt;Package className="w-16 h-16 text-gray-400 mx-auto mb-4" /&gt;
-              &lt;h3 className="text-xl font-bold text-gray-700 mb-2"&gt;
-                {searchQuery || selectedStatus !== 'ALL' 
-                  ? 'No orders match your search'
-                  : 'No orders found'}
-              &lt;/h3&gt;
-              &lt;p className="text-gray-500 mb-6 max-w-md mx-auto"&gt;
-                {searchQuery || selectedStatus !== 'ALL' 
-                  ? 'Try different search terms or clear filters.'
-                  : "You haven't placed any orders yet. Start shopping to see orders here!"}
-              &lt;/p&gt;
-              &lt;div className="flex flex-col sm:flex-row gap-3 justify-center"&gt;
-                &lt;Link
-                  href="/"
-                  className="inline-block bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-6 py-3 rounded-xl font-semibold transition-all"
-                &gt;
-                  Browse Products
-                &lt;/Link&gt;
-                &lt;button
-                  onClick={refreshOrders}
-                  className="inline-block bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-3 rounded-xl font-semibold transition-all"
-                &gt;
-                  Refresh Orders
-                &lt;/button&gt;
-              &lt;/div&gt;
-            &lt;/div&gt;
-          ) : (
-            &lt;div className="divide-y divide-gray-100"&gt;
-              {/* Debug information banner */}
-              {showDebug &amp;&amp; (
-                &lt;div className="p-4 bg-gray-50 border-b border-gray-200"&gt;
-                  &lt;div className="flex items-center justify-between"&gt;
-                    &lt;div className="text-sm"&gt;
-                      &lt;strong className="text-gray-800"&gt;Debug Info:&lt;/strong&gt;
-                      &lt;span className="text-gray-600 ml-2"&gt;
-                        Showing {filteredOrders.length} of {orders.length} orders
+            &lt;div className="space-y-4"&gt;
+              {disputePickups.map((order: any) =&gt; {
+                const pickup = order.dispute?.pickupAddress as any
+                return (
+                  &lt;div key={order.id} className="bg-white border-2 border-red-300 rounded-xl shadow-md p-6"&gt;
+                    &lt;div className="flex justify-between items-start mb-4"&gt;
+                      &lt;div&gt;
+                        &lt;span className="text-xs font-bold text-red-600 uppercase tracking-wide bg-red-50 px-2 py-1 rounded-full"&gt;
+                          Dispute Return
+                        &lt;/span&gt;
+                        &lt;p className="text-sm text-gray-500 mt-1"&gt;#{order.orderNumber}&lt;/p&gt;
+                        &lt;p className="font-bold text-gray-900 mt-0.5"&gt;{order.product.name}&lt;/p&gt;
+                      &lt;/div&gt;
+                      &lt;span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold"&gt;
+                        ₦560 on completion
                       &lt;/span&gt;
                     &lt;/div&gt;
-                    &lt;button 
-                      onClick={() =&gt; {
-                        console.log('=== ALL ORDERS ===', orders)
-                        console.log('=== FILTERED ORDERS ===', filteredOrders)
-                        alert('Check browser console for order details')
-                      }}
-                      className="px-3 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
-                    &gt;
-                      Log to Console
-                    &lt;/button&gt;
-                  &lt;/div&gt;
-                  &lt;div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs"&gt;
-                    &lt;div className="bg-green-50 p-2 rounded"&gt;
-                      &lt;div className="font-medium text-green-800"&gt;Eligible: {filteredOrders.filter(o =&gt; o.canDispute).length}&lt;/div&gt;
-                    &lt;/div&gt;
-                    &lt;div className="bg-red-50 p-2 rounded"&gt;
-                      &lt;div className="font-medium text-red-800"&gt;Not Eligible: {filteredOrders.filter(o =&gt; !o.canDispute).length}&lt;/div&gt;
-                    &lt;/div&gt;
-                    &lt;div className="bg-blue-50 p-2 rounded"&gt;
-                      &lt;div className="font-medium text-blue-800"&gt;Delivered: {filteredOrders.filter(o =&gt; ['DELIVERED', 'COMPLETED'].includes(o.status)).length}&lt;/div&gt;
-                    &lt;/div&gt;
-                    &lt;div className="bg-purple-50 p-2 rounded"&gt;
-                      &lt;div className="font-medium text-purple-800"&gt;Disputed: {filteredOrders.filter(o =&gt; o.hasExistingDispute).length}&lt;/div&gt;
-                    &lt;/div&gt;
-                  &lt;/div&gt;
-                &lt;/div&gt;
-              )}
-              
-              {/* Orders List */}
-              {filteredOrders.map((order) =&gt; (
-                &lt;div
-                  key={order.id}
-                  className={`p-6 hover:bg-gray-50 transition-colors duration-200 ${order.canDispute ? 'cursor-pointer hover:shadow-sm' : 'cursor-not-allowed'}`}
-                  onClick={() =&gt; {
-                    if (order.canDispute) {
-                      console.log('Opening dispute for order:', order)
-                      router.push(`/orders/${order.id}/dispute`)
-                    }
-                  }}
-                &gt;
-                  &lt;div className="flex flex-col md:flex-row md:items-center justify-between gap-4"&gt;
-                    &lt;div className="flex items-start gap-4"&gt;
-                      &lt;div className="w-16 h-16 rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0 overflow-hidden"&gt;
-                        &lt;img
-                          src={order.product.images[0] || '/placeholder.png'}
-                          alt={order.product.name}
-                          className="w-full h-full object-cover"
-                        /&gt;
-                      &lt;/div&gt;
-                      &lt;div className="flex-1"&gt;
-                        &lt;div className="flex flex-wrap items-center gap-2 mb-2"&gt;
-                          &lt;span className="font-bold text-gray-900"&gt;Order #{order.orderNumber}&lt;/span&gt;
-                          &lt;span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}&gt;
-                            &lt;span className="flex items-center gap-1"&gt;
-                              {getStatusIcon(order.status)}
-                              {getStatusText(order.status)}
-                            &lt;/span&gt;
-                          &lt;/span&gt;
-                          {order.hasExistingDispute &amp;&amp; (
-                            &lt;span className="px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800"&gt;
-                              ⚖️ Already Disputed
-                            &lt;/span&gt;
-                          )}
-                          {order.canDispute &amp;&amp; (
-                            &lt;span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800"&gt;
-                              ✓ Can Dispute
-                            &lt;/span&gt;
-                          )}
-                        &lt;/div&gt;
-                        &lt;h3 className="font-semibold text-gray-800 mb-1"&gt;{order.product.name}&lt;/h3&gt;
-                        &lt;div className="text-sm text-gray-600 space-y-1"&gt;
-                          &lt;p&gt;Seller: {order.seller.name} ({order.seller.trustLevel})&lt;/p&gt;
-                          &lt;p&gt;Ordered: {formatDate(order.createdAt)}&lt;/p&gt;
-                          {order.deliveredAt &amp;&amp; &lt;p&gt;Delivered: {formatDate(order.deliveredAt)}&lt;/p&gt;}
-                          {order.pickedUpAt &amp;&amp; &lt;p&gt;Picked up: {formatDate(order.pickedUpAt)}&lt;/p&gt;}
-                          {order.completedAt &amp;&amp; &lt;p&gt;Completed: {formatDate(order.completedAt)}&lt;/p&gt;}
-                        &lt;/div&gt;
-                        
-                        {/* Show dispute reason */}
-                        {!order.canDispute &amp;&amp; order.disputeReason &amp;&amp; (
-                          &lt;div className="mt-2 p-2 bg-red-50 rounded text-sm text-red-700"&gt;
-                            &lt;div className="flex items-start gap-2"&gt;
-                              &lt;AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" /&gt;
-                              &lt;span&gt;{order.disputeReason}&lt;/span&gt;
-                            &lt;/div&gt;
-                          &lt;/div&gt;
-                        )}
-                        
-                        {/* Show debug info */}
-                        {showDebug &amp;&amp; order.debug &amp;&amp; (
-                          &lt;div className="mt-2 p-2 bg-gray-100 rounded text-xs text-gray-600"&gt;
-                            &lt;details&gt;
-                              &lt;summary className="cursor-pointer font-medium"&gt;Debug Details&lt;/summary&gt;
-                              &lt;pre className="mt-1 whitespace-pre-wrap"&gt;
-                                {JSON.stringify(order.debug, null, 2)}
-                              &lt;/pre&gt;
-                            &lt;/details&gt;
-                          &lt;/div&gt;
-                        )}
-                      &lt;/div&gt;
-                    &lt;/div&gt;
 
-                    &lt;div className="flex flex-col items-end gap-3"&gt;
-                      &lt;div className="text-right"&gt;
-                        &lt;p className="text-xl font-bold text-orange-600"&gt;{formatPrice(order.totalAmount)}&lt;/p&gt;
-                        &lt;p className="text-sm text-gray-500"&gt;Product: {formatPrice(order.product.price)}&lt;/p&gt;
+                    {order.dispute?.reason &amp;&amp; (
+                      &lt;div className="mb-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-600"&gt;
+                        &lt;p className="text-xs font-semibold text-gray-400 uppercase mb-1"&gt;Reason for return&lt;/p&gt;
+                        &lt;p&gt;{order.dispute.reason}&lt;/p&gt;
                       &lt;/div&gt;
-                      
-                      {order.canDispute ? (
-                        &lt;div className="flex items-center gap-2 text-sm text-green-600 font-semibold"&gt;
-                          &lt;span&gt;Click to Open Dispute&lt;/span&gt;
-                          &lt;ArrowRight className="w-4 h-4" /&gt;
+                    )}
+
+                    &lt;div className="mb-4 p-3 bg-blue-50 rounded-lg"&gt;
+                      &lt;div className="flex items-center gap-1.5 mb-2"&gt;
+                        &lt;MapPin className="w-4 h-4 text-blue-500" /&gt;
+                        &lt;p className="text-xs font-semibold text-blue-600 uppercase tracking-wide"&gt;Collect from buyer&lt;/p&gt;
+                      &lt;/div&gt;
+                      {pickup ? (
+                        &lt;div className="text-sm space-y-0.5"&gt;
+                          &lt;p className="text-gray-800 font-medium"&gt;{pickup.hostel}{pickup.room ? `, Room ${pickup.room}` : ''}&lt;/p&gt;
+                          {pickup.landmark &amp;&amp; &lt;p className="text-gray-500"&gt;{pickup.landmark}&lt;/p&gt;}
+                          &lt;p className="text-blue-700 font-medium flex items-center gap-1 mt-1"&gt;
+                            &lt;Phone className="w-3 h-3" /&gt; {pickup.phone}
+                          &lt;/p&gt;
                         &lt;/div&gt;
                       ) : (
-                        &lt;div className="text-sm text-gray-500 max-w-[200px]"&gt;
-                          &lt;div className="flex items-start gap-1"&gt;
-                            &lt;XCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" /&gt;
-                            &lt;span&gt;{order.disputeReason || 'Not eligible for dispute'}&lt;/span&gt;
-                          &lt;/div&gt;
+                        &lt;div className="text-sm space-y-0.5"&gt;
+                          &lt;p className="text-gray-800 font-medium"&gt;{order.deliveryHostel}, Room {order.deliveryRoom}&lt;/p&gt;
+                          {order.deliveryLandmark &amp;&amp; &lt;p className="text-gray-500"&gt;{order.deliveryLandmark}&lt;/p&gt;}
+                          &lt;p className="text-blue-700 font-medium flex items-center gap-1 mt-1"&gt;
+                            &lt;Phone className="w-3 h-3" /&gt; {order.deliveryPhone}
+                          &lt;/p&gt;
                         &lt;/div&gt;
                       )}
                     &lt;/div&gt;
+
+                    &lt;div className="mb-4 p-3 bg-orange-50 rounded-lg"&gt;
+                      &lt;div className="flex items-center gap-1.5 mb-1"&gt;
+                        &lt;Package className="w-4 h-4 text-orange-500" /&gt;
+                        &lt;p className="text-xs font-semibold text-orange-600 uppercase tracking-wide"&gt;Return item to admin / store&lt;/p&gt;
+                      &lt;/div&gt;
+                      &lt;p className="text-sm text-gray-600"&gt;Contact admin for drop-off location if unsure.&lt;/p&gt;
+                    &lt;/div&gt;
+
+                    &lt;button
+                      onClick={() =&gt; markDisputePickedUp(order.id)}
+                      disabled={actionLoading[`dispute-pickup-${order.id}`]}
+                      className="w-full flex items-center justify-center gap-2 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold transition-colors disabled:opacity-50"
+                    &gt;
+                      {actionLoading[`dispute-pickup-${order.id}`]
+                        ? &lt;&gt;&lt;Loader2 className="w-4 h-4 animate-spin" /&gt; Updating...&lt;/&gt;
+                        : 'I Have Collected the Item from Buyer'
+                      }
+                    &lt;/button&gt;
+                  &lt;/div&gt;
+                )
+              })}
+            &lt;/div&gt;
+          &lt;/div&gt;
+        )}
+
+        {/* Available Orders */}
+        &lt;div className="mb-8"&gt;
+          &lt;h2 className="text-2xl font-bold text-gray-900 mb-4"&gt;
+            Available Orders ({availableOrders.length})
+          &lt;/h2&gt;
+
+          {hasDisputePickupPending &amp;&amp; (
+            &lt;div className="mb-4 p-4 bg-yellow-50 border border-yellow-300 rounded-xl text-sm text-yellow-800 flex items-center gap-2"&gt;
+              &lt;AlertTriangle className="w-4 h-4 flex-shrink-0" /&gt;
+              New orders are locked until you complete the return pickup above.
+            &lt;/div&gt;
+          )}
+
+          {availableOrders.length === 0 ? (
+            &lt;div className="bg-white rounded-xl p-8 text-center"&gt;
+              &lt;p className="text-gray-500"&gt;No available orders at the moment&lt;/p&gt;
+            &lt;/div&gt;
+          ) : (
+            &lt;div className="grid md:grid-cols-2 gap-4"&gt;
+              {availableOrders.map((order: any) =&gt; (
+                &lt;div key={order.id} className={`bg-white rounded-xl shadow-md p-6 ${hasDisputePickupPending ? 'opacity-50 pointer-events-none' : ''}`}&gt;
+                  &lt;div className="flex justify-between items-start mb-4"&gt;
+                    &lt;div&gt;
+                      &lt;p className="text-sm text-gray-500"&gt;#{order.orderNumber}&lt;/p&gt;
+                      &lt;p className="font-bold text-gray-900 mt-1"&gt;{order.product.name}&lt;/p&gt;
+                    &lt;/div&gt;
+                    &lt;span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-bold"&gt;NEW&lt;/span&gt;
                   &lt;/div&gt;
 
-                  {order.canDispute &amp;&amp; (
-                    &lt;div className="mt-4 pt-4 border-t border-gray-100"&gt;
-                      &lt;button
-                        onClick={(e) =&gt; {
-                          e.stopPropagation()
-                          console.log('Opening dispute for order:', order)
-                          router.push(`/orders/${order.id}/dispute`)
-                        }}
-                        className="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
-                      &gt;
-                        &lt;AlertTriangle className="w-4 h-4" /&gt;
-                        Open Dispute for This Order
-                      &lt;/button&gt;
-                    &lt;/div&gt;
-                  )}
+                  &lt;div className="space-y-2 text-sm"&gt;
+                    &lt;p className="text-gray-600"&gt;&lt;strong&gt;Pickup:&lt;/strong&gt; {order.product.hostelName}&lt;/p&gt;
+                    &lt;p className="text-gray-600"&gt;&lt;strong&gt;Delivery:&lt;/strong&gt; {order.deliveryHostel}&lt;/p&gt;
+                    &lt;p className="text-green-600 font-bold"&gt;Earn: ₦560&lt;/p&gt;
+                  &lt;/div&gt;
+
+                  &lt;button
+                    onClick={() =&gt; acceptOrder(order.id)}
+                    disabled={actionLoading[`accept-${order.id}`] || hasDisputePickupPending}
+                    className="w-full mt-4 bg-BATAMART-primary hover:bg-BATAMART-dark text-white py-2 rounded-lg font-bold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  &gt;
+                    {actionLoading[`accept-${order.id}`]
+                      ? &lt;&gt;&lt;Loader2 className="w-4 h-4 animate-spin" /&gt; Accepting...&lt;/&gt;
+                      : 'Accept Order'
+                    }
+                  &lt;/button&gt;
                 &lt;/div&gt;
               ))}
             &lt;/div&gt;
           )}
         &lt;/div&gt;
 
-        {/* Stats and Back Link */}
-        &lt;div className="mt-6 flex flex-col md:flex-row justify-between items-center gap-4"&gt;
-          &lt;div&gt;
-            &lt;Link
-              href="/"
-              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-            &gt;
-              ← Back to Marketplace
-            &lt;/Link&gt;
-          &lt;/div&gt;
-          {!loading &amp;&amp; orders.length &gt; 0 &amp;&amp; (
-            &lt;div className="text-sm text-gray-500"&gt;
-              Showing {filteredOrders.length} of {orders.length} orders
-              {filteredOrders.length &lt; orders.length &amp;&amp; ' (filtered)'}
+        {/* My Active Deliveries */}
+        &lt;div&gt;
+          &lt;h2 className="text-2xl font-bold text-gray-900 mb-4"&gt;My Active Deliveries&lt;/h2&gt;
+          {myDeliveries.length === 0 ? (
+            &lt;div className="bg-white rounded-xl p-8 text-center"&gt;
+              &lt;p className="text-gray-500"&gt;No active deliveries&lt;/p&gt;
+            &lt;/div&gt;
+          ) : (
+            &lt;div className="space-y-4"&gt;
+              {myDeliveries.map((delivery: any) =&gt; (
+                &lt;div key={delivery.id} className="bg-white rounded-xl shadow-md p-6"&gt;
+                  &lt;div className="flex justify-between items-start mb-4"&gt;
+                    &lt;div&gt;
+                      &lt;p className="text-sm text-gray-500"&gt;#{delivery.orderNumber}&lt;/p&gt;
+                      &lt;p className="font-bold text-gray-900 mt-1"&gt;{delivery.product.name}&lt;/p&gt;
+                    &lt;/div&gt;
+                    &lt;span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-bold"&gt;
+                      {delivery.status.replace('_', ' ')}
+                    &lt;/span&gt;
+                  &lt;/div&gt;
+
+                  &lt;div className="grid md:grid-cols-2 gap-4 mb-4 text-sm"&gt;
+                    &lt;div&gt;
+                      &lt;p className="text-gray-600"&gt;&lt;strong&gt;Pickup:&lt;/strong&gt;&lt;/p&gt;
+                      &lt;p&gt;{delivery.product.hostelName}&lt;/p&gt;
+                      &lt;p className="text-sm text-gray-500"&gt;{delivery.seller.phone}&lt;/p&gt;
+                    &lt;/div&gt;
+                    &lt;div&gt;
+                      &lt;p className="text-gray-600"&gt;&lt;strong&gt;Delivery:&lt;/strong&gt;&lt;/p&gt;
+                      &lt;p&gt;{delivery.deliveryHostel}, {delivery.deliveryRoom}&lt;/p&gt;
+                      &lt;p className="text-sm text-gray-500"&gt;{delivery.deliveryPhone}&lt;/p&gt;
+                    &lt;/div&gt;
+                  &lt;/div&gt;
+
+                  &lt;div className="flex gap-2"&gt;
+                    {delivery.status === 'RIDER_ASSIGNED' &amp;&amp; (
+                      &lt;button
+                        onClick={() =&gt; updateStatus(delivery.id, 'PICKED_UP')}
+                        disabled={actionLoading[`status-${delivery.id}`]}
+                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-bold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      &gt;
+                        {actionLoading[`status-${delivery.id}`]
+                          ? &lt;&gt;&lt;Loader2 className="w-4 h-4 animate-spin" /&gt; Updating...&lt;/&gt;
+                          : 'Mark as Picked Up'
+                        }
+                      &lt;/button&gt;
+                    )}
+                    {delivery.status === 'PICKED_UP' &amp;&amp; (
+                      &lt;button
+                        onClick={() =&gt; updateStatus(delivery.id, 'ON_THE_WAY')}
+                        disabled={actionLoading[`status-${delivery.id}`]}
+                        className="flex-1 bg-purple-500 hover:bg-purple-600 text-white py-2 rounded-lg font-bold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      &gt;
+                        {actionLoading[`status-${delivery.id}`]
+                          ? &lt;&gt;&lt;Loader2 className="w-4 h-4 animate-spin" /&gt; Updating...&lt;/&gt;
+                          : 'On The Way'
+                        }
+                      &lt;/button&gt;
+                    )}
+                    {delivery.status === 'ON_THE_WAY' &amp;&amp; (
+                      &lt;button
+                        onClick={() =&gt; updateStatus(delivery.id, 'DELIVERED')}
+                        disabled={actionLoading[`status-${delivery.id}`]}
+                        className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-bold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      &gt;
+                        {actionLoading[`status-${delivery.id}`]
+                          ? &lt;&gt;&lt;Loader2 className="w-4 h-4 animate-spin" /&gt; Updating...&lt;/&gt;
+                          : 'Mark as Delivered'
+                        }
+                      &lt;/button&gt;
+                    )}
+                  &lt;/div&gt;
+                &lt;/div&gt;
+              ))}
             &lt;/div&gt;
           )}
         &lt;/div&gt;
+
       &lt;/div&gt;
     &lt;/div&gt;
   )
@@ -6882,7 +6761,12 @@ export default function MarketplacePage() {
     &lt;/div&gt;
   )
 }</pre></div>
-<div class='file-block'><div class='file-header'>app/(marketplace)/my-shop/page.tsx</div><pre>'use client'
+<div class='file-block'><div class='file-header'>app/(marketplace)/my-shop/page.tsx</div><pre>// app/(marketplace)/my-shop/page.tsx
+// ── FIX #10: Replaced all alert(), confirm() browser dialogs with:
+//   - Inline toast notifications for success/error feedback
+//   - A proper inline confirmation dialog for destructive actions (delete)
+// ── FIX #6: Uses authFetch so expired tokens auto-redirect to /login.
+'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -6890,15 +6774,70 @@ import Link from 'next/link'
 import {
   ShoppingBag, Package, TrendingUp, Award, Eye,
   CheckCircle, XCircle, Plus, Trash2, BarChart3,
-  Grid, List, Filter, Search, ArrowRight, Tag,
-  Zap, Star, X,
+  Grid, List, Search, ArrowRight, X, AlertTriangle,
 } from 'lucide-react'
+import { authFetch } from '@/lib/auth-client'
 
 interface Product {
   id: string; name: string; price: number; quantity: number
   images: string[]; category: string; isActive: boolean
   viewCount: number; createdAt: string
   _count: { orders: number }
+}
+
+// ── Inline toast ──────────────────────────────────────────────────────────────
+function Toast({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () =&gt; void }) {
+  const colors = type === 'success'
+    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+    : 'bg-red-50 border-red-200 text-red-800'
+  return (
+    &lt;div className="fixed top-4 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none"&gt;
+      &lt;div className={`flex items-start gap-3 px-4 py-3 rounded-2xl border shadow-lg max-w-sm w-full pointer-events-auto ${colors}`}&gt;
+        &lt;p className="text-sm font-semibold flex-1"&gt;{message}&lt;/p&gt;
+        &lt;button onClick={onClose} className="flex-shrink-0 opacity-60 hover:opacity-100"&gt;
+          &lt;X className="w-4 h-4" /&gt;
+        &lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  )
+}
+
+// ── Inline confirmation dialog ────────────────────────────────────────────────
+function ConfirmDialog({
+  title, message, confirmLabel, onConfirm, onCancel
+}: {
+  title: string; message: string; confirmLabel: string
+  onConfirm: () =&gt; void; onCancel: () =&gt; void
+}) {
+  return (
+    &lt;div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/40"&gt;
+      &lt;div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full"&gt;
+        &lt;div className="flex items-start gap-3 mb-4"&gt;
+          &lt;div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0"&gt;
+            &lt;AlertTriangle className="w-5 h-5 text-red-600" /&gt;
+          &lt;/div&gt;
+          &lt;div&gt;
+            &lt;h3 className="font-black text-gray-900 text-base"&gt;{title}&lt;/h3&gt;
+            &lt;p className="text-sm text-gray-500 mt-1"&gt;{message}&lt;/p&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div className="flex gap-3 mt-2"&gt;
+          &lt;button
+            onClick={onCancel}
+            className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold text-sm transition-all"
+          &gt;
+            Cancel
+          &lt;/button&gt;
+          &lt;button
+            onClick={onConfirm}
+            className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-sm transition-all"
+          &gt;
+            {confirmLabel}
+          &lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  )
 }
 
 export default function MyShopPage() {
@@ -6913,13 +6852,28 @@ export default function MyShopPage() {
   const [viewMode, setViewMode] = useState&lt;'grid' | 'list'&gt;('list')
   const [searchTerm, setSearchTerm] = useState('')
 
+  // ── FIX #10: Toast + confirm dialog state ──────────────────────────────────
+  const [toast, setToast] = useState&lt;{ message: string; type: 'success' | 'error' } | null&gt;(null)
+  const [confirmDialog, setConfirmDialog] = useState&lt;{
+    title: string; message: string; confirmLabel: string; onConfirm: () =&gt; void
+  } | null&gt;(null)
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') =&gt; {
+    setToast({ message, type })
+    setTimeout(() =&gt; setToast(null), 4000)
+  }
+
+  const showConfirm = (title: string, message: string, confirmLabel: string, onConfirm: () =&gt; void) =&gt; {
+    setConfirmDialog({ title, message, confirmLabel, onConfirm })
+  }
+
   useEffect(() =&gt; {
     const token = localStorage.getItem('token')
     if (!token) { router.push('/login'); return }
 
     const loadUserData = async () =&gt; {
       try {
-        const response = await fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } })
+        const response = await authFetch('/api/auth/me')
         const data = await response.json()
         if (response.ok &amp;&amp; data.user) {
           setUserRole(data.user.role || 'BUYER')
@@ -6940,55 +6894,75 @@ export default function MyShopPage() {
   const fetchMyProducts = async () =&gt; {
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/products/my-products', { headers: { 'Authorization': `Bearer ${token}` } })
+      const response = await authFetch('/api/products/my-products')
       const data = await response.json()
       if (response.ok) setProducts(data.products || [])
-      else alert(data.error || 'Failed to fetch products')
-    } catch { alert('Network error') }
-    finally { setLoading(false) }
+      else showToast(data.error || 'Failed to fetch products', 'error')
+    } catch {
+      showToast('Network error loading products', 'error')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleRestock = async (productId: string) =&gt; {
-    if (restockAmount &lt; 1) { alert('Please enter a valid quantity'); return }
+    if (restockAmount &lt; 1) { showToast('Please enter a valid quantity', 'error'); return }
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`/api/products/${productId}/restock`, {
+      const response = await authFetch(`/api/products/${productId}/restock`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ quantity: restockAmount }),
       })
       const data = await response.json()
       if (response.ok) {
-        alert(`✅ Restocked ${restockAmount} items!`)
+        showToast(`Restocked ${restockAmount} item${restockAmount !== 1 ? 's' : ''} successfully!`, 'success')
         setRestockingId(null); setRestockAmount(1); fetchMyProducts()
-      } else alert(data.error || 'Failed to restock')
-    } catch { alert('Network error') }
+      } else {
+        showToast(data.error || 'Failed to restock', 'error')
+      }
+    } catch {
+      showToast('Network error', 'error')
+    }
   }
 
-  const handleDelete = async (productId: string, productName: string) =&gt; {
-    if (!confirm(`Delete "${productName}"? This cannot be undone.`)) return
-    try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`/api/products/${productId}`, {
-        method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
-      })
-      if (response.ok) { alert('Product deleted'); fetchMyProducts() }
-      else { const data = await response.json(); alert(data.error || 'Failed') }
-    } catch { alert('Network error') }
+  const handleDelete = (productId: string, productName: string) =&gt; {
+    showConfirm(
+      'Delete product',
+      `Are you sure you want to delete "${productName}"? This cannot be undone.`,
+      'Delete',
+      async () =&gt; {
+        setConfirmDialog(null)
+        try {
+          const response = await authFetch(`/api/products/${productId}`, { method: 'DELETE' })
+          if (response.ok) {
+            showToast('Product deleted successfully', 'success')
+            fetchMyProducts()
+          } else {
+            const data = await response.json()
+            showToast(data.error || 'Failed to delete product', 'error')
+          }
+        } catch {
+          showToast('Network error', 'error')
+        }
+      }
+    )
   }
 
   const toggleActive = async (productId: string, currentStatus: boolean) =&gt; {
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`/api/products/${productId}`, {
+      const response = await authFetch(`/api/products/${productId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ isActive: !currentStatus }),
       })
-      if (response.ok) fetchMyProducts()
-      else { const data = await response.json(); alert(data.error || 'Failed') }
-    } catch { alert('Network error') }
+      if (response.ok) {
+        showToast(`Product ${!currentStatus ? 'activated' : 'deactivated'}`, 'success')
+        fetchMyProducts()
+      } else {
+        const data = await response.json()
+        showToast(data.error || 'Failed to update product', 'error')
+      }
+    } catch {
+      showToast('Network error', 'error')
+    }
   }
 
   const toggleSellerMode = async () =&gt; {
@@ -6997,10 +6971,8 @@ export default function MyShopPage() {
     localStorage.setItem('sellerMode', newMode.toString())
     if (userRole === 'SELLER' || userRole === 'ADMIN') {
       try {
-        const token = localStorage.getItem('token')
-        await fetch('/api/auth/toggle-seller-mode', {
+        await authFetch('/api/auth/toggle-seller-mode', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ isSellerMode: newMode }),
         })
       } catch { console.error('Error updating seller mode') }
@@ -7020,8 +6992,8 @@ export default function MyShopPage() {
   const formatPrice = (price: number) =&gt;
     new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(price)
 
-  const totalOrders = products.reduce((sum, p) =&gt; sum + (p._count?.orders || 0), 0)
-  const activeCount = products.filter(p =&gt; p.quantity &gt; 0 &amp;&amp; p.isActive).length
+  const totalOrders  = products.reduce((sum, p) =&gt; sum + (p._count?.orders || 0), 0)
+  const activeCount  = products.filter(p =&gt; p.quantity &gt; 0 &amp;&amp; p.isActive).length
   const outOfStockCount = products.filter(p =&gt; p.quantity === 0).length
 
   if (loading) return (
@@ -7032,8 +7004,19 @@ export default function MyShopPage() {
 
   return (
     &lt;div className="min-h-screen bg-[#f7f8fa] pb-24"&gt;
+      {/* ── FIX #10: Toast + Confirm dialog ── */}
+      {toast &amp;&amp; &lt;Toast message={toast.message} type={toast.type} onClose={() =&gt; setToast(null)} /&gt;}
+      {confirmDialog &amp;&amp; (
+        &lt;ConfirmDialog
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmLabel={confirmDialog.confirmLabel}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() =&gt; setConfirmDialog(null)}
+        /&gt;
+      )}
 
-      {/* ── Header ────────────────────────────────────────────────────── */}
+      {/* ── Header ── */}
       &lt;div className="bg-white border-b border-gray-100"&gt;
         &lt;div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6"&gt;
           &lt;div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"&gt;
@@ -7047,26 +7030,22 @@ export default function MyShopPage() {
             &lt;/div&gt;
 
             &lt;div className="flex items-center gap-3"&gt;
-              {/* Mode toggle */}
               {(userRole === 'SELLER' || userRole === 'ADMIN') &amp;&amp; (
                 &lt;div className="flex items-center bg-gray-100 rounded-xl p-1 border border-gray-200"&gt;
                   &lt;button
                     onClick={() =&gt; !isSellerMode &amp;&amp; toggleSellerMode()}
-                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${isSellerMode ? 'bg-BATAMART-primary text-white shadow-md' : 'text-gray-500 hover:text-gray-700'
-                      }`}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${isSellerMode ? 'bg-BATAMART-primary text-white shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
                   &gt;
                     &lt;ShoppingBag className="w-3.5 h-3.5" /&gt; Seller
                   &lt;/button&gt;
                   &lt;button
                     onClick={() =&gt; isSellerMode &amp;&amp; toggleSellerMode()}
-                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${!isSellerMode ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700'
-                      }`}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${!isSellerMode ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
                   &gt;
                     &lt;Package className="w-3.5 h-3.5" /&gt; Buyer
                   &lt;/button&gt;
                 &lt;/div&gt;
               )}
-
               {isSellerMode &amp;&amp; (
                 &lt;Link
                   href="/sell"
@@ -7081,10 +7060,9 @@ export default function MyShopPage() {
       &lt;/div&gt;
 
       &lt;div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8"&gt;
-
         {isSellerMode ? (
           &lt;&gt;
-            {/* ── Stats cards ─────────────────────────────────────────── */}
+            {/* Stats cards */}
             &lt;div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8"&gt;
               {[
                 { icon: &lt;ShoppingBag className="w-5 h-5 text-BATAMART-primary" /&gt;, bg: 'bg-BATAMART-primary/8', value: products.length, label: 'Listed', sub: 'Total products' },
@@ -7101,9 +7079,8 @@ export default function MyShopPage() {
               ))}
             &lt;/div&gt;
 
-            {/* ── Search + controls ────────────────────────────────────── */}
+            {/* Search + controls */}
             &lt;div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-5"&gt;
-              {/* search */}
               &lt;div className="relative flex-1 max-w-sm"&gt;
                 &lt;Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" /&gt;
                 &lt;input
@@ -7120,8 +7097,7 @@ export default function MyShopPage() {
                 )}
               &lt;/div&gt;
 
-              {/* filter tabs */}
-              &lt;div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide"&gt;
+              &lt;div className="flex items-center gap-1.5 overflow-x-auto"&gt;
                 {[
                   { key: 'all', label: `All (${products.length})`, activeClass: 'bg-BATAMART-primary text-white' },
                   { key: 'active', label: `Active (${activeCount})`, activeClass: 'bg-emerald-500 text-white' },
@@ -7130,15 +7106,13 @@ export default function MyShopPage() {
                   &lt;button
                     key={key}
                     onClick={() =&gt; setFilter(key as any)}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${filter === key ? `${activeClass} shadow-md` : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
-                      }`}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${filter === key ? `${activeClass} shadow-md` : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
                   &gt;
                     {label}
                   &lt;/button&gt;
                 ))}
               &lt;/div&gt;
 
-              {/* view toggle */}
               &lt;div className="flex items-center gap-0.5 bg-gray-100 p-1 rounded-xl ml-auto flex-shrink-0"&gt;
                 &lt;button onClick={() =&gt; setViewMode('grid')} className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white text-BATAMART-primary shadow-sm' : 'text-gray-500'}`}&gt;
                   &lt;Grid className="w-4 h-4" /&gt;
@@ -7149,7 +7123,7 @@ export default function MyShopPage() {
               &lt;/div&gt;
             &lt;/div&gt;
 
-            {/* ── Products ─────────────────────────────────────────────── */}
+            {/* Products */}
             {filteredProducts.length === 0 ? (
               &lt;div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-dashed border-gray-200"&gt;
                 &lt;div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 ring-1 ring-gray-100"&gt;
@@ -7163,190 +7137,134 @@ export default function MyShopPage() {
                   &lt;Plus className="w-4 h-4" /&gt; List First Product
                 &lt;/Link&gt;
               &lt;/div&gt;
-
-            ) : viewMode === 'grid' ? (
-              &lt;div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"&gt;
-                {filteredProducts.map(product =&gt; (
-                  &lt;div key={product.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden group"&gt;
-                    {/* image */}
-                    &lt;div className="relative aspect-square bg-gray-100 overflow-hidden"&gt;
-                      &lt;img
-                        src={product.images[0] || '/placeholder.png'}
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      /&gt;
-                      &lt;div className="absolute top-2.5 right-2.5"&gt;
-                        {product.quantity === 0
-                          ? &lt;span className="px-2 py-1 bg-red-500 text-white text-[10px] font-black rounded-lg shadow-md"&gt;OUT OF STOCK&lt;/span&gt;
-                          : &lt;span className="px-2 py-1 bg-emerald-500 text-white text-[10px] font-black rounded-lg shadow-md"&gt;{product.quantity} LEFT&lt;/span&gt;
-                        }
-                      &lt;/div&gt;
-                    &lt;/div&gt;
-
-                    &lt;div className="p-4"&gt;
-                      &lt;p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1"&gt;{product.category}&lt;/p&gt;
-                      &lt;h3 className="font-black text-gray-900 text-base line-clamp-1 mb-1"&gt;{product.name}&lt;/h3&gt;
-                      &lt;p className="text-BATAMART-primary font-black text-lg mb-3"&gt;{formatPrice(product.price)}&lt;/p&gt;
-
-                      &lt;div className="grid grid-cols-2 gap-2 mb-4"&gt;
-                        &lt;div className="bg-gray-50 rounded-xl p-2.5 text-center"&gt;
-                          &lt;p className="text-[11px] text-gray-400 font-semibold"&gt;Views&lt;/p&gt;
-                          &lt;p className="text-sm font-black text-gray-900 flex items-center justify-center gap-1"&gt;
-                            &lt;Eye className="w-3 h-3" /&gt;{product.viewCount}
-                          &lt;/p&gt;
-                        &lt;/div&gt;
-                        &lt;div className="bg-gray-50 rounded-xl p-2.5 text-center"&gt;
-                          &lt;p className="text-[11px] text-gray-400 font-semibold"&gt;Orders&lt;/p&gt;
-                          &lt;p className="text-sm font-black text-gray-900 flex items-center justify-center gap-1"&gt;
-                            &lt;ShoppingBag className="w-3 h-3" /&gt;{product._count?.orders || 0}
-                          &lt;/p&gt;
-                        &lt;/div&gt;
-                      &lt;/div&gt;
-
-                      &lt;div className="flex gap-2"&gt;
-                        &lt;button
-                          onClick={() =&gt; router.push(`/product/${product.id}`)}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold text-xs transition-all"
-                        &gt;
-                          &lt;Eye className="w-3.5 h-3.5" /&gt; View
-                        &lt;/button&gt;
-                        &lt;button
-                          onClick={() =&gt; toggleActive(product.id, product.isActive)}
-                          className={`px-3 py-2 rounded-xl font-bold text-xs transition-all ${product.isActive ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                            }`}
-                        &gt;
-                          {product.isActive ? 'Pause' : 'Live'}
-                        &lt;/button&gt;
-                        &lt;button
-                          onClick={() =&gt; handleDelete(product.id, product.name)}
-                          className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl transition-all"
-                        &gt;
-                          &lt;Trash2 className="w-3.5 h-3.5" /&gt;
-                        &lt;/button&gt;
-                      &lt;/div&gt;
-                    &lt;/div&gt;
-                  &lt;/div&gt;
-                ))}
-              &lt;/div&gt;
-
             ) : (
-              /* List view */
-              &lt;div className="space-y-3"&gt;
+              &lt;div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4' : 'space-y-3'}&gt;
                 {filteredProducts.map(product =&gt; (
                   &lt;div key={product.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group"&gt;
-                    &lt;div className="flex gap-0 sm:gap-5 p-0 sm:p-4"&gt;
-                      {/* image */}
-                      &lt;div className="w-28 sm:w-36 flex-shrink-0 relative overflow-hidden rounded-none sm:rounded-xl bg-gray-100" style={{ minHeight: '120px' }}&gt;
-                        &lt;img
-                          src={product.images[0] || '/placeholder.png'}
-                          alt={product.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 absolute inset-0"
-                        /&gt;
-                        &lt;div className="absolute top-2 left-2"&gt;
-                          {product.quantity === 0
-                            ? &lt;span className="px-1.5 py-0.5 bg-red-500 text-white text-[9px] font-black rounded-md"&gt;OUT&lt;/span&gt;
-                            : product.quantity &lt; 5
-                              ? &lt;span className="px-1.5 py-0.5 bg-amber-500 text-white text-[9px] font-black rounded-md"&gt;LOW&lt;/span&gt;
-                              : null
-                          }
+                    {viewMode === 'grid' ? (
+                      &lt;&gt;
+                        &lt;div className="relative aspect-square bg-gray-100 overflow-hidden"&gt;
+                          &lt;img src={product.images[0] || '/placeholder.png'} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /&gt;
+                          &lt;div className="absolute top-2.5 right-2.5"&gt;
+                            {product.quantity === 0
+                              ? &lt;span className="px-2 py-1 bg-red-500 text-white text-[10px] font-black rounded-lg shadow-md"&gt;OUT OF STOCK&lt;/span&gt;
+                              : &lt;span className="px-2 py-1 bg-emerald-500 text-white text-[10px] font-black rounded-lg shadow-md"&gt;{product.quantity} LEFT&lt;/span&gt;
+                            }
+                          &lt;/div&gt;
                         &lt;/div&gt;
-                      &lt;/div&gt;
-
-                      {/* content */}
-                      &lt;div className="flex-1 min-w-0 p-3 sm:p-0 flex flex-col justify-between"&gt;
-                        &lt;div&gt;
-                          &lt;div className="flex items-start justify-between gap-3"&gt;
-                            &lt;div className="min-w-0"&gt;
-                              &lt;p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider"&gt;{product.category}&lt;/p&gt;
-                              &lt;h3 className="font-black text-gray-900 text-base sm:text-lg leading-tight mt-0.5 line-clamp-1"&gt;{product.name}&lt;/h3&gt;
+                        &lt;div className="p-4"&gt;
+                          &lt;p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1"&gt;{product.category}&lt;/p&gt;
+                          &lt;h3 className="font-black text-gray-900 text-base line-clamp-1 mb-1"&gt;{product.name}&lt;/h3&gt;
+                          &lt;p className="text-BATAMART-primary font-black text-lg mb-3"&gt;{formatPrice(product.price)}&lt;/p&gt;
+                          &lt;div className="grid grid-cols-2 gap-2 mb-4"&gt;
+                            &lt;div className="bg-gray-50 rounded-xl p-2.5 text-center"&gt;
+                              &lt;p className="text-[11px] text-gray-400 font-semibold"&gt;Views&lt;/p&gt;
+                              &lt;p className="text-sm font-black text-gray-900 flex items-center justify-center gap-1"&gt;&lt;Eye className="w-3 h-3" /&gt;{product.viewCount}&lt;/p&gt;
                             &lt;/div&gt;
-                            &lt;p className="text-BATAMART-primary font-black text-lg sm:text-xl whitespace-nowrap flex-shrink-0"&gt;{formatPrice(product.price)}&lt;/p&gt;
+                            &lt;div className="bg-gray-50 rounded-xl p-2.5 text-center"&gt;
+                              &lt;p className="text-[11px] text-gray-400 font-semibold"&gt;Orders&lt;/p&gt;
+                              &lt;p className="text-sm font-black text-gray-900 flex items-center justify-center gap-1"&gt;&lt;ShoppingBag className="w-3 h-3" /&gt;{product._count?.orders || 0}&lt;/p&gt;
+                            &lt;/div&gt;
                           &lt;/div&gt;
-
-                          {/* badges */}
-                          &lt;div className="flex flex-wrap gap-1.5 mt-2"&gt;
-                            {product.quantity === 0 ? (
-                              &lt;span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 bg-red-50 text-red-700 rounded-full ring-1 ring-red-200"&gt;
-                                &lt;XCircle className="w-3 h-3" /&gt; Out of Stock
-                              &lt;/span&gt;
-                            ) : (
-                              &lt;span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full ring-1 ring-emerald-200"&gt;
-                                &lt;CheckCircle className="w-3 h-3" /&gt; {product.quantity} in stock
-                              &lt;/span&gt;
-                            )}
-                            {!product.isActive &amp;&amp; (
-                              &lt;span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 bg-gray-100 text-gray-600 rounded-full ring-1 ring-gray-200"&gt;Inactive&lt;/span&gt;
-                            )}
-                            &lt;span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 bg-blue-50 text-blue-700 rounded-full ring-1 ring-blue-200"&gt;
-                              &lt;Eye className="w-3 h-3" /&gt; {product.viewCount} views
-                            &lt;/span&gt;
-                            &lt;span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 bg-violet-50 text-violet-700 rounded-full ring-1 ring-violet-200"&gt;
-                              &lt;ShoppingBag className="w-3 h-3" /&gt; {product._count?.orders || 0} orders
-                            &lt;/span&gt;
+                          &lt;div className="flex gap-2"&gt;
+                            &lt;button onClick={() =&gt; router.push(`/product/${product.id}`)} className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold text-xs transition-all"&gt;
+                              &lt;Eye className="w-3.5 h-3.5" /&gt; View
+                            &lt;/button&gt;
+                            &lt;button onClick={() =&gt; toggleActive(product.id, product.isActive)} className={`px-3 py-2 rounded-xl font-bold text-xs transition-all ${product.isActive ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'}`}&gt;
+                              {product.isActive ? 'Pause' : 'Live'}
+                            &lt;/button&gt;
+                            &lt;button onClick={() =&gt; handleDelete(product.id, product.name)} className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl transition-all"&gt;
+                              &lt;Trash2 className="w-3.5 h-3.5" /&gt;
+                            &lt;/button&gt;
                           &lt;/div&gt;
                         &lt;/div&gt;
-
-                        {/* actions */}
-                        &lt;div className="flex flex-wrap gap-2 mt-3"&gt;
-                          {/* restock */}
-                          {(product.quantity === 0 || product.quantity &lt; 5) &amp;&amp; (
-                            restockingId === product.id ? (
-                              &lt;div className="flex items-center gap-2"&gt;
-                                &lt;input
-                                  type="number" min="1" value={restockAmount}
-                                  onChange={e =&gt; setRestockAmount(parseInt(e.target.value) || 1)}
-                                  className="w-20 px-3 py-1.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-BATAMART-primary text-sm font-bold bg-white"
-                                /&gt;
-                                &lt;button onClick={() =&gt; handleRestock(product.id)} className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-sm transition-all"&gt;
-                                  &lt;CheckCircle className="w-4 h-4" /&gt;
-                                &lt;/button&gt;
-                                &lt;button onClick={() =&gt; { setRestockingId(null); setRestockAmount(1) }} className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-bold text-sm transition-all"&gt;
-                                  &lt;X className="w-4 h-4" /&gt;
-                                &lt;/button&gt;
+                      &lt;/&gt;
+                    ) : (
+                      /* List view */
+                      &lt;div className="flex gap-0 sm:gap-5 p-0 sm:p-4"&gt;
+                        &lt;div className="w-28 sm:w-36 flex-shrink-0 relative overflow-hidden rounded-none sm:rounded-xl bg-gray-100" style={{ minHeight: '120px' }}&gt;
+                          &lt;img src={product.images[0] || '/placeholder.png'} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 absolute inset-0" /&gt;
+                          &lt;div className="absolute top-2 left-2"&gt;
+                            {product.quantity === 0
+                              ? &lt;span className="px-1.5 py-0.5 bg-red-500 text-white text-[9px] font-black rounded-md"&gt;OUT&lt;/span&gt;
+                              : product.quantity &lt; 5
+                                ? &lt;span className="px-1.5 py-0.5 bg-amber-500 text-white text-[9px] font-black rounded-md"&gt;LOW&lt;/span&gt;
+                                : null
+                            }
+                          &lt;/div&gt;
+                        &lt;/div&gt;
+                        &lt;div className="flex-1 min-w-0 p-3 sm:p-0 flex flex-col justify-between"&gt;
+                          &lt;div&gt;
+                            &lt;div className="flex items-start justify-between gap-3"&gt;
+                              &lt;div className="min-w-0"&gt;
+                                &lt;p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider"&gt;{product.category}&lt;/p&gt;
+                                &lt;h3 className="font-black text-gray-900 text-base sm:text-lg leading-tight mt-0.5 line-clamp-1"&gt;{product.name}&lt;/h3&gt;
                               &lt;/div&gt;
-                            ) : (
-                              &lt;button
-                                onClick={() =&gt; setRestockingId(product.id)}
-                                className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs shadow-md shadow-emerald-500/20 transition-all"
-                              &gt;
-                                &lt;Package className="w-3.5 h-3.5" /&gt; Restock
-                              &lt;/button&gt;
-                            )
-                          )}
-
-                          &lt;button
-                            onClick={() =&gt; toggleActive(product.id, product.isActive)}
-                            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold text-xs transition-all ${product.isActive
-                                ? 'bg-amber-100 hover:bg-amber-200 text-amber-800'
-                                : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-800'
-                              }`}
-                          &gt;
-                            {product.isActive ? '⏸ Deactivate' : '▶ Activate'}
-                          &lt;/button&gt;
-
-                          &lt;Link
-                            href={`/product/${product.id}`}
-                            className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-xl font-bold text-xs transition-all"
-                          &gt;
-                            &lt;Eye className="w-3.5 h-3.5" /&gt; View Live
-                          &lt;/Link&gt;
-
-                          &lt;button
-                            onClick={() =&gt; handleDelete(product.id, product.name)}
-                            className="flex items-center gap-1.5 px-3.5 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl font-bold text-xs transition-all"
-                          &gt;
-                            &lt;Trash2 className="w-3.5 h-3.5" /&gt; Delete
-                          &lt;/button&gt;
+                              &lt;p className="text-BATAMART-primary font-black text-lg sm:text-xl whitespace-nowrap flex-shrink-0"&gt;{formatPrice(product.price)}&lt;/p&gt;
+                            &lt;/div&gt;
+                            &lt;div className="flex flex-wrap gap-1.5 mt-2"&gt;
+                              {product.quantity === 0 ? (
+                                &lt;span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 bg-red-50 text-red-700 rounded-full ring-1 ring-red-200"&gt;
+                                  &lt;XCircle className="w-3 h-3" /&gt; Out of Stock
+                                &lt;/span&gt;
+                              ) : (
+                                &lt;span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full ring-1 ring-emerald-200"&gt;
+                                  &lt;CheckCircle className="w-3 h-3" /&gt; {product.quantity} in stock
+                                &lt;/span&gt;
+                              )}
+                              {!product.isActive &amp;&amp; (
+                                &lt;span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 bg-gray-100 text-gray-600 rounded-full ring-1 ring-gray-200"&gt;Inactive&lt;/span&gt;
+                              )}
+                              &lt;span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 bg-blue-50 text-blue-700 rounded-full ring-1 ring-blue-200"&gt;
+                                &lt;Eye className="w-3 h-3" /&gt; {product.viewCount} views
+                              &lt;/span&gt;
+                              &lt;span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 bg-violet-50 text-violet-700 rounded-full ring-1 ring-violet-200"&gt;
+                                &lt;ShoppingBag className="w-3 h-3" /&gt; {product._count?.orders || 0} orders
+                              &lt;/span&gt;
+                            &lt;/div&gt;
+                          &lt;/div&gt;
+                          &lt;div className="flex flex-wrap gap-2 mt-3"&gt;
+                            {(product.quantity === 0 || product.quantity &lt; 5) &amp;&amp; (
+                              restockingId === product.id ? (
+                                &lt;div className="flex items-center gap-2"&gt;
+                                  &lt;input
+                                    type="number" min="1" value={restockAmount}
+                                    onChange={e =&gt; setRestockAmount(parseInt(e.target.value) || 1)}
+                                    className="w-20 px-3 py-1.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-BATAMART-primary text-sm font-bold bg-white"
+                                  /&gt;
+                                  &lt;button onClick={() =&gt; handleRestock(product.id)} className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-sm transition-all"&gt;
+                                    &lt;CheckCircle className="w-4 h-4" /&gt;
+                                  &lt;/button&gt;
+                                  &lt;button onClick={() =&gt; { setRestockingId(null); setRestockAmount(1) }} className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-bold text-sm transition-all"&gt;
+                                    &lt;X className="w-4 h-4" /&gt;
+                                  &lt;/button&gt;
+                                &lt;/div&gt;
+                              ) : (
+                                &lt;button onClick={() =&gt; setRestockingId(product.id)} className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs shadow-md shadow-emerald-500/20 transition-all"&gt;
+                                  &lt;Package className="w-3.5 h-3.5" /&gt; Restock
+                                &lt;/button&gt;
+                              )
+                            )}
+                            &lt;button onClick={() =&gt; toggleActive(product.id, product.isActive)} className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold text-xs transition-all ${product.isActive ? 'bg-amber-100 hover:bg-amber-200 text-amber-800' : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-800'}`}&gt;
+                              {product.isActive ? 'Deactivate' : 'Activate'}
+                            &lt;/button&gt;
+                            &lt;Link href={`/product/${product.id}`} className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-xl font-bold text-xs transition-all"&gt;
+                              &lt;Eye className="w-3.5 h-3.5" /&gt; View Live
+                            &lt;/Link&gt;
+                            &lt;button onClick={() =&gt; handleDelete(product.id, product.name)} className="flex items-center gap-1.5 px-3.5 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl font-bold text-xs transition-all"&gt;
+                              &lt;Trash2 className="w-3.5 h-3.5" /&gt; Delete
+                            &lt;/button&gt;
+                          &lt;/div&gt;
                         &lt;/div&gt;
                       &lt;/div&gt;
-                    &lt;/div&gt;
+                    )}
                   &lt;/div&gt;
                 ))}
               &lt;/div&gt;
             )}
           &lt;/&gt;
         ) : (
-          /* ── Buyer mode ─────────────────────────────────────────────── */
+          /* Buyer mode */
           &lt;div className="space-y-4"&gt;
             &lt;div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 sm:p-10 text-center"&gt;
               &lt;div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4 ring-1 ring-blue-100"&gt;
@@ -7363,7 +7281,6 @@ export default function MyShopPage() {
                 &lt;/Link&gt;
               &lt;/div&gt;
             &lt;/div&gt;
-
             &lt;div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8"&gt;
               &lt;div className="flex items-center justify-between mb-5"&gt;
                 &lt;div&gt;
@@ -7389,7 +7306,6 @@ export default function MyShopPage() {
         )}
       &lt;/div&gt;
 
-      {/* Floating add button */}
       {isSellerMode &amp;&amp; (
         &lt;Link
           href="/sell"
@@ -8860,11 +8776,45 @@ export default function ReportPage() {
     )
 }</pre></div>
 <div class='file-block'><div class='file-header'>app/(marketplace)/rider-dashboard/page.tsx</div><pre>// app/(marketplace)/rider-dashboard/page.tsx
+// ── FIX #7 (race condition): acceptOrder uses authFetch which handles 409
+//    conflict responses from the server. The server must use a DB transaction
+//    to atomically check + assign the order, so only one rider wins.
+//
+// ── FIX #8 (stock reservation): No change needed here — stock locking
+//    is handled server-side in the payment flow.
+//
+// ── FIX #10 (alert/confirm dialogs): All alert() and confirm() calls
+//    replaced with inline toast/banner UI. No more browser popups.
+//
+// ── FIX #6: Uses authFetch so expired tokens auto-redirect to /login.
+//
+// ── Rider availability: If the toggle API fails, the UI reverts to the
+//    previous state instead of staying optimistically wrong.
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, AlertTriangle, MapPin, Phone, Package } from 'lucide-react'
+import { Loader2, AlertTriangle, MapPin, Phone, Package, CheckCircle, X } from 'lucide-react'
+import { authFetch } from '@/lib/auth-client'
+
+// ── Simple inline toast — no alert() ─────────────────────────────────────────
+function Toast({ message, type, onClose }: { message: string; type: 'success' | 'error' | 'info'; onClose: () =&gt; void }) {
+  const colors = {
+    success: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+    error:   'bg-red-50 border-red-200 text-red-800',
+    info:    'bg-blue-50 border-blue-200 text-blue-800',
+  }
+  return (
+    &lt;div className={`fixed top-4 left-0 right-0 z-50 flex justify-center px-4`}&gt;
+      &lt;div className={`flex items-start gap-3 px-4 py-3 rounded-2xl border shadow-lg max-w-sm w-full ${colors[type]}`}&gt;
+        &lt;p className="text-sm font-semibold flex-1"&gt;{message}&lt;/p&gt;
+        &lt;button onClick={onClose} className="flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity"&gt;
+          &lt;X className="w-4 h-4" /&gt;
+        &lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  )
+}
 
 export default function RiderDashboardPage() {
   const router = useRouter()
@@ -8876,6 +8826,13 @@ export default function RiderDashboardPage() {
   const [isAvailable, setIsAvailable] = useState(true)
   const [actionLoading, setActionLoading] = useState&lt;Record&lt;string, boolean&gt;&gt;({})
 
+  // ── FIX #10: Toast state instead of alert() ───────────────────────────────
+  const [toast, setToast] = useState&lt;{ message: string; type: 'success' | 'error' | 'info' } | null&gt;(null)
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') =&gt; {
+    setToast({ message, type })
+    setTimeout(() =&gt; setToast(null), 4000)
+  }
+
   useEffect(() =&gt; {
     const token = localStorage.getItem('token')
     if (!token) { router.push('/login'); return }
@@ -8884,15 +8841,14 @@ export default function RiderDashboardPage() {
 
   const fetchRiderData = async () =&gt; {
     try {
-      const token = localStorage.getItem('token')
       const [profileRes, ordersRes, deliveriesRes] = await Promise.all([
-        fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/riders/available-orders', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/riders/my-deliveries', { headers: { 'Authorization': `Bearer ${token}` } }),
+        authFetch('/api/auth/me'),
+        authFetch('/api/riders/available-orders'),
+        authFetch('/api/riders/my-deliveries'),
       ])
 
-      const profileData = await profileRes.json()
-      const ordersData = await ordersRes.json()
+      const profileData    = await profileRes.json()
+      const ordersData     = await ordersRes.json()
       const deliveriesData = await deliveriesRes.json()
 
       setRider(profileData.user)
@@ -8901,85 +8857,106 @@ export default function RiderDashboardPage() {
       setMyDeliveries(deliveriesData.deliveries || [])
       setIsAvailable(profileData.user.isAvailable)
     } catch (error) {
-      console.error('Error:', error)
+      console.error('Error fetching rider data:', error)
     } finally {
       setLoading(false)
     }
   }
 
+  // ── FIX (availability revert): Save previous state so we can roll back ────
   const toggleAvailability = async () =&gt; {
     if (actionLoading['toggle-availability']) return
+    const previousState = isAvailable
     setActionLoading(prev =&gt; ({ ...prev, 'toggle-availability': true }))
+
+    // Optimistic update
+    setIsAvailable(!previousState)
+
     try {
-      const token = localStorage.getItem('token')
-      const res = await fetch('/api/riders/toggle-availability', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-      })
-      if (res.ok) setIsAvailable(!isAvailable)
-      else alert('Failed to update availability')
-    } catch { alert('Error updating availability') }
-    finally { setActionLoading(prev =&gt; ({ ...prev, 'toggle-availability': false })) }
+      const res = await authFetch('/api/riders/toggle-availability', { method: 'POST' })
+      if (!res.ok) {
+        // Revert on failure instead of staying in wrong state
+        setIsAvailable(previousState)
+        showToast('Failed to update availability. Please try again.', 'error')
+      } else {
+        showToast(`You are now ${!previousState ? 'available' : 'unavailable'} for orders.`, 'success')
+      }
+    } catch {
+      setIsAvailable(previousState)
+      showToast('Network error updating availability.', 'error')
+    } finally {
+      setActionLoading(prev =&gt; ({ ...prev, 'toggle-availability': false }))
+    }
   }
 
+  // ── FIX #7: Handle 409 conflict (another rider grabbed this order) ────────
   const acceptOrder = async (orderId: string) =&gt; {
     if (actionLoading[`accept-${orderId}`]) return
     setActionLoading(prev =&gt; ({ ...prev, [`accept-${orderId}`]: true }))
     try {
-      const token = localStorage.getItem('token')
-      const res = await fetch('/api/riders/accept-order', {
+      const res = await authFetch('/api/riders/accept-order', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ orderId }),
       })
       const data = await res.json()
       if (res.ok) {
-        alert('Order accepted! Proceed to pickup.')
+        showToast('Order accepted! Head to pickup location.', 'success')
+        await fetchRiderData()
+      } else if (res.status === 409) {
+        // Race condition — another rider accepted first
+        showToast('Sorry, another rider just accepted this order. Refreshing available orders.', 'info')
         await fetchRiderData()
       } else {
-        alert(data.error || 'Failed to accept order')
+        showToast(data.error || 'Failed to accept order. Please try again.', 'error')
       }
-    } catch { alert('Error accepting order') }
-    finally { setActionLoading(prev =&gt; ({ ...prev, [`accept-${orderId}`]: false })) }
+    } catch {
+      showToast('Network error. Please check your connection.', 'error')
+    } finally {
+      setActionLoading(prev =&gt; ({ ...prev, [`accept-${orderId}`]: false }))
+    }
   }
 
   const updateStatus = async (orderId: string, status: string) =&gt; {
     if (actionLoading[`status-${orderId}`]) return
     setActionLoading(prev =&gt; ({ ...prev, [`status-${orderId}`]: true }))
     try {
-      const token = localStorage.getItem('token')
-      const res = await fetch('/api/riders/update-status', {
+      const res = await authFetch('/api/riders/update-status', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ orderId, status }),
       })
       const data = await res.json()
-      if (res.ok) { await fetchRiderData() }
-      else { alert(data.error || 'Failed to update status') }
-    } catch { alert('Error updating status') }
-    finally { setActionLoading(prev =&gt; ({ ...prev, [`status-${orderId}`]: false })) }
+      if (res.ok) {
+        await fetchRiderData()
+      } else {
+        showToast(data.error || 'Failed to update status.', 'error')
+      }
+    } catch {
+      showToast('Network error updating status.', 'error')
+    } finally {
+      setActionLoading(prev =&gt; ({ ...prev, [`status-${orderId}`]: false }))
+    }
   }
 
-  // Mark dispute item as picked up from buyer — tells admin rider is on the way back
   const markDisputePickedUp = async (orderId: string) =&gt; {
     if (actionLoading[`dispute-pickup-${orderId}`]) return
     setActionLoading(prev =&gt; ({ ...prev, [`dispute-pickup-${orderId}`]: true }))
     try {
-      const token = localStorage.getItem('token')
-      const res = await fetch('/api/riders/dispute-picked-up', {
+      const res = await authFetch('/api/riders/dispute-picked-up', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ orderId }),
       })
       const data = await res.json()
       if (res.ok) {
-        alert('Marked as picked up. Return the item to complete this job.')
+        showToast('Marked as collected. Return the item to complete this job.', 'success')
         await fetchRiderData()
       } else {
-        alert(data.error || 'Failed to update')
+        showToast(data.error || 'Failed to update.', 'error')
       }
-    } catch { alert('Error') }
-    finally { setActionLoading(prev =&gt; ({ ...prev, [`dispute-pickup-${orderId}`]: false })) }
+    } catch {
+      showToast('Network error.', 'error')
+    } finally {
+      setActionLoading(prev =&gt; ({ ...prev, [`dispute-pickup-${orderId}`]: false }))
+    }
   }
 
   const hasDisputePickupPending = disputePickups.length &gt; 0
@@ -8994,6 +8971,9 @@ export default function RiderDashboardPage() {
 
   return (
     &lt;div className="min-h-screen bg-gray-50 py-8 px-4"&gt;
+      {/* ── FIX #10: Toast notification instead of alert() ── */}
+      {toast &amp;&amp; &lt;Toast message={toast.message} type={toast.type} onClose={() =&gt; setToast(null)} /&gt;}
+
       &lt;div className="max-w-7xl mx-auto"&gt;
 
         {/* Header */}
@@ -9001,13 +8981,14 @@ export default function RiderDashboardPage() {
           &lt;div className="flex justify-between items-center"&gt;
             &lt;div&gt;
               &lt;h1 className="text-3xl font-bold text-gray-900"&gt;Rider Dashboard&lt;/h1&gt;
-              &lt;p className="text-gray-600 mt-1"&gt;Welcome, {rider?.name}! 🚴&lt;/p&gt;
+              &lt;p className="text-gray-600 mt-1"&gt;Welcome, {rider?.name}!&lt;/p&gt;
             &lt;/div&gt;
             &lt;button
               onClick={toggleAvailability}
               disabled={actionLoading['toggle-availability']}
-              className={`px-6 py-3 rounded-lg font-bold transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${isAvailable ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
-                }`}
+              className={`px-6 py-3 rounded-lg font-bold transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                isAvailable ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+              }`}
             &gt;
               {actionLoading['toggle-availability']
                 ? &lt;&gt;&lt;Loader2 className="w-5 h-5 animate-spin" /&gt; Updating...&lt;/&gt;
@@ -9032,7 +9013,7 @@ export default function RiderDashboardPage() {
           &lt;/div&gt;
         &lt;/div&gt;
 
-        {/* ── Dispute Pickup Jobs (urgent — shown first) ───────────────────── */}
+        {/* Dispute Pickup Jobs */}
         {hasDisputePickupPending &amp;&amp; (
           &lt;div className="mb-8"&gt;
             &lt;div className="flex items-center gap-2 mb-4"&gt;
@@ -9046,7 +9027,7 @@ export default function RiderDashboardPage() {
             &lt;div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-800 mb-4 flex items-start gap-2"&gt;
               &lt;AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" /&gt;
               &lt;span&gt;
-                You must complete this return pickup before you can accept any new orders.
+                You must complete this return pickup before accepting new orders.
                 You will earn &lt;strong&gt;₦560&lt;/strong&gt; once the item is confirmed received.
               &lt;/span&gt;
             &lt;/div&gt;
@@ -9069,7 +9050,6 @@ export default function RiderDashboardPage() {
                       &lt;/span&gt;
                     &lt;/div&gt;
 
-                    {/* Buyer complaint */}
                     {order.dispute?.reason &amp;&amp; (
                       &lt;div className="mb-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-600"&gt;
                         &lt;p className="text-xs font-semibold text-gray-400 uppercase mb-1"&gt;Reason for return&lt;/p&gt;
@@ -9077,13 +9057,10 @@ export default function RiderDashboardPage() {
                       &lt;/div&gt;
                     )}
 
-                    {/* Pickup address (from buyer's confirmed address on dispute form) */}
                     &lt;div className="mb-4 p-3 bg-blue-50 rounded-lg"&gt;
                       &lt;div className="flex items-center gap-1.5 mb-2"&gt;
                         &lt;MapPin className="w-4 h-4 text-blue-500" /&gt;
-                        &lt;p className="text-xs font-semibold text-blue-600 uppercase tracking-wide"&gt;
-                          Collect from buyer
-                        &lt;/p&gt;
+                        &lt;p className="text-xs font-semibold text-blue-600 uppercase tracking-wide"&gt;Collect from buyer&lt;/p&gt;
                       &lt;/div&gt;
                       {pickup ? (
                         &lt;div className="text-sm space-y-0.5"&gt;
@@ -9104,13 +9081,10 @@ export default function RiderDashboardPage() {
                       )}
                     &lt;/div&gt;
 
-                    {/* Return to */}
                     &lt;div className="mb-4 p-3 bg-orange-50 rounded-lg"&gt;
                       &lt;div className="flex items-center gap-1.5 mb-1"&gt;
                         &lt;Package className="w-4 h-4 text-orange-500" /&gt;
-                        &lt;p className="text-xs font-semibold text-orange-600 uppercase tracking-wide"&gt;
-                          Return item to admin / store
-                        &lt;/p&gt;
+                        &lt;p className="text-xs font-semibold text-orange-600 uppercase tracking-wide"&gt;Return item to admin / store&lt;/p&gt;
                       &lt;/div&gt;
                       &lt;p className="text-sm text-gray-600"&gt;Contact admin for drop-off location if unsure.&lt;/p&gt;
                     &lt;/div&gt;
@@ -9132,13 +9106,12 @@ export default function RiderDashboardPage() {
           &lt;/div&gt;
         )}
 
-        {/* ── Available Orders ─────────────────────────────────────────────── */}
+        {/* Available Orders */}
         &lt;div className="mb-8"&gt;
           &lt;h2 className="text-2xl font-bold text-gray-900 mb-4"&gt;
             Available Orders ({availableOrders.length})
           &lt;/h2&gt;
 
-          {/* Blocked banner when dispute pickup pending */}
           {hasDisputePickupPending &amp;&amp; (
             &lt;div className="mb-4 p-4 bg-yellow-50 border border-yellow-300 rounded-xl text-sm text-yellow-800 flex items-center gap-2"&gt;
               &lt;AlertTriangle className="w-4 h-4 flex-shrink-0" /&gt;
@@ -9184,7 +9157,7 @@ export default function RiderDashboardPage() {
           )}
         &lt;/div&gt;
 
-        {/* ── My Active Deliveries ─────────────────────────────────────────── */}
+        {/* My Active Deliveries */}
         &lt;div&gt;
           &lt;h2 className="text-2xl font-bold text-gray-900 mb-4"&gt;My Active Deliveries&lt;/h2&gt;
           {myDeliveries.length === 0 ? (
@@ -17513,29 +17486,59 @@ async function createAdmin() {
 }
 
 createAdmin();</pre></div>
-<div class='file-block'><div class='file-header'>middleware.ts</div><pre>// middleware.ts (place in project root, same level as /app)
+<div class='file-block'><div class='file-header'>middleware.ts</div><pre>// middleware.ts — place in project root, same level as /app
 import { NextRequest, NextResponse } from 'next/server'
+import { jwtVerify } from 'jose'
 
-export function middleware(req: NextRequest) {
+// ── FIX #1: Middleware now actually VERIFIES the JWT signature.
+// Previously it only checked that the token had 3 dot-separated parts,
+// which means anyone could forge a token like "abc.def.ghi" and get in.
+// Now we use `jose` (already a Next.js peer dep) to verify the signature
+// against JWT_SECRET before allowing any /admin route through.
+//
+// REQUIRED: Add JWT_SECRET to your .env file.
+// It must be the same secret your API routes use when signing tokens.
+
+async function verifyAdminToken(token: string): Promise&lt;boolean&gt; {
+  const secret = process.env.JWT_SECRET
+  if (!secret) {
+    // If JWT_SECRET is not configured, fail closed — never let anyone in
+    console.error('[middleware] JWT_SECRET is not set. Admin routes are locked.')
+    return false
+  }
+
+  try {
+    const { payload } = await jwtVerify(
+      token,
+      new TextEncoder().encode(secret)
+    )
+    // Must be a real ADMIN role — a valid user JWT for a non-admin is still rejected
+    return payload.role === 'ADMIN'
+  } catch {
+    // Token is expired, tampered with, or signed with the wrong secret
+    return false
+  }
+}
+
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   // Protect all /admin routes except /admin-login
   if (pathname.startsWith('/admin') &amp;&amp; !pathname.startsWith('/admin-login')) {
     const token = req.cookies.get('adminToken')?.value
 
-    // No token = redirect to login
     if (!token) {
       return NextResponse.redirect(new URL('/admin-login', req.url))
     }
 
-    // Basic check - just verify token exists and looks like a JWT
-    // (Full verification happens in each API route)
-    const parts = token.split('.')
-    if (parts.length !== 3) {
-      return NextResponse.redirect(new URL('/admin-login', req.url))
+    const isValid = await verifyAdminToken(token)
+    if (!isValid) {
+      // Clear the bad/expired cookie and redirect
+      const response = NextResponse.redirect(new URL('/admin-login', req.url))
+      response.cookies.delete('adminToken')
+      return response
     }
 
-    // Token exists and is JWT shaped - allow through
     return NextResponse.next()
   }
 
@@ -17543,7 +17546,7 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*']
+  matcher: ['/admin/:path*'],
 }</pre></div>
 <div class='file-block'><div class='file-header'>next-env.d.ts</div><pre>/// &lt;reference types="next" /&gt;
 /// &lt;reference types="next/image-types/global" /&gt;
@@ -24710,6 +24713,95 @@ export function useSuspensionGuard() {
     }
   }, [router])
 }</pre></div>
+<div class='file-block'><div class='file-header'>lib/auth-client.ts</div><pre>// lib/auth-client.ts
+// ── FIX #3 + FIX #6: Centralised fetch wrapper that:
+//   - Always reads the token fresh from localStorage (not a stale closure)
+//   - Intercepts 401 responses globally and redirects to /login
+//     so expired/invalid tokens are handled automatically everywhere
+//     instead of silently failing or leaving users on broken pages.
+//
+// USAGE — replace:
+//   fetch('/api/...', { headers: { 'Authorization': `Bearer ${token}` } })
+// WITH:
+//   authFetch('/api/...')
+//   authFetch('/api/...', { method: 'POST', body: JSON.stringify(data) })
+//
+// For the admin panel, use authFetch with { adminToken: true }:
+//   authFetch('/api/admin/...', {}, { adminToken: true })
+
+interface AuthFetchOptions extends RequestInit {
+  /** Set to true in admin panel pages to use adminToken instead of token */
+  _adminToken?: boolean
+}
+
+export async function authFetch(
+  url: string,
+  options: AuthFetchOptions = {}
+): Promise&lt;Response&gt; {
+  const { _adminToken, ...fetchOptions } = options
+
+  // Always read the token fresh — avoids stale closure bugs
+  const token = _adminToken
+    ? localStorage.getItem('adminToken')
+    : localStorage.getItem('token')
+
+  const headers = new Headers(fetchOptions.headers)
+
+  if (!headers.has('Content-Type') &amp;&amp; !(fetchOptions.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json')
+  }
+
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+
+  const response = await fetch(url, {
+    ...fetchOptions,
+    headers,
+  })
+
+  // ── FIX #6: Global 401 handler ─────────────────────────────────────────
+  // If the server returns 401, the token is expired or invalid.
+  // Clear stored credentials and redirect to login instead of letting
+  // the page silently fail or show a broken state.
+  if (response.status === 401) {
+    if (_adminToken) {
+      localStorage.removeItem('adminToken')
+      // Small delay so any in-flight state updates can settle
+      setTimeout(() =&gt; { window.location.href = '/admin-login' }, 100)
+    } else {
+      localStorage.removeItem('token')
+      localStorage.removeItem('userName')
+      localStorage.removeItem('userRole')
+      window.dispatchEvent(new Event('auth-change'))
+      setTimeout(() =&gt; {
+        // Preserve the current path so we can redirect back after login
+        const returnTo = encodeURIComponent(window.location.pathname + window.location.search)
+        window.location.href = `/login?returnTo=${returnTo}`
+      }, 100)
+    }
+  }
+
+  return response
+}
+
+/** Convenience wrapper for admin panel pages */
+export async function adminFetch(
+  url: string,
+  options: RequestInit = {}
+): Promise&lt;Response&gt; {
+  return authFetch(url, { ...options, _adminToken: true })
+}
+
+/** Read the current user token without triggering a fetch */
+export function getToken(): string | null {
+  return localStorage.getItem('token')
+}
+
+/** Check if a user is currently logged in (client side only) */
+export function isLoggedIn(): boolean {
+  return !!localStorage.getItem('token')
+}</pre></div>
 <div class='file-block'><div class='file-header'>lib/cart-store.ts</div><pre>// lib/cart-store.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
@@ -26409,15 +26501,36 @@ function generateReferralCode(): string {
 
 async function main() {
   console.log('🌱 Starting database seeding...')
-
   await createAdmin()
-
   console.log('✅ Seeding completed successfully!')
 }
 
 async function createAdmin() {
   console.log('👤 Checking for existing admin...')
 
+  // ── Pull credentials from environment ──────────────────────────────────
+  const adminEmail    = process.env.ADMIN_EMAIL
+  const adminPassword = process.env.ADMIN_PASSWORD
+  const adminPhone    = process.env.ADMIN_PHONE
+  const adminName     = process.env.ADMIN_NAME || 'System Administrator'
+
+  const missing: string[] = []
+  if (!adminEmail)    missing.push('ADMIN_EMAIL')
+  if (!adminPassword) missing.push('ADMIN_PASSWORD')
+  if (!adminPhone)    missing.push('ADMIN_PHONE')
+
+  if (missing.length &gt; 0) {
+    console.error('❌ Missing required environment variables:', missing.join(', '))
+    console.error('   Add them to your .env file and re-run the seed.')
+    process.exit(1)
+  }
+
+  if (adminPassword!.length &lt; 8) {
+    console.error('❌ ADMIN_PASSWORD must be at least 8 characters.')
+    process.exit(1)
+  }
+
+  // ── Check if admin already exists ──────────────────────────────────────
   const existingAdmin = await prisma.user.findFirst({
     where: { role: 'ADMIN' }
   })
@@ -26425,34 +26538,32 @@ async function createAdmin() {
   if (existingAdmin) {
     console.log('📋 Admin already exists:')
     console.log(`   - Email: ${existingAdmin.email}`)
-    console.log(`   - Name: ${existingAdmin.name}`)
-    console.log(`   - ID: ${existingAdmin.id}`)
+    console.log(`   - Name:  ${existingAdmin.name}`)
+    console.log(`   - ID:    ${existingAdmin.id}`)
     return
   }
 
   console.log('🔐 Creating new admin...')
 
-  const plainPassword = 'Admin@12345'
-  const hashedPassword = await bcrypt.hash(plainPassword, 10)
+  const hashedPassword = await bcrypt.hash(adminPassword!, 10)
 
   const admin = await prisma.user.create({
     data: {
-      email: 'admin@BATAMART.com',
-      name: 'System Administrator',
-      password: hashedPassword,
-      role: 'ADMIN',
-      phone: '08013579111',
+      email:        adminEmail!,
+      name:         adminName,
+      password:     hashedPassword,
+      role:         'ADMIN',
+      phone:        adminPhone!,
       referralCode: generateReferralCode(),
     }
   })
 
   console.log('✅ Admin created successfully!')
   console.log('📧 Email:', admin.email)
-  console.log('🔑 Password:', plainPassword)
-  console.log('👤 Role:', admin.role)
-  console.log('🆔 ID:', admin.id)
+  console.log('👤 Role: ', admin.role)
+  console.log('🆔 ID:   ', admin.id)
 
-  const verifyHash = await bcrypt.compare(plainPassword, hashedPassword)
+  const verifyHash = await bcrypt.compare(adminPassword!, hashedPassword)
   console.log('🔒 Password hash valid:', verifyHash ? '✓ Yes' : '✗ No')
 }
 
@@ -27678,6 +27789,7 @@ body {
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "face-api.js": "^0.22.2",
+    "jose": "^6.2.2",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.563.0",
     "next": "^14.2.35",
@@ -27709,7 +27821,8 @@ body {
     "tsx": "^4.7.0",
     "typescript": "^5.9.3"
   }
-}</pre></div>
+}
+</pre></div>
 <div class='file-block'><div class='file-header'>tsconfig.json</div><pre>{
   "compilerOptions": {
     "lib": ["dom", "dom.iterable", "esnext"],

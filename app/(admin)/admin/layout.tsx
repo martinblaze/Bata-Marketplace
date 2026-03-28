@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   LayoutDashboard,
   Users,
@@ -77,12 +77,14 @@ export default function AdminLayout({
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  // FIX: Close sidebar whenever the route changes (mobile navigation)
+  useEffect(() => {
+    setSidebarOpen(false)
+  }, [pathname])
+
   const handleLogout = () => {
-    // Clear localStorage
     localStorage.removeItem('adminToken')
-    // Clear cookie (needed for middleware protection)
     document.cookie = 'adminToken=; path=/; max-age=0; SameSite=Strict'
-    // Redirect to login
     router.push('/admin-login')
   }
 
