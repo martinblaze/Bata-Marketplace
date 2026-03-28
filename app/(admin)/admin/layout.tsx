@@ -9,27 +9,39 @@ import {
 } from 'lucide-react'
 
 const adminRoutes = [
-  { label: 'Dashboard', icon: LayoutDashboard, href: '/admin', color: 'text-blue-400' },
-  { label: 'Users', icon: Users, href: '/admin/users', color: 'text-violet-400' },
-  { label: 'Products', icon: Package, href: '/admin/products', color: 'text-green-400' },
-  { label: 'Disputes', icon: AlertTriangle, href: '/admin/disputes', color: 'text-orange-400' },
-  { label: 'Reports', icon: FileText, href: '/admin/reports', color: 'text-red-400' },
-  { label: 'Revenue', icon: DollarSign, href: '/admin/revenue', color: 'text-emerald-400' },
-  { label: 'Analytics', icon: BarChart3, href: '/admin/analytics', color: 'text-cyan-400' },
-  { label: 'Support', icon: MessageSquare, href: '/admin/support', color: 'text-pink-400' },
+  { label: 'Dashboard', icon: LayoutDashboard, href: '/admin',           color: 'text-blue-400' },
+  { label: 'Users',     icon: Users,           href: '/admin/users',     color: 'text-violet-400' },
+  { label: 'Products',  icon: Package,         href: '/admin/products',  color: 'text-green-400' },
+  { label: 'Disputes',  icon: AlertTriangle,   href: '/admin/disputes',  color: 'text-orange-400' },
+  { label: 'Reports',   icon: FileText,        href: '/admin/reports',   color: 'text-red-400' },
+  { label: 'Revenue',   icon: DollarSign,      href: '/admin/revenue',   color: 'text-emerald-400' },
+  { label: 'Analytics', icon: BarChart3,       href: '/admin/analytics', color: 'text-cyan-400' },
+  { label: 'Support',   icon: MessageSquare,   href: '/admin/support',   color: 'text-pink-400' },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
-  // ✅ THE FIX: close sidebar whenever the route changes
-  // Next.js App Router keeps layouts mounted across navigations,
-  // so clicking a Link won't reset component state automatically.
+  // Detect mobile
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
+  // Close sidebar on route change
   useEffect(() => {
     setSidebarOpen(false)
   }, [pathname])
+
+  const handleNavClick = (href: string) => {
+    setSidebarOpen(false)
+    router.push(href)
+  }
 
   const handleLogout = () => {
     localStorage.removeItem('adminToken')
@@ -37,45 +49,50 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.push('/admin-login')
   }
 
+  // On mobile: controlled by sidebarOpen
+  // On desktop: always visible (translateX(0))
+  const sidebarTransform = isMobile
+    ? sidebarOpen ? 'translateX(0)' : 'translateX(-100%)'
+    : 'translateX(0)'
+
   return (
     <div className="min-h-screen bg-gray-900">
+
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between h-16 px-4 bg-gray-800 border-b border-gray-700">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between h-16 px-4 bg-gray-800 border-b border-gray-700">
         <Link href="/admin" className="flex items-center gap-2">
           <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-lg">B</span>
           </div>
-          <div>
-            <h1 className="text-lg font-bold text-white">BATAMART Admin</h1>
-          </div>
+          <h1 className="text-lg font-bold text-white">BATAMART Admin</h1>
         </Link>
         <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
+          onClick={() => setSidebarOpen(prev => !prev)}
           className="text-gray-400 hover:text-white p-2"
         >
           {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
       </div>
 
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
+      {/* Overlay */}
+      {isMobile && sidebarOpen && (
         <div
-          className="fixed inset-0 z-30 bg-gray-900/80 md:hidden"
+          className="fixed inset-0 z-[60] bg-gray-900/80"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — inline style controls transform to avoid Tailwind purge issues */}
       <div
-        className={`
-          fixed top-0 left-0 z-40 h-full w-64 bg-gray-800 border-r border-gray-700
-          transform transition-transform duration-300 ease-in-out
-          md:translate-x-0
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        `}
+        style={{
+          transform: sidebarTransform,
+          transition: 'transform 300ms ease-in-out',
+        }}
+        className="fixed top-0 left-0 z-[70] h-full w-64 bg-gray-800 border-r border-gray-700"
       >
         <div className="flex flex-col h-full">
-          {/* Logo */}
+
+          {/* Logo — desktop */}
           <div className="hidden md:flex items-center h-16 px-4 border-b border-gray-700">
             <Link href="/admin" className="flex items-center gap-2">
               <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center">
@@ -95,20 +112,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               const isActive = pathname === route.href
 
               return (
-                <Link
+                <button
                   key={route.href}
-                  href={route.href}
+                  onClick={() => handleNavClick(route.href)}
                   className={`
-                    group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all
+                    w-full group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all text-left
                     ${isActive
                       ? 'bg-gray-700 text-white shadow-lg'
                       : 'text-gray-400 hover:bg-gray-700/50 hover:text-white'
                     }
                   `}
                 >
-                  <Icon className={`mr-3 h-5 w-5 ${isActive ? route.color : 'text-gray-500 group-hover:text-gray-400'}`} />
+                  <Icon className={`mr-3 h-5 w-5 shrink-0 ${isActive ? route.color : 'text-gray-500 group-hover:text-gray-400'}`} />
                   {route.label}
-                </Link>
+                </button>
               )
             })}
           </nav>
@@ -123,6 +140,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               Logout
             </button>
           </div>
+
         </div>
       </div>
 
@@ -134,6 +152,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </main>
       </div>
+
     </div>
   )
 }
