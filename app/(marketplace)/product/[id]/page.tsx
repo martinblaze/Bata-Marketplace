@@ -3,8 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import RatingBadge from '@/components/reviews/RatingBadge';
 import ReviewList from '@/components/reviews/ReviewList';
 import { useCartStore } from '@/lib/cart-store';
 import {
@@ -289,8 +287,8 @@ export default function ProductPage() {
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
                     className={`flex-shrink-0 w-16 sm:w-20 h-16 sm:h-20 rounded-xl overflow-hidden border-2 transition-all duration-200 ${currentImageIndex === index
-                        ? 'border-BATAMART-primary shadow-md shadow-BATAMART-primary/20'
-                        : 'border-gray-200 hover:border-gray-300 opacity-70 hover:opacity-100'
+                      ? 'border-BATAMART-primary shadow-md shadow-BATAMART-primary/20'
+                      : 'border-gray-200 hover:border-gray-300 opacity-70 hover:opacity-100'
                       }`}
                   >
                     <img src={img} alt={`${product.name} ${index + 1}`} className="w-full h-full object-cover" />
