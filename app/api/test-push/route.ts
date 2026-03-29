@@ -4,14 +4,31 @@ import { prisma } from '@/lib/prisma'
 import { sendPushToUser } from '@/lib/push/sendPushNotification'
 
 export async function GET() {
-  const subscriptions = await prisma.pushSubscription.findMany({ take: 1 })
-  if (!subscriptions.length) return NextResponse.json({ error: 'No subscriptions found' })
-
-  await sendPushToUser(subscriptions[0].userId, {
-    title: 'BataMart Test 🔥',
-    message: 'Push notifications are working!',
-    url: '/orders'
+  // Get all unique users that have subscriptions
+  const subscriptions = await prisma.pushSubscription.findMany({
+    select: { userId: true },
+    distinct: ['userId'],
   })
 
-  return NextResponse.json({ success: true })
+  if (!subscriptions.length) {
+    return NextResponse.json({ error: 'No subscriptions in DB' })
+  }
+
+  const results = await Promise.allSettled(
+    subscriptions.map(({ userId }) =>
+      sendPushToUser(userId, {
+        title: 'BataMart 🔥',
+        message: 'Push notifications are live! You\'ll now get order and payment alerts.',
+        url: '/marketplace',
+      })
+    )
+  )
+
+  const succeeded = results.filter(r => r.status === 'fulfilled').length
+
+  return NextResponse.json({
+    total: subscriptions.length,
+    succeeded,
+    failed: subscriptions.length - succeeded,
+  })
 }
