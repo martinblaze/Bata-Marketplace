@@ -1,35 +1,30 @@
 // app/api/test-push/route.ts
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { sendPushToUser } from '@/lib/push/sendPushNotification'
+import webpush from 'web-push'
+
+webpush.setVapidDetails(
+  `mailto:${process.env.VAPID_EMAIL}`,
+  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+  process.env.VAPID_PRIVATE_KEY!
+)
 
 export async function GET() {
-  // Delete the two old FCM subscriptions from March 11 & 21
-  await prisma.pushSubscription.deleteMany({
-    where: {
-      createdAt: {
-        lt: new Date('2026-03-25T00:00:00.000Z')
-      }
-    }
-  })
-
-  // Now send to all remaining fresh subscriptions
-  const subscriptions = await prisma.pushSubscription.findMany({
-    select: { userId: true },
-    distinct: ['userId'],
-  })
+  const subscriptions = await prisma.pushSubscription.findMany()
 
   const results = await Promise.allSettled(
-    subscriptions.map(({ userId }) =>
-      sendPushToUser(userId, {
-        title: 'BataMart 🔥',
-        message: 'Push notifications are live!',
-        url: '/marketplace',
-      })
-    )
+    subscriptions.map(async (sub) => {
+      try {
+        await webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+          JSON.stringify({ title: 'BataMart Test 🔥', body: 'Working!', url: '/' })
+        )
+        return { ok: true, endpoint: sub.endpoint.slice(0, 50) }
+      } catch (err: any) {
+        return { ok: false, endpoint: sub.endpoint.slice(0, 50), status: err.statusCode, body: err.body }
+      }
+    })
   )
 
-  const succeeded = results.filter(r => r.status === 'fulfilled').length
-
-  return NextResponse.json({ total: subscriptions.length, succeeded })
+  return NextResponse.json(results.map(r => r.status === 'fulfilled' ? r.value : r.reason))
 }
