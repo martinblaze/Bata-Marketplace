@@ -31,6 +31,7 @@ export function useNotificationNudge() {
   const [permission, setPermission]     = useState<NotificationPermission>('default')
   const [isSupported, setIsSupported]   = useState(false)
   const [nudgeState, setNudgeState]     = useState<NudgeState>({ snoozeUntil: 0, grantedAt: 0 })
+  const [isLoggedIn, setIsLoggedIn]     = useState(false) // ✅ login gate
 
   // ── Initialise on mount ────────────────────────────────────────────────────
   useEffect(() => {
@@ -41,6 +42,11 @@ export function useNotificationNudge() {
       !('PushManager' in window)
     ) return
 
+    // ✅ Only proceed if user is logged in
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    setIsLoggedIn(true)
     setIsSupported(true)
     setPermission(Notification.permission)
     setNudgeState(loadState())
@@ -69,7 +75,6 @@ export function useNotificationNudge() {
     if (!isSupported) return
     if (permission === 'granted' && !isSubscribed) {
       // Was subscribed, now isn't — clear any "dismissed forever" state
-      const s = loadState()
       const updated = { snoozeUntil: 0, grantedAt: 0 }
       saveState(updated)
       setNudgeState(updated)
@@ -96,7 +101,9 @@ export function useNotificationNudge() {
   }, [])
 
   // ── Should we show a passive (background) nudge? ──────────────────────────
+  // ✅ Added isLoggedIn check — never show to logged-out users
   const shouldShowPassive = (
+    isLoggedIn &&
     isSupported &&
     !isSubscribed &&
     permission !== 'denied' &&
@@ -108,6 +115,7 @@ export function useNotificationNudge() {
   //    Same rules but we ignore the snooze — a fresh order is high motivation.
   //    The caller is responsible for only triggering this once per visit.
   const shouldShowContextual = (
+    isLoggedIn &&
     isSupported &&
     !isSubscribed &&
     permission !== 'denied' &&
